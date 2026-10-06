@@ -22,6 +22,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 TURSO_URL = os.environ.get("TURSO_URL", "libsql://genga-surfer-genga.aws-us-west-2.turso.io")
 TURSO_TOKEN = os.environ.get("TURSO_TOKEN", "")
 JWT_SECRET = os.environ.get("JWT_SECRET", "change-me-in-render-env")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "change-me-admin-pw")
 JWT_ALGO = "HS256"
 JWT_EXP_DAYS = 30
 
@@ -321,7 +322,7 @@ button{background:#ffcc00;color:#000;border:none;padding:4px 8px;cursor:pointer;
 select,input{padding:3px;background:#111;color:#fff;border:1px solid #555;}
 </style></head><body>
 <h1>ADMIN PANEL</h1>
-<p>Eingeloggt als {{ me.username }} ({{ me.role }}) | <a href="/admin/logout">Logout</a></p>
+<p><a href="/admin/logout">Logout</a></p>
 
 <h2>Benutzer ({{ users|length }})</h2>
 <table>
@@ -335,6 +336,7 @@ select,input{padding:3px;background:#111;color:#fff;border:1px solid #555;}
 <td>
   <form method="post" action="/admin/set_role" style="display:inline;">
     <input type="hidden" name="uid" value="{{ u.id }}">
+    <input type="hidden" name="player_token" value="{{ player_token }}">
     <select name="role">
       {% for r in ['user','supporter','admin','owner'] %}
         <option value="{{ r }}" {% if u.role == r %}selected{% endif %}>{{ r }}</option>
@@ -366,52 +368,44 @@ ADMIN_LOGIN_HTML = """
 form{background:#111;padding:30px;border:2px solid #ffcc00;border-radius:10px;display:flex;flex-direction:column;gap:12px;}
 input{padding:10px;background:#000;color:#fff;border:1px solid #555;}
 button{padding:10px;background:#ffcc00;color:#000;font-weight:bold;border:none;cursor:pointer;}
+.err{color:#f55;font-size:13px;}
 </style></head><body>
 <form method="post">
 <h2 style="color:#ffcc00;margin:0;">Admin Login</h2>
-<input name="email" placeholder="Email" required>
-<input name="password" type="password" placeholder="Passwort" required>
+<input name="password" type="password" placeholder="Admin Passwort" required autofocus>
+{% if error %}<div class="err">{{ error }}</div>{% endif %}
 <button type="submit">Einloggen</button>
 </form>
 </body></html>
 """
 
-def admin_user_from_cookie():
+def admin_authed():
     token = request.cookies.get("admin_token")
     if not token:
-        return None
-    payload = decode_token(token)
-    if not payload:
-        return None
-    if payload.get("role") not in ("admin", "owner"):
-        return None
-    conn = db()
-    cur = conn.cursor()
-    cur.execute("SELECT id,username,email,role,is_active FROM users WHERE id = ?", (payload["uid"],))
-    row = cur.fetchone()
-    conn.close()
-    if not row or not row[4]:
-        return None
-    return {"id": row[0], "username": row[1], "email": row[2], "role": row[3]}
+        return False
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
+        return payload.get("admin") is True
+    except Exception:
+        return False
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
-    me = admin_user_from_cookie()
-    if not me:
+    if not admin_authed():
         if request.method == "POST":
-            email = (request.form.get("email") or "").strip().lower()
             pw = request.form.get("password") or ""
-            conn = db()
-            cur = conn.cursor()
-            cur.execute("SELECT id,username,password_hash,role,is_active FROM users WHERE email = ? AND is_guest = 0", (email,))
-            row = cur.fetchone()
-            conn.close()
-            if row and row[4] and row[2] and check_password_hash(row[2], pw) and row[3] in ("admin", "owner"):
-                token = make_token(row[0], row[3])
+            if pw == ADMIN_PASSWORD:
+                token = jwt.encode(
+                    {"admin": True, "exp": datetime.utcnow() + timedelta(days=30)},
+                    JWT_SECRET, algorithm=JWT_ALGO
+                )
                 resp = make_response(redirect("/admin"))
-                resp.set_cookie("admin_token", token, httponly=True, secure=True, samesite="Lax", max_age=60*60*24*30)
+                resp.set_cookie("admin_token", token, httponly=True,
+                                secure=True, samesite="Lax",
+                                max_age=60*60*24*30)
                 return resp
-        return render_template_string(ADMIN_LOGIN_HTML), 401
+            return render_template_string(ADMIN_LOGIN_HTML, error="Falsches Passwort"), 401
+        return render_template_string(ADMIN_LOGIN_HTML, error=""), 401
 
     conn = db()
     cur = conn.cursor()
@@ -421,7 +415,9 @@ def admin():
     users = [{"id": r[0], "username": r[1], "email": r[2], "is_guest": r[3], "role": r[4],
               "is_active": r[5], "high_score": r[6], "total_coins": r[7],
               "created_at": r[8], "last_seen": r[9]} for r in rows]
-    return render_template_string(ADMIN_HTML, users=users, me=me)
+    # player_token kommt aus dem Cookie "owner_player_token", den der Client setzt wenn er als Owner eingeloggt ist
+    player_token = request.cookies.get("owner_player_token", "")
+    return render_template_string(ADMIN_HTML, users=users, player_token=player_token)
 
 @app.route("/admin/logout")
 def admin_logout():
@@ -431,18 +427,25 @@ def admin_logout():
 
 @app.route("/admin/set_role", methods=["POST"])
 def admin_set_role():
-    me = admin_user_from_cookie()
-    if not me:
+    if not admin_authed():
         return redirect("/admin")
+    player_token = request.form.get("player_token", "")
+    payload = decode_token(player_token)
+    if not payload:
+        return "Kein Owner-Token vorhanden. Du musst im Spiel als Owner eingeloggt sein und das Admin-Panel aus dem Spiel heraus öffnen.", 403
+    conn = db()
+    cur = conn.cursor()
+    cur.execute("SELECT role FROM users WHERE id = ?", (payload["uid"],))
+    row = cur.fetchone()
+    if not row or row[0] != "owner":
+        conn.close()
+        return "Nur der Owner darf Rollen ändern.", 403
+
     uid = int(request.form.get("uid"))
     new_role = request.form.get("role")
     if new_role not in ("user", "supporter", "admin", "owner"):
+        conn.close()
         return redirect("/admin")
-    # Nur Owner darf Rollen setzen
-    if me["role"] != "owner":
-        return "Nur Owner darf Rollen ändern", 403
-    conn = db()
-    cur = conn.cursor()
     cur.execute("UPDATE users SET role = ? WHERE id = ?", (new_role, uid))
     conn.commit()
     conn.close()
@@ -450,12 +453,9 @@ def admin_set_role():
 
 @app.route("/admin/toggle_active", methods=["POST"])
 def admin_toggle_active():
-    me = admin_user_from_cookie()
-    if not me:
+    if not admin_authed():
         return redirect("/admin")
     uid = int(request.form.get("uid"))
-    if me["role"] != "owner" and me["role"] != "admin":
-        return "Keine Berechtigung", 403
     conn = db()
     cur = conn.cursor()
     cur.execute("SELECT is_active FROM users WHERE id = ?", (uid,))
