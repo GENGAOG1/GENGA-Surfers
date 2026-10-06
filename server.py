@@ -1,21 +1,43 @@
-# server.py — liefert nur noch index.html aus
+# ============================================================
+# server.py — Flask + Flask-SocketIO (production-ready für Render)
+# Start: gunicorn server:app
+# ============================================================
+
+import eventlet
+eventlet.monkey_patch()
+
 import os
 from flask import Flask, send_from_directory, request
 from flask_socketio import SocketIO, emit, join_room
 
 app = Flask(__name__, static_folder='public', static_url_path='')
 app.config['SECRET_KEY'] = 'subway-surfers-secret'
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
+
+socketio = SocketIO(
+    app,
+    cors_allowed_origins='*',
+    async_mode='eventlet',
+    logger=False,
+    engineio_logger=False
+)
 
 rooms = {}
+
 
 @app.route('/')
 def index():
     return send_from_directory('public', 'index.html')
 
+
+@app.route('/<path:path>')
+def static_files(path):
+    return send_from_directory('public', path)
+
+
 @socketio.on('connect')
 def on_connect():
     print('CONNECT', request.sid)
+
 
 @socketio.on('joinRoom')
 def on_join(data):
@@ -26,11 +48,17 @@ def on_join(data):
     if room not in rooms:
         rooms[room] = {}
     rooms[room][sid] = {
-        'id': sid, 'name': name,
-        'x': 0, 'y': 0, 'z': 0,
-        'score': 0, 'lane': 1, 'alive': True
+        'id': sid,
+        'name': name,
+        'x': 0,
+        'y': 0,
+        'z': 0,
+        'score': 0,
+        'lane': 1,
+        'alive': True
     }
     emit('roomState', rooms[room], to=room)
+
 
 @socketio.on('update')
 def on_update(data):
@@ -47,11 +75,13 @@ def on_update(data):
     p['alive'] = data.get('alive', True)
     emit('playerUpdate', p, to=room, skip_sid=sid)
 
+
 @socketio.on('gameOver')
 def on_gameover(data):
     sid = request.sid
     room = data.get('room', 'default')
     emit('playerDead', {'id': sid, 'score': data.get('score', 0)}, to=room)
+
 
 @socketio.on('disconnect')
 def on_disconnect():
@@ -63,6 +93,7 @@ def on_disconnect():
             emit('roomState', rooms[room], to=room)
             if not rooms[room]:
                 del rooms[room]
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))
