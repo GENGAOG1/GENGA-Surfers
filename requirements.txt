@@ -1,1 +1,4 @@
-
+Flask==3.0.3
+libsql-client==0.3.1
+bcrypt==4.2.0
+gunicorn==22.0.0
