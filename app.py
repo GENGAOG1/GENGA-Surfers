@@ -13,6 +13,26 @@ def home():
     return render_template("index.html")
 
 
+@app.route("/game")
+def game():
+    return render_template("game.html")
+
+
+@app.route("/leaderboard")
+def leaderboard():
+    return render_template("leaderboard.html")
+
+
+@app.route("/profile")
+def profile():
+    return render_template("profile.html")
+
+
+@app.route("/settings")
+def settings():
+    return render_template("settings.html")
+
+
 @app.route("/health")
 def health():
     return {
