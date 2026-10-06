@@ -7,71 +7,239 @@
 <title>Subway Surfers</title>
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiU3Vid2F5IFN1cmZlcnMiLCJzaG9ydF9uYW1lIjoiU3Vid2F5Iiwic3RhcnRfdXJsIjoiLyIsImRpc3BsYXkiOiJmdWxsc2NyZWVuIiwib3JpZW50YXRpb24iOiJwb3J0cmFpdCIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTJhIiwidGhlbWVfY29sb3IiOiIjMGEwYTJhIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBQUVBQUFBQkNBWUFBQUFDMHNKbEFBQUFERWxFUVZSNDJtTmdZR0FBQUFBRUFBRGxOVDRLQUFBQUFFbEZUa1N1UW1DQyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmcifV19" />
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-html,body { width:100%; height:100%; overflow:hidden; background:#000; font-family:'Arial Black',sans-serif; }
-#game { display:block; width:100%; height:100%; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { width:100%; height:100%; overflow:hidden; background:#050518; font-family:'Rubik',sans-serif; color:#fff; }
 
-#hud { position:fixed; top:0; left:0; right:0; padding:12px; color:#fff; text-shadow:2px 2px 0 #000; pointer-events:none; z-index:10; }
-#score { font-size:22px; }
-#coins { font-size:18px; color:#ffd700; }
-#players { margin-top:8px; font-size:12px; color:#0ff; }
+/* CANVAS */
+#game {
+  display:block; width:100%; height:100%;
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+}
 
-/* MOD BUTTON - nur Owner */
+/* HUD */
+#hud {
+  position:fixed; top:0; left:0; right:0; padding:14px 18px;
+  pointer-events:none; z-index:10;
+  display:flex; flex-direction:column; gap:4px;
+}
+#score {
+  font-family:'Bungee',cursive; font-size:26px; letter-spacing:2px;
+  color:#fff; text-shadow:0 0 12px rgba(255,204,0,0.8), 3px 3px 0 #000;
+}
+#coins {
+  font-family:'Bungee',cursive; font-size:20px;
+  color:#ffd700; text-shadow:0 0 10px rgba(255,215,0,0.6), 2px 2px 0 #000;
+}
+#players { margin-top:6px; font-size:12px; color:#0ff; font-family:'Rubik',sans-serif; }
+
+/* BUTTONS oben (Mod + Pause) */
+.iconBtn {
+  position:fixed; top:14px; width:52px; height:52px; border-radius:50%;
+  display:none; align-items:center; justify-content:center;
+  cursor:pointer; z-index:100; user-select:none;
+  font-family:'Bungee',cursive; font-size:22px;
+  transition:transform 0.15s ease, box-shadow 0.15s ease;
+  backdrop-filter:blur(8px);
+}
+.iconBtn.show { display:flex; }
+.iconBtn:active { transform:scale(0.92); }
+
 #modBtn {
-  position: fixed; top: 14px; right: 14px; width: 48px; height: 48px;
-  border-radius: 50%; background: #000; color: #fff; font-size: 26px;
-  font-weight: bold; display: none; align-items: center; justify-content: center;
-  cursor: pointer; z-index: 100; border: 2px solid #333; user-select: none;
+  right:14px;
+  background:linear-gradient(135deg, #1a1a1a, #000);
+  color:#ffcc00; border:2px solid #ffcc00;
+  box-shadow:0 0 20px rgba(255,204,0,0.5), inset 0 0 10px rgba(255,204,0,0.2);
 }
-#modBtn.show { display: flex; }
-#modBtn:active { transform: scale(0.94); }
-
-#modPanel {
-  position: fixed; top: 70px; right: 14px; width: 300px; max-height: 80vh;
-  overflow-y: auto; background: rgba(0,0,0,0.95); color: #fff;
-  border: 2px solid #ffcc00; border-radius: 10px; padding: 14px;
-  z-index: 101; font-family: monospace; display: none;
-}
-#modPanel.show { display: block; }
-#modPanel h2 { color: #ffcc00; margin-bottom: 10px; text-align: center; }
-#modPanel label { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; gap: 8px; }
-#modPanel input { width: 120px; padding: 4px; background: #111; color: #fff; border: 1px solid #555; }
-#modPanel button { width: 100%; margin-top: 10px; padding: 8px; background: #ffcc00; color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
-/* Overlays */
-.overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  background:rgba(0,0,20,0.95); color:#fff; z-index:20; gap:14px; padding:20px; }
-.hidden { display:none !important; }
-
-h1 { font-size:38px; color:#ffcc00; text-shadow:4px 4px 0 #000; letter-spacing:3px; text-align:center; }
-h2 { font-size:24px; color:#ffcc00; }
-input, select { padding:12px; font-size:16px; width:280px; border-radius:8px; border:2px solid #ffcc00; background:#111; color:#fff; }
-button { padding:12px 30px; font-size:16px; border:none; border-radius:8px; background:#ffcc00; color:#000; font-weight:bold; cursor:pointer; }
-button.secondary { background:#444; color:#fff; }
-button:active { transform:scale(0.96); }
-.err { color:#f55; font-size:14px; max-width:300px; text-align:center; }
-.tabs { display:flex; gap:8px; margin-bottom:8px; }
-.tabs button { padding:8px 20px; font-size:14px; }
-.tabs button.active { background:#ffcc00; color:#000; }
-.tabs button:not(.active) { background:#333; color:#aaa; }
-.small { font-size:12px; color:#888; max-width:320px; text-align:center; }
+#modBtn:hover { box-shadow:0 0 30px rgba(255,204,0,0.8); }
 
 #pauseBtn {
-  position:fixed; top:14px; left:14px; width:48px; height:48px;
-  border-radius:50%; background:#000; color:#fff; font-size:20px;
-  display:none; align-items:center; justify-content:center;
-  cursor:pointer; z-index:100; border:2px solid #333; user-select:none;
+  left:14px;
+  background:linear-gradient(135deg, #1a1a1a, #000);
+  color:#fff; border:2px solid #fff;
+  box-shadow:0 0 20px rgba(255,255,255,0.4);
 }
-#pauseBtn.show { display:flex; }
 
-#lbList { max-height:50vh; overflow-y:auto; width:100%; max-width:400px; font-family:monospace; font-size:14px; }
-#lbList div { display:flex; justify-content:space-between; padding:6px 10px; border-bottom:1px solid #333; }
+/* MOD PANEL */
+#modPanel {
+  position:fixed; top:78px; right:14px; width:320px; max-height:80vh;
+  overflow-y:auto; background:rgba(10,10,30,0.97);
+  color:#fff; border:2px solid #ffcc00; border-radius:16px;
+  padding:18px; z-index:101; font-family:'Rubik',sans-serif;
+  display:none; box-shadow:0 8px 40px rgba(0,0,0,0.8), 0 0 30px rgba(255,204,0,0.2);
+  backdrop-filter:blur(12px);
+}
+#modPanel.show { display:block; animation:slideIn 0.25s ease; }
+#modPanel h2 {
+  font-family:'Bungee',cursive; color:#ffcc00; margin-bottom:14px;
+  text-align:center; letter-spacing:2px; font-size:20px;
+}
+#modPanel label {
+  display:flex; justify-content:space-between; align-items:center;
+  margin:8px 0; font-size:13px; gap:8px; color:#ccc;
+}
+#modPanel input[type="number"], #modPanel input[type="text"] {
+  width:120px; padding:6px 8px; background:#050518; color:#fff;
+  border:1px solid #444; border-radius:6px; font-family:'Rubik',sans-serif;
+}
+#modPanel input[type="checkbox"] { width:18px; height:18px; accent-color:#ffcc00; }
+#modPanel button {
+  width:100%; margin-top:14px; padding:10px; background:linear-gradient(135deg,#ffcc00,#ff9900);
+  color:#000; border:none; border-radius:10px; font-weight:800;
+  cursor:pointer; font-family:'Bungee',cursive; letter-spacing:1px;
+  transition:transform 0.15s;
+}
+#modPanel button:active { transform:scale(0.97); }
+
+/* OVERLAYS */
+.overlay {
+  position:fixed; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:16px; padding:24px;
+  background:radial-gradient(circle at center, rgba(20,20,60,0.95), rgba(5,5,24,0.98));
+  z-index:20; pointer-events:auto;
+  animation:fadeIn 0.3s ease;
+  overflow-y:auto;
+}
+.overlay.hidden { display:none !important; }
+
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+@keyframes slideIn { from{opacity:0;transform:translateX(20px);} to{opacity:1;transform:translateX(0);} }
+@keyframes pop { 0%{transform:scale(0.9);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+
+h1 {
+  font-family:'Bungee',cursive; font-size:clamp(32px,7vw,52px);
+  color:#ffcc00; letter-spacing:4px; text-align:center;
+  text-shadow:
+    0 0 20px rgba(255,204,0,0.7),
+    0 0 40px rgba(255,153,0,0.5),
+    4px 4px 0 #000;
+  animation:pop 0.4s ease;
+}
+h2 {
+  font-family:'Bungee',cursive; font-size:24px; color:#ffcc00;
+  letter-spacing:2px; text-shadow:2px 2px 0 #000;
+}
+
+p { font-size:15px; color:#ccc; text-align:center; max-width:340px; }
+
+input, select {
+  padding:14px 18px; font-size:16px; width:min(320px, 90vw);
+  border-radius:12px; border:2px solid rgba(255,204,0,0.4);
+  background:rgba(5,5,24,0.9); color:#fff; font-family:'Rubik',sans-serif;
+  outline:none; transition:border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus {
+  border-color:#ffcc00; box-shadow:0 0 20px rgba(255,204,0,0.4);
+}
+input::placeholder { color:#666; }
+
+button {
+  padding:14px 36px; font-size:16px; border:none; border-radius:12px;
+  background:linear-gradient(135deg, #ffcc00, #ff9900);
+  color:#000; font-weight:800; font-family:'Bungee',cursive;
+  letter-spacing:1px; cursor:pointer; min-width:200px;
+  box-shadow:0 4px 0 #aa6600, 0 0 20px rgba(255,204,0,0.4);
+  transition:transform 0.1s, box-shadow 0.2s;
+}
+button:active {
+  transform:translateY(3px);
+  box-shadow:0 1px 0 #aa6600, 0 0 15px rgba(255,204,0,0.6);
+}
+button.secondary {
+  background:linear-gradient(135deg, #2a2a4a, #1a1a3a);
+  color:#fff; box-shadow:0 4px 0 #0a0a1a, 0 0 15px rgba(100,100,255,0.2);
+}
+button:disabled { opacity:0.5; cursor:not-allowed; }
+
+/* TABS */
+.tabs {
+  display:flex; gap:8px; margin-bottom:8px;
+  background:rgba(0,0,0,0.4); padding:6px; border-radius:14px;
+  border:1px solid rgba(255,204,0,0.2);
+}
+.tabs button {
+  padding:10px 22px; font-size:14px; min-width:auto;
+  background:transparent; color:#888; box-shadow:none;
+  border-radius:10px; font-family:'Rubik',sans-serif; font-weight:600;
+  letter-spacing:0;
+}
+.tabs button.active {
+  background:linear-gradient(135deg,#ffcc00,#ff9900); color:#000;
+  box-shadow:0 0 15px rgba(255,204,0,0.5);
+}
+
+/* PANES */
+#paneGuest, #paneLogin, #paneRegister {
+  display:flex; flex-direction:column; gap:12px; align-items:center;
+}
+
+.err {
+  color:#ff5566; font-size:13px; max-width:320px; text-align:center;
+  min-height:18px; font-weight:600;
+}
+
+.small {
+  font-size:12px; color:#777; max-width:320px; text-align:center;
+  line-height:1.5;
+}
+
+/* LEADERBOARD */
+#lbList {
+  max-height:50vh; overflow-y:auto; width:min(420px,92vw);
+  font-family:'Rubik',sans-serif; font-size:14px;
+  background:rgba(0,0,0,0.4); border-radius:12px; padding:8px;
+  border:1px solid rgba(255,204,0,0.2);
+}
+#lbList div {
+  display:flex; justify-content:space-between; padding:10px 14px;
+  border-bottom:1px solid rgba(255,255,255,0.05); color:#ddd;
+}
+#lbList div:first-child { color:#ffd700; font-weight:800; text-shadow:0 0 8px rgba(255,215,0,0.5); }
+#lbList div:nth-child(2) { color:#c0c0c0; font-weight:700; }
+#lbList div:nth-child(3) { color:#cd7f32; font-weight:700; }
+
+/* CHARACTERS */
+#charList {
+  display:flex; flex-direction:column; gap:10px;
+  width:min(360px, 92vw); max-height:55vh; overflow-y:auto; padding:4px;
+}
+.charRow {
+  display:flex; justify-content:space-between; align-items:center;
+  gap:12px; padding:14px; background:rgba(0,0,0,0.5);
+  border:2px solid rgba(255,204,0,0.2); border-radius:14px;
+  transition:border-color 0.2s, transform 0.15s;
+}
+.charRow:hover { border-color:rgba(255,204,0,0.6); transform:translateY(-2px); }
+.charRow.selected { border-color:#ffcc00; box-shadow:0 0 20px rgba(255,204,0,0.4); }
+.charColor {
+  width:32px; height:32px; border-radius:8px;
+  box-shadow:0 0 12px currentColor, inset 0 0 8px rgba(255,255,255,0.3);
+}
+.charName { font-family:'Bungee',cursive; font-size:16px; letter-spacing:1px; }
+.charRow button { min-width:auto; padding:8px 16px; font-size:12px; }
+
+/* ADMIN LINK */
+#adminLink {
+  color:#0ff; font-size:14px; margin-top:10px;
+  text-decoration:none; padding:8px 16px;
+  border:1px solid #0ff; border-radius:8px;
+  transition:background 0.2s;
+}
+#adminLink:hover { background:rgba(0,255,255,0.1); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,204,0,0.3); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:rgba(255,204,0,0.6); }
 </style>
 </head>
 <body>
 
-<div id="modBtn">G</div>
+<canvas id="game"></canvas>
+
+<div id="modBtn" class="iconBtn">G</div>
 <div id="modPanel">
   <h2>MOD MENU</h2>
   <label>Coins <input id="modCoins" type="number" value="0" /></label>
@@ -87,7 +255,7 @@ button:active { transform:scale(0.96); }
   <button id="modClose">CLOSE</button>
 </div>
 
-<div id="pauseBtn">II</div>
+<div id="pauseBtn" class="iconBtn">II</div>
 
 <div id="hud">
   <div id="score">SCORE: 0</div>
@@ -95,9 +263,7 @@ button:active { transform:scale(0.96); }
   <div id="players"></div>
 </div>
 
-<canvas id="game"></canvas>
-
-<!-- START MENU: Auswahl Login / Gast / Registrieren -->
+<!-- START MENU -->
 <div id="startMenu" class="overlay">
   <h1>SUBWAY SURFERS</h1>
   <div class="tabs">
@@ -131,7 +297,7 @@ button:active { transform:scale(0.96); }
   <button id="lbBtn" class="secondary">Leaderboard</button>
 </div>
 
-<!-- LOBBY: Spielmodus wählen -->
+<!-- LOBBY -->
 <div id="lobby" class="overlay hidden">
   <h1>BEREIT</h1>
   <p id="welcomeText">Eingeloggt als: -</p>
@@ -142,14 +308,14 @@ button:active { transform:scale(0.96); }
   <button id="logoutBtn" class="secondary">Logout</button>
 </div>
 
-<!-- CHARAKTER AUSWAHL -->
+<!-- CHARACTERS -->
 <div id="charMenu" class="overlay hidden">
   <h1>CHARAKTERE</h1>
-  <div id="charList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  <div id="charList"></div>
   <button id="charBack" class="secondary">Zurück</button>
 </div>
 
-<!-- PAUSE MENU -->
+<!-- PAUSE -->
 <div id="pauseMenu" class="overlay hidden">
   <h1>PAUSE</h1>
   <button id="resumeBtn">Weiter</button>
@@ -172,12 +338,14 @@ button:active { transform:scale(0.96); }
 </div>
 
 <script type="module">
+console.log('SCRIPT GESTARTET');
+
 /* ============================================================
-   SERVICE WORKER (inline)
+   SERVICE WORKER
    ============================================================ */
 if ('serviceWorker' in navigator) {
   const swCode = `
-    const CACHE = 'subway-surfers-v2';
+    const CACHE = 'subway-surfers-v3';
     const ASSETS = ['/','/index.html'];
     self.addEventListener('install', (e) => {
       e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -206,7 +374,7 @@ if ('serviceWorker' in navigator) {
 /* ============================================================
    STATE
    ============================================================ */
-const API = ''; // gleiche Domain
+const API = '';
 let AUTH = {
   token: localStorage.getItem('token') || null,
   user: JSON.parse(localStorage.getItem('user') || 'null')
@@ -243,7 +411,7 @@ let jumpY = 0, jumpVel = 0, jumping = false;
 let heartbeatInterval = null;
 
 /* ============================================================
-   DOM REFS
+   DOM
    ============================================================ */
 const $ = id => document.getElementById(id);
 const canvas = $('game');
@@ -253,7 +421,7 @@ const pauseMenu = $('pauseMenu'), charMenu = $('charMenu'), lbMenu = $('lbMenu')
 const modBtn = $('modBtn'), modPanel = $('modPanel'), pauseBtn = $('pauseBtn');
 
 /* ============================================================
-   THREE LADEN
+   THREE
    ============================================================ */
 async function loadThree() {
   if (THREE) return THREE;
@@ -262,7 +430,7 @@ async function loadThree() {
 }
 
 /* ============================================================
-   API HELPER
+   API
    ============================================================ */
 async function api(path, method = 'GET', body = null) {
   const headers = { 'Content-Type': 'application/json' };
@@ -276,7 +444,7 @@ async function api(path, method = 'GET', body = null) {
 }
 
 /* ============================================================
-   AUTH / MENÜ LOGIK
+   TABS
    ============================================================ */
 function showTab(name) {
   ['Guest','Login','Register'].forEach(t => {
@@ -288,6 +456,9 @@ $('tabGuest').onclick = () => showTab('Guest');
 $('tabLogin').onclick = () => showTab('Login');
 $('tabRegister').onclick = () => showTab('Register');
 
+/* ============================================================
+   AUTH
+   ============================================================ */
 $('guestPlay').onclick = async () => {
   const name = $('guestName').value.trim();
   $('guestErr').textContent = '';
@@ -341,6 +512,7 @@ $('logoutBtn').onclick = () => {
   lobby.classList.add('hidden');
   startMenu.classList.remove('hidden');
   modBtn.classList.remove('show');
+  pauseBtn.classList.remove('show');
 };
 
 $('lbBtn').onclick = async () => {
@@ -362,24 +534,19 @@ function enterLobby() {
   $('welcomeText').textContent = 'Eingeloggt als: ' + AUTH.user.username +
     (isGuest ? ' (Gast)' : ' (' + AUTH.user.role + ')');
 
-  // Mod-Menü nur für Owner
   if (AUTH.user.role === 'owner') {
     modBtn.classList.add('show');
-    // Owner-Spieler-Token in Cookie speichern, damit Admin-Panel Rollen setzen kann
     document.cookie = `owner_player_token=${AUTH.token}; path=/; max-age=${60*60*24*30}; secure; samesite=Lax`;
-    // Admin-Link einblenden
     if (!$('adminLink')) {
       const a = document.createElement('a');
       a.id = 'adminLink';
       a.href = '/admin';
       a.target = '_blank';
       a.textContent = 'ADMIN PANEL ÖFFNEN';
-      a.style.cssText = 'color:#0ff;font-size:14px;margin-top:10px;';
       lobby.appendChild(a);
     }
   }
 
-  // Heartbeat starten
   if (heartbeatInterval) clearInterval(heartbeatInterval);
   heartbeatInterval = setInterval(() => { api('/api/heartbeat', 'POST'); }, 60000);
 }
@@ -399,10 +566,7 @@ function getProgress() {
     unlocked_characters: AUTH.user.unlocked_characters || 'jake'
   };
 }
-
-function saveGuestProgress() {
-  localStorage.setItem('guestData', JSON.stringify(guestLocal));
-}
+function saveGuestProgress() { localStorage.setItem('guestData', JSON.stringify(guestLocal)); }
 
 function renderCharMenu() {
   const prog = getProgress();
@@ -412,12 +576,13 @@ function renderCharMenu() {
   CHARACTERS.forEach(c => {
     const owned = unlocked.includes(c.id);
     const selected = prog.selected_character === c.id;
+    const colorHex = '#' + c.color.toString(16).padStart(6,'0');
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px;background:#111;border:1px solid #333;border-radius:8px;width:320px;';
+    row.className = 'charRow' + (selected ? ' selected' : '');
     row.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:24px;height:24px;background:#${c.color.toString(16).padStart(6,'0')};border-radius:4px;"></div>
-        <span>${c.name}</span>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="charColor" style="background:${colorHex};color:${colorHex};"></div>
+        <span class="charName">${c.name}</span>
       </div>
       <div>
         ${owned
@@ -431,7 +596,11 @@ function renderCharMenu() {
     b.onclick = () => {
       const id = b.dataset.pick;
       if (isGuest) { guestLocal.selected_character = id; saveGuestProgress(); }
-      else { AUTH.user.selected_character = id; localStorage.setItem('user', JSON.stringify(AUTH.user)); api('/api/save','POST',{score:0,coins:0,character:id,unlocked:getProgress().unlocked_characters}); }
+      else {
+        AUTH.user.selected_character = id;
+        localStorage.setItem('user', JSON.stringify(AUTH.user));
+        api('/api/save','POST',{score:0,coins:0,character:id,unlocked:getProgress().unlocked_characters});
+      }
       renderCharMenu();
     };
   });
@@ -460,7 +629,7 @@ function renderCharMenu() {
 }
 
 /* ============================================================
-   SPIEL STARTEN
+   SPIELSTART
    ============================================================ */
 $('soloBtn').onclick = () => { room = $('roomInput').value || 'default'; startGame(false); };
 $('mpBtn').onclick = () => { room = $('roomInput').value || 'default'; startGame(true); };
@@ -487,7 +656,6 @@ async function saveProgress() {
     guestLocal.selected_character = char;
     guestLocal.unlocked_characters = unlocked;
     saveGuestProgress();
-    // Gast-Score an Server schicken (kein Token, aber guest_id wird aus /api/me geholt)
     if (AUTH.token) api('/api/save', 'POST', { score, coins, character: char, unlocked });
   } else {
     const r = await api('/api/save', 'POST', { score, coins, character: char, unlocked });
@@ -741,7 +909,6 @@ function startGame(mp) {
   }
   remotePlayers = {};
 
-  // Spielerfarbe aus Charakterwahl
   const prog = getProgress();
   const char = CHARACTERS.find(c => c.id === prog.selected_character) || CHARACTERS[0];
   player.material.color.setHex(char.color);
