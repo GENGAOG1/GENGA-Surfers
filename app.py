@@ -1,79 +1,120 @@
 import os
+import re
+import json
 import uuid
 import secrets
-import json
-from datetime import datetime, timedelta, timezone
+import string
+from datetime import datetime, timedelta
+from functools import wraps
 
 import bcrypt
+import libsql
 from flask import (
-    Flask, request, jsonify, render_template,
-    make_response, send_from_directory, redirect
+    Flask, render_template, request, jsonify, session,
+    g, send_from_directory, make_response
 )
-from libsql_client import create_client_sync
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # ------------------------------------------------------------------
 # App-Setup
 # ------------------------------------------------------------------
-app = Flask(__name__, static_folder="static", template_folder="templates")
+app = Flask(__name__, static_folder="static", static_url_path="/static", template_folder="templates")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# ------------------------------------------------------------------
-# Turso
-# ------------------------------------------------------------------
-TURSO_URL = os.environ.get("TURSO_DATABASE_URL")
-TURSO_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
+app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+
+TURSO_URL = os.environ.get("TURSO_DATABASE_URL", "")
+TURSO_TOKEN = os.environ.get("TURSO_AUTH_TOKEN", "")
 OWNER_EMAIL = (os.environ.get("OWNER_EMAIL") or "").strip().lower()
 
-if not TURSO_URL or not TURSO_TOKEN:
-    raise RuntimeError("TURSO_DATABASE_URL und TURSO_AUTH_TOKEN müssen gesetzt sein.")
-
-client = create_client_sync(url=TURSO_URL, auth_token=TURSO_TOKEN)
+USE_TURSO = bool(TURSO_URL and TURSO_TOKEN)
 
 
 # ------------------------------------------------------------------
-# Schema
+# Datenbank
 # ------------------------------------------------------------------
-def init_schema():
-    client.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id TEXT PRIMARY KEY,
-            email TEXT UNIQUE,
-            password_hash TEXT,
-            display_name TEXT NOT NULL,
-            role TEXT DEFAULT 'player',
-            is_guest INTEGER DEFAULT 0,
-            created_at INTEGER DEFAULT (unixepoch())
-        )
-    """)
-    client.execute("""
-        CREATE TABLE IF NOT EXISTS saves (
-            user_id TEXT PRIMARY KEY,
-            score INTEGER DEFAULT 0,
-            coins INTEGER DEFAULT 0,
-            best_score INTEGER DEFAULT 0,
-            difficulty TEXT DEFAULT 'normal',
-            upgrades TEXT DEFAULT '{}',
-            updated_at INTEGER DEFAULT (unixepoch())
-        )
-    """)
-    client.execute("""
-        CREATE TABLE IF NOT EXISTS sessions (
-            token TEXT PRIMARY KEY,
-            user_id TEXT,
-            created_at INTEGER DEFAULT (unixepoch()),
-            expires_at INTEGER
-        )
-    """)
-    client.execute("""
-        CREATE TABLE IF NOT EXISTS leaderboard (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT,
-            display_name TEXT,
-            score INTEGER,
-            created_at INTEGER DEFAULT (unixepoch())
-        )
-    """)
+def get_db():
+    if "db" not in g:
+        if USE_TURSO:
+            g.db = libsql.connect(database=TURSO_URL, auth_token=TURSO_TOKEN)
+        else:
+            import sqlite3
+            g.db = sqlite3.connect("genga.db")
+    return g.db
+
+
+@app.teardown_appcontext
+def close_db(exc):
+    db = g.pop("db", None)
+    if db is not None:
+        try:
+            db.close()
+        except Exception:
+            pass
+
+
+_schema_ready = False
+
+
+def ensure_tables():
+    """Legt Tabellen an. Wird lazy beim ersten Request ausgeführt."""
+    global _schema_ready
+    if _schema_ready:
+        return
+    db = get_db()
+    try:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                email TEXT UNIQUE,
+                password_hash TEXT,
+                display_name TEXT NOT NULL,
+                role TEXT DEFAULT 'player',
+                is_guest INTEGER DEFAULT 0,
+                created_at INTEGER DEFAULT (unixepoch())
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS saves (
+                user_id TEXT PRIMARY KEY,
+                score INTEGER DEFAULT 0,
+                coins INTEGER DEFAULT 0,
+                best_score INTEGER DEFAULT 0,
+                difficulty TEXT DEFAULT 'normal',
+                upgrades TEXT DEFAULT '{}',
+                updated_at INTEGER DEFAULT (unixepoch())
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                token TEXT PRIMARY KEY,
+                user_id TEXT,
+                created_at INTEGER DEFAULT (unixepoch()),
+                expires_at INTEGER
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS leaderboard (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT,
+                display_name TEXT,
+                score INTEGER,
+                created_at INTEGER DEFAULT (unixepoch())
+            )
+        """)
+        db.commit()
+        _schema_ready = True
+    except Exception as e:
+        print(f"[WARN] ensure_tables: {e}")
+
+
+@app.before_request
+def _ensure():
+    ensure_tables()
 
 
 # ------------------------------------------------------------------
@@ -87,37 +128,114 @@ def new_token():
     return secrets.token_hex(32)
 
 
-def row_to_dict(result, row):
-    return dict(zip(result.columns, row))
+def now_ts():
+    return int(datetime.utcnow().timestamp())
 
 
-def get_user_from_request():
+def row_to_dict(cursor_row, columns=None):
+    if cursor_row is None:
+        return None
+    if columns is None:
+        return dict(cursor_row)
+    return dict(zip(columns, cursor_row))
+
+
+def fetch_user_by_id(uid):
+    db = get_db()
+    row = db.execute(
+        "SELECT id, email, password_hash, display_name, role, is_guest, created_at "
+        "FROM users WHERE id = ?",
+        (uid,)
+    ).fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "email": row[1],
+        "password_hash": row[2],
+        "display_name": row[3],
+        "role": row[4],
+        "is_guest": row[5],
+        "created_at": row[6],
+    }
+
+
+def fetch_user_by_email(email):
+    db = get_db()
+    row = db.execute(
+        "SELECT id, email, password_hash, display_name, role, is_guest, created_at "
+        "FROM users WHERE email = ?",
+        (email,)
+    ).fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "email": row[1],
+        "password_hash": row[2],
+        "display_name": row[3],
+        "role": row[4],
+        "is_guest": row[5],
+        "created_at": row[6],
+    }
+
+
+def fetch_save(user_id):
+    db = get_db()
+    row = db.execute(
+        "SELECT user_id, score, coins, best_score, difficulty, upgrades, updated_at "
+        "FROM saves WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+    if not row:
+        return None
+    try:
+        upgrades = json.loads(row[5] or "{}")
+    except Exception:
+        upgrades = {}
+    return {
+        "user_id": row[0],
+        "score": row[1] or 0,
+        "coins": row[2] or 0,
+        "best_score": row[3] or 0,
+        "difficulty": row[4] or "normal",
+        "upgrades": upgrades,
+        "updated_at": row[6],
+    }
+
+
+def get_user_from_session():
     token = request.cookies.get("session")
     if not token:
         return None
-    r = client.execute(
-        "SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id "
+    db = get_db()
+    row = db.execute(
+        "SELECT u.id, u.email, u.display_name, u.role, u.is_guest "
+        "FROM sessions s JOIN users u ON u.id = s.user_id "
         "WHERE s.token = ? AND s.expires_at > unixepoch()",
-        [token],
-    )
-    if not r.rows:
+        (token,)
+    ).fetchone()
+    if not row:
         return None
-    return row_to_dict(r, r.rows[0])
+    return {
+        "id": row[0],
+        "email": row[1],
+        "display_name": row[2],
+        "role": row[3],
+        "is_guest": row[4],
+    }
 
 
-def require_auth(role=None):
-    def decorator(fn):
-        def wrapper(*args, **kwargs):
-            user = get_user_from_request()
-            if not user:
-                return jsonify({"error": "Nicht eingeloggt"}), 401
-            if role and user["role"] not in (role, "owner"):
-                return jsonify({"error": "Kein Zugriff"}), 403
-            request.user = user
-            return fn(*args, **kwargs)
-        wrapper.__name__ = fn.__name__
-        return wrapper
-    return decorator
+def create_session(user_id, days=90):
+    token = new_token()
+    expires = int((datetime.utcnow() + timedelta(days=days)).timestamp())
+    db = get_db()
+    db.execute(
+        "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
+        (token, user_id, expires)
+    )
+    db.commit()
+    return token
 
 
 def set_session_cookie(resp, token, days=90):
@@ -132,14 +250,26 @@ def set_session_cookie(resp, token, days=90):
     return resp
 
 
-def create_session(user_id, days=90):
-    token = new_token()
-    expires = int((datetime.now(timezone.utc) + timedelta(days=days)).timestamp())
-    client.execute(
-        "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
-        [token, user_id, expires],
-    )
-    return token
+def require_auth(role=None):
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            user = get_user_from_session()
+            if not user:
+                return jsonify({"error": "Nicht eingeloggt"}), 401
+            if role and user["role"] not in (role, "owner"):
+                return jsonify({"error": "Kein Zugriff"}), 403
+            request.user = user
+            return fn(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def valid_email(email):
+    return bool(EMAIL_RE.match(email or ""))
 
 
 # ------------------------------------------------------------------
@@ -161,13 +291,8 @@ def manifest():
 
 
 @app.route("/service-worker.js")
-def sw():
+def service_worker():
     return send_from_directory("static", "service-worker.js", mimetype="application/javascript")
-
-
-@app.route("/static/<path:path>")
-def static_files(path):
-    return send_from_directory("static", path)
 
 
 @app.route("/favicon.ico")
@@ -178,8 +303,9 @@ def favicon():
 @app.route("/health")
 def health():
     try:
-        client.execute("SELECT 1")
-        return jsonify({"status": "ok", "turso": "connected", "ts": int(datetime.now().timestamp())})
+        db = get_db()
+        db.execute("SELECT 1").fetchone()
+        return jsonify({"status": "ok", "turso": "connected", "ts": now_ts()})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -197,11 +323,13 @@ def auth_guest():
         return jsonify({"error": "Name zu lang"}), 400
 
     uid = new_id()
-    client.execute(
+    db = get_db()
+    db.execute(
         "INSERT INTO users (id, display_name, role, is_guest) VALUES (?, ?, 'guest', 1)",
-        [uid, name],
+        (uid, name)
     )
-    client.execute("INSERT INTO saves (user_id) VALUES (?)", [uid])
+    db.execute("INSERT INTO saves (user_id) VALUES (?)", (uid,))
+    db.commit()
 
     token = create_session(uid, days=365)
     resp = make_response(jsonify({
@@ -216,28 +344,30 @@ def auth_register():
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
-    name = (data.get("name") or "").strip() or email.split("@")[0]
+    name = (data.get("name") or "").strip() or (email.split("@")[0] if email else "Spieler")
 
-    if not email or "@" not in email:
+    if not valid_email(email):
         return jsonify({"error": "Ungültige E-Mail"}), 400
     if len(password) < 6:
         return jsonify({"error": "Passwort zu kurz (min. 6)"}), 400
     if len(name) > 24:
         return jsonify({"error": "Name zu lang"}), 400
 
-    existing = client.execute("SELECT id FROM users WHERE email = ?", [email])
-    if existing.rows:
+    db = get_db()
+    existing = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    if existing:
         return jsonify({"error": "E-Mail existiert bereits"}), 409
 
     uid = new_id()
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     role = "owner" if email == OWNER_EMAIL else "player"
 
-    client.execute(
+    db.execute(
         "INSERT INTO users (id, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
-        [uid, email, pw_hash, name, role],
+        (uid, email, pw_hash, name, role)
     )
-    client.execute("INSERT INTO saves (user_id) VALUES (?)", [uid])
+    db.execute("INSERT INTO saves (user_id) VALUES (?)", (uid,))
+    db.commit()
 
     token = create_session(uid, days=90)
     resp = make_response(jsonify({
@@ -253,14 +383,14 @@ def auth_login():
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
 
-    r = client.execute("SELECT * FROM users WHERE email = ?", [email])
-    if not r.rows:
+    user = fetch_user_by_email(email)
+    if not user or not user["password_hash"]:
         return jsonify({"error": "Falsche Daten"}), 401
-
-    user = row_to_dict(r, r.rows[0])
-    if not user["password_hash"]:
-        return jsonify({"error": "Falsche Daten"}), 401
-    if not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
+    try:
+        ok = bcrypt.checkpw(password.encode(), user["password_hash"].encode())
+    except Exception:
+        ok = False
+    if not ok:
         return jsonify({"error": "Falsche Daten"}), 401
 
     token = create_session(user["id"], days=90)
@@ -281,7 +411,9 @@ def auth_login():
 def auth_logout():
     token = request.cookies.get("session")
     if token:
-        client.execute("DELETE FROM sessions WHERE token = ?", [token])
+        db = get_db()
+        db.execute("DELETE FROM sessions WHERE token = ?", (token,))
+        db.commit()
     resp = make_response(jsonify({"ok": True}))
     resp.delete_cookie("session", path="/")
     return resp
@@ -289,7 +421,7 @@ def auth_logout():
 
 @app.route("/api/me")
 def me():
-    user = get_user_from_request()
+    user = get_user_from_session()
     if not user:
         return jsonify({"user": None})
     return jsonify({
@@ -309,14 +441,9 @@ def me():
 @app.route("/api/save", methods=["GET"])
 @require_auth()
 def get_save():
-    r = client.execute("SELECT * FROM saves WHERE user_id = ?", [request.user["id"]])
-    if not r.rows:
+    save = fetch_save(request.user["id"])
+    if not save:
         return jsonify(None)
-    save = row_to_dict(r, r.rows[0])
-    try:
-        save["upgrades"] = json.loads(save.get("upgrades") or "{}")
-    except Exception:
-        save["upgrades"] = {}
     return jsonify(save)
 
 
@@ -328,26 +455,33 @@ def post_save():
     if isinstance(upgrades, dict):
         upgrades = json.dumps(upgrades)
 
-    client.execute(
-        "UPDATE saves SET score=?, coins=?, best_score=?, difficulty=?, upgrades=?, "
-        "updated_at=unixepoch() WHERE user_id=?",
-        [
-            int(d.get("score", 0) or 0),
-            int(d.get("coins", 0) or 0),
-            int(d.get("best_score", 0) or 0),
-            str(d.get("difficulty", "normal")),
-            upgrades,
-            request.user["id"],
-        ],
-    )
-
+    score = int(d.get("score", 0) or 0)
+    coins = int(d.get("coins", 0) or 0)
     best = int(d.get("best_score", 0) or 0)
-    if best > 0:
-        client.execute(
-            "INSERT INTO leaderboard (user_id, display_name, score) VALUES (?, ?, ?)",
-            [request.user["id"], request.user["display_name"], best],
+    difficulty = str(d.get("difficulty", "normal"))
+
+    db = get_db()
+    existing = db.execute("SELECT user_id FROM saves WHERE user_id = ?", (request.user["id"],)).fetchone()
+    if existing:
+        db.execute(
+            "UPDATE saves SET score=?, coins=?, best_score=?, difficulty=?, upgrades=?, "
+            "updated_at=unixepoch() WHERE user_id=?",
+            (score, coins, best, difficulty, upgrades, request.user["id"])
+        )
+    else:
+        db.execute(
+            "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (request.user["id"], score, coins, best, difficulty, upgrades)
         )
 
+    if best > 0:
+        db.execute(
+            "INSERT INTO leaderboard (user_id, display_name, score) VALUES (?, ?, ?)",
+            (request.user["id"], request.user["display_name"], best)
+        )
+
+    db.commit()
     return jsonify({"ok": True})
 
 
@@ -356,14 +490,15 @@ def post_save():
 # ------------------------------------------------------------------
 @app.route("/api/leaderboard")
 def leaderboard():
-    r = client.execute("""
+    db = get_db()
+    rows = db.execute("""
         SELECT display_name, MAX(score) AS score
         FROM leaderboard
         GROUP BY user_id
         ORDER BY score DESC
         LIMIT 50
-    """)
-    return jsonify([row_to_dict(r, row) for row in r.rows])
+    """).fetchall()
+    return jsonify([{"display_name": r[0], "score": r[1]} for r in rows])
 
 
 # ------------------------------------------------------------------
@@ -372,14 +507,22 @@ def leaderboard():
 @app.route("/api/admin/users")
 @require_auth("admin")
 def admin_users():
-    r = client.execute("""
+    db = get_db()
+    rows = db.execute("""
         SELECT u.id, u.display_name, u.email, u.role, u.is_guest, u.created_at,
                s.best_score, s.coins, s.score
         FROM users u
         LEFT JOIN saves s ON s.user_id = u.id
         ORDER BY u.created_at DESC
-    """)
-    return jsonify([row_to_dict(r, row) for row in r.rows])
+    """).fetchall()
+    return jsonify([
+        {
+            "id": r[0], "display_name": r[1], "email": r[2],
+            "role": r[3], "is_guest": bool(r[4]), "created_at": r[5],
+            "best_score": r[6] or 0, "coins": r[7] or 0, "score": r[8] or 0,
+        }
+        for r in rows
+    ])
 
 
 @app.route("/api/admin/users/<uid>/role", methods=["POST"])
@@ -388,31 +531,35 @@ def admin_set_role(uid):
     role = (request.get_json(silent=True) or {}).get("role")
     if role not in ("admin", "supporter", "player", "guest"):
         return jsonify({"error": "Ungültige Rolle"}), 400
-    client.execute("UPDATE users SET role = ? WHERE id = ?", [role, uid])
+    db = get_db()
+    db.execute("UPDATE users SET role = ? WHERE id = ?", (role, uid))
+    db.commit()
     return jsonify({"ok": True})
 
 
 @app.route("/api/admin/users/<uid>", methods=["DELETE"])
 @require_auth("owner")
 def admin_delete_user(uid):
-    client.execute("DELETE FROM sessions WHERE user_id = ?", [uid])
-    client.execute("DELETE FROM saves WHERE user_id = ?", [uid])
-    client.execute("DELETE FROM leaderboard WHERE user_id = ?", [uid])
-    client.execute("DELETE FROM users WHERE id = ?", [uid])
+    db = get_db()
+    db.execute("DELETE FROM sessions WHERE user_id = ?", (uid,))
+    db.execute("DELETE FROM saves WHERE user_id = ?", (uid,))
+    db.execute("DELETE FROM leaderboard WHERE user_id = ?", (uid,))
+    db.execute("DELETE FROM users WHERE id = ?", (uid,))
+    db.commit()
     return jsonify({"ok": True})
 
 
 @app.route("/api/admin/stats")
 @require_auth("admin")
 def admin_stats():
-    users = client.execute("SELECT COUNT(*) AS c FROM users").rows[0][0]
-    guests = client.execute("SELECT COUNT(*) AS c FROM users WHERE is_guest = 1").rows[0][0]
-    registered = users - guests
-    plays = client.execute("SELECT COUNT(*) AS c FROM leaderboard").rows[0][0]
+    db = get_db()
+    total = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    guests = db.execute("SELECT COUNT(*) FROM users WHERE is_guest = 1").fetchone()[0]
+    plays = db.execute("SELECT COUNT(*) FROM leaderboard").fetchone()[0]
     return jsonify({
-        "total_users": users,
+        "total_users": total,
         "guests": guests,
-        "registered": registered,
+        "registered": total - guests,
         "total_runs": plays,
     })
 
@@ -420,8 +567,6 @@ def admin_stats():
 # ------------------------------------------------------------------
 # Start
 # ------------------------------------------------------------------
-init_schema()
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=False)
