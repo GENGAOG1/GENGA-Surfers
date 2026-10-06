@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin – Genga Surfer</title>
+  <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0a0a1a; color: #fff;
+      padding: 20px; min-height: 100vh;
+    }
+    h1 { color: #00e5ff; margin-bottom: 16px; letter-spacing: 2px; }
+    #status { color: #888; margin-bottom: 16px; font-size: 14px; }
+
+    .stats {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #1a1a2e; border: 1px solid #333;
+      border-radius: 8px; padding: 12px 20px;
+      min-width: 120px;
+    }
+    .stat-card .label { color: #888; font-size: 12px; text-transform: uppercase; }
+    .stat-card .value { color: #00e5ff; font-size: 24px; font-weight: bold; }
+
+    .filters { display: flex; gap: 16px; margin-bottom: 12px; color: #aaa; font-size: 14px; flex-wrap: wrap; }
+    .filters label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #222; font-size: 14px; }
+    th { color: #00e5ff; background: #1a1a2e; position: sticky; top: 0; }
+
+    select, button {
+      padding: 6px 10px; border-radius: 6px;
+      background: #1a1a2e; color: #fff;
+      border: 1px solid #333; cursor: pointer;
+      font-family: inherit; font-size: 13px;
+    }
+    button:hover { background: #00e5ff; color: #000; border-color: #00e5ff; }
+    select:focus { outline: 1px solid #00e5ff; }
+
+    .role-owner { color: #ff4d4d; font-weight: bold; }
+    .role-admin { color: #ffaa00; font-weight: bold; }
+    .role-supporter { color: #a04dff; }
+    .role-player { color: #00e5ff; }
+    .role-guest { color: #888; font-style: italic; }
+
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 12px;
+      background: #222; font-size: 11px; margin-left: 4px;
+    }
+    .badge.guest { background: #333; color: #aaa; }
+    .badge.user { background: #0a3a4a; color: #00e5ff; }
+
+    .search {
+      width: 100%; max-width: 300px;
+      padding: 8px 12px; margin-bottom: 12px;
+      border-radius: 8px; border: 1px solid #333;
+      background: #1a1a2e; color: #fff; font-size: 14px;
+    }
+    .search:focus { outline: 1px solid #00e5ff; }
+
+    .table-wrap { overflow-x: auto; }
+
+    @media (max-width: 700px) {
+      th, td { padding: 6px; font-size: 12px; }
+      .hide-mobile { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>⚙ Admin Panel</h1>
+  <div id="status">Lade…</div>
+
+  <div class="stats" id="stats"></div>
+
+  <input id="search" class="search" placeholder="🔍 Nach Name oder E-Mail suchen…">
+
+  <div class="filters">
+    <label><input type="checkbox" id="show-guests" checked> Gäste</label>
+    <label><input type="checkbox" id="show-users" checked> E-Mail-Accounts</label>
+  </div>
+
+  <div class="table-wrap">
+    <table id="users-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th class="hide-mobile">E-Mail</th>
+          <th>Rolle</th>
+          <th>Best</th>
+          <th class="hide-mobile">Coins</th>
+          <th class="hide-mobile">Registriert</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let allUsers = [];
+
+    async function api(path, opts = {}) {
+      const r = await fetch(path, {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        ...opts,
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      return data;
+    }
+
+    function fmtDate(ts) {
+      if (!ts) return "–";
+      const d = new Date(ts * 1000);
+      return d.toLocaleDateString("de-DE");
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[c]));
+    }
+
+    function render() {
+      const q = $("search").value.trim().toLowerCase();
+      const showGuests = $("show-guests").checked;
+      const showUsers = $("show-users").checked;
+
+      const filtered = allUsers.filter((u) => {
+        if (u.is_guest && !showGuests) return false;
+        if (!u.is_guest && !showUsers) return false;
+        if (q) {
+          const hay = `${u.display_name || ""} ${u.email || ""}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      const tbody = document.querySelector("#users-table tbody");
+      tbody.innerHTML = "";
+      filtered.forEach((u) => {
+        const tr = document.createElement("tr");
+        const roleClass = "role-" + (u.role || "player");
+        const badge = u.is_guest
+          ? '<span class="badge guest">Gast</span>'
+          : '<span class="badge user">User</span>';
+        tr.innerHTML = `
+          <td>${escapeHtml(u.display_name)}${badge}</td>
+          <td class="hide-mobile">${escapeHtml(u.email || "–")}</td>
+          <td class="${roleClass}">${escapeHtml(u.role)}</td>
+          <td>${u.best_score || 0}</td>
+          <td class="hide-mobile">${u.coins || 0}</td>
+          <td class="hide-mobile">${fmtDate(u.created_at)}</td>
+          <td>
+            <select data-uid="${u.id}">
+              ${["player", "supporter", "admin", "guest"].map((r) =>
+                `<option value="${r}" ${u.role === r ? "selected" : ""}>${r}</option>`
+              ).join("")}
+            </select>
+            <button data-del="${u.id}" title="Löschen">🗑</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll("select").forEach((sel) => {
+        sel.addEventListener("change", async () => {
+          try {
+            await api(`/api/admin/users/${sel.dataset.uid}/role`, {
+              method: "POST",
+              body: JSON.stringify({ role: sel.value }),
+            });
+            load();
+          } catch (e) { alert("Fehler: " + e.message); }
+        });
+      });
+
+      tbody.querySelectorAll("button[data-del]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("User wirklich löschen? Diese Aktion ist unwiderruflich.")) return;
+          try {
+            await api(`/api/admin/users/${btn.dataset.del}`, { method: "DELETE" });
+            load();
+          } catch (e) { alert("Fehler: " + e.message); }
+        });
+      });
+
+      $("status").textContent = `${filtered.length} von ${allUsers.length} Usern angezeigt.`;
+    }
+
+    async function load() {
+      try {
+        const [users, stats] = await Promise.all([
+          api("/api/admin/users"),
+          api("/api/admin/stats").catch(() => null),
+        ]);
+        allUsers = users;
+
+        if (stats) {
+          $("stats").innerHTML = `
+            <div class="stat-card"><div class="label">Gesamt</div><div class="value">${stats.total_users}</div></div>
+            <div class="stat-card"><div class="label">Registriert</div><div class="value">${stats.registered}</div></div>
+            <div class="stat-card"><div class="label">Gäste</div><div class="value">${stats.guests}</div></div>
+            <div class="stat-card"><div class="label">Läufe</div><div class="value">${stats.total_runs}</div></div>
+          `;
+        }
+
+        render();
+      } catch (e) {
+        $("status").textContent = "Fehler: " + e.message + " – Bist du als Owner eingeloggt?";
+      }
+    }
+
+    $("search").addEventListener("input", render);
+    $("show-guests").addEventListener("change", render);
+    $("show-users").addEventListener("change", render);
+
+    load();
+  </script>
+</body>
+</html>
