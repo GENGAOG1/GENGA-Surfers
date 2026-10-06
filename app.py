@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 import bcrypt
-import libsql
+import turso_serverless as libsql
 from flask import (
     Flask, render_template, request, jsonify, session,
     g, send_from_directory, make_response
@@ -40,7 +40,7 @@ USE_TURSO = bool(TURSO_URL and TURSO_TOKEN)
 def get_db():
     if "db" not in g:
         if USE_TURSO:
-            g.db = libsql.connect(database=TURSO_URL, auth_token=TURSO_TOKEN)
+            g.db = libsql.connect(TURSO_URL, auth_token=TURSO_TOKEN)
         else:
             import sqlite3
             g.db = sqlite3.connect("genga.db")
@@ -75,7 +75,7 @@ def ensure_tables():
                 display_name TEXT NOT NULL,
                 role TEXT DEFAULT 'player',
                 is_guest INTEGER DEFAULT 0,
-                created_at INTEGER DEFAULT (unixepoch())
+                created_at INTEGER
             )
         """)
         db.execute("""
@@ -86,14 +86,14 @@ def ensure_tables():
                 best_score INTEGER DEFAULT 0,
                 difficulty TEXT DEFAULT 'normal',
                 upgrades TEXT DEFAULT '{}',
-                updated_at INTEGER DEFAULT (unixepoch())
+                updated_at INTEGER
             )
         """)
         db.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
                 token TEXT PRIMARY KEY,
                 user_id TEXT,
-                created_at INTEGER DEFAULT (unixepoch()),
+                created_at INTEGER,
                 expires_at INTEGER
             )
         """)
@@ -103,13 +103,14 @@ def ensure_tables():
                 user_id TEXT,
                 display_name TEXT,
                 score INTEGER,
-                created_at INTEGER DEFAULT (unixepoch())
+                created_at INTEGER
             )
         """)
         db.commit()
         _schema_ready = True
+        print("[INFO] ensure_tables OK")
     except Exception as e:
-        print(f"[WARN] ensure_tables: {e}")
+        print(f"[ERROR] ensure_tables: {e}")
 
 
 @app.before_request
@@ -132,14 +133,6 @@ def now_ts():
     return int(datetime.utcnow().timestamp())
 
 
-def row_to_dict(cursor_row, columns=None):
-    if cursor_row is None:
-        return None
-    if columns is None:
-        return dict(cursor_row)
-    return dict(zip(columns, cursor_row))
-
-
 def fetch_user_by_id(uid):
     db = get_db()
     row = db.execute(
@@ -150,13 +143,8 @@ def fetch_user_by_id(uid):
     if not row:
         return None
     return {
-        "id": row[0],
-        "email": row[1],
-        "password_hash": row[2],
-        "display_name": row[3],
-        "role": row[4],
-        "is_guest": row[5],
-        "created_at": row[6],
+        "id": row[0], "email": row[1], "password_hash": row[2],
+        "display_name": row[3], "role": row[4], "is_guest": row[5], "created_at": row[6],
     }
 
 
@@ -170,13 +158,8 @@ def fetch_user_by_email(email):
     if not row:
         return None
     return {
-        "id": row[0],
-        "email": row[1],
-        "password_hash": row[2],
-        "display_name": row[3],
-        "role": row[4],
-        "is_guest": row[5],
-        "created_at": row[6],
+        "id": row[0], "email": row[1], "password_hash": row[2],
+        "display_name": row[3], "role": row[4], "is_guest": row[5], "created_at": row[6],
     }
 
 
@@ -194,13 +177,9 @@ def fetch_save(user_id):
     except Exception:
         upgrades = {}
     return {
-        "user_id": row[0],
-        "score": row[1] or 0,
-        "coins": row[2] or 0,
-        "best_score": row[3] or 0,
-        "difficulty": row[4] or "normal",
-        "upgrades": upgrades,
-        "updated_at": row[6],
+        "user_id": row[0], "score": row[1] or 0, "coins": row[2] or 0,
+        "best_score": row[3] or 0, "difficulty": row[4] or "normal",
+        "upgrades": upgrades, "updated_at": row[6],
     }
 
 
@@ -212,17 +191,14 @@ def get_user_from_session():
     row = db.execute(
         "SELECT u.id, u.email, u.display_name, u.role, u.is_guest "
         "FROM sessions s JOIN users u ON u.id = s.user_id "
-        "WHERE s.token = ? AND s.expires_at > unixepoch()",
-        (token,)
+        "WHERE s.token = ? AND s.expires_at > ?",
+        (token, now_ts())
     ).fetchone()
     if not row:
         return None
     return {
-        "id": row[0],
-        "email": row[1],
-        "display_name": row[2],
-        "role": row[3],
-        "is_guest": row[4],
+        "id": row[0], "email": row[1], "display_name": row[2],
+        "role": row[3], "is_guest": row[4],
     }
 
 
@@ -231,8 +207,8 @@ def create_session(user_id, days=90):
     expires = int((datetime.utcnow() + timedelta(days=days)).timestamp())
     db = get_db()
     db.execute(
-        "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
-        (token, user_id, expires)
+        "INSERT INTO sessions (token, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
+        (token, user_id, expires, now_ts())
     )
     db.commit()
     return token
@@ -325,10 +301,15 @@ def auth_guest():
     uid = new_id()
     db = get_db()
     db.execute(
-        "INSERT INTO users (id, display_name, role, is_guest) VALUES (?, ?, 'guest', 1)",
-        (uid, name)
+        "INSERT INTO users (id, display_name, role, is_guest, created_at) "
+        "VALUES (?, ?, 'guest', 1, ?)",
+        (uid, name, now_ts())
     )
-    db.execute("INSERT INTO saves (user_id) VALUES (?)", (uid,))
+    db.execute(
+        "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades, updated_at) "
+        "VALUES (?, 0, 0, 0, 'normal', '{}', ?)",
+        (uid, now_ts())
+    )
     db.commit()
 
     token = create_session(uid, days=365)
@@ -363,10 +344,15 @@ def auth_register():
     role = "owner" if email == OWNER_EMAIL else "player"
 
     db.execute(
-        "INSERT INTO users (id, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)",
-        (uid, email, pw_hash, name, role)
+        "INSERT INTO users (id, email, password_hash, display_name, role, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (uid, email, pw_hash, name, role, now_ts())
     )
-    db.execute("INSERT INTO saves (user_id) VALUES (?)", (uid,))
+    db.execute(
+        "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades, updated_at) "
+        "VALUES (?, 0, 0, 0, 'normal', '{}', ?)",
+        (uid, now_ts())
+    )
     db.commit()
 
     token = create_session(uid, days=90)
@@ -397,11 +383,8 @@ def auth_login():
     resp = make_response(jsonify({
         "ok": True,
         "user": {
-            "id": user["id"],
-            "name": user["display_name"],
-            "email": user["email"],
-            "role": user["role"],
-            "is_guest": False,
+            "id": user["id"], "name": user["display_name"],
+            "email": user["email"], "role": user["role"], "is_guest": False,
         },
     }))
     return set_session_cookie(resp, token, days=90)
@@ -426,11 +409,8 @@ def me():
         return jsonify({"user": None})
     return jsonify({
         "user": {
-            "id": user["id"],
-            "name": user["display_name"],
-            "email": user["email"],
-            "role": user["role"],
-            "is_guest": bool(user["is_guest"]),
+            "id": user["id"], "name": user["display_name"],
+            "email": user["email"], "role": user["role"], "is_guest": bool(user["is_guest"]),
         }
     })
 
@@ -465,20 +445,20 @@ def post_save():
     if existing:
         db.execute(
             "UPDATE saves SET score=?, coins=?, best_score=?, difficulty=?, upgrades=?, "
-            "updated_at=unixepoch() WHERE user_id=?",
-            (score, coins, best, difficulty, upgrades, request.user["id"])
+            "updated_at=? WHERE user_id=?",
+            (score, coins, best, difficulty, upgrades, now_ts(), request.user["id"])
         )
     else:
         db.execute(
-            "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (request.user["id"], score, coins, best, difficulty, upgrades)
+            "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (request.user["id"], score, coins, best, difficulty, upgrades, now_ts())
         )
 
     if best > 0:
         db.execute(
-            "INSERT INTO leaderboard (user_id, display_name, score) VALUES (?, ?, ?)",
-            (request.user["id"], request.user["display_name"], best)
+            "INSERT INTO leaderboard (user_id, display_name, score, created_at) VALUES (?, ?, ?, ?)",
+            (request.user["id"], request.user["display_name"], best, now_ts())
         )
 
     db.commit()
