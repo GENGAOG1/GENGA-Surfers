@@ -3,16 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<meta name="theme-color" content="#0a0a2a" />
-<title>Subway Surfers</title>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiU3Vid2F5IFN1cmZlcnMiLCJzaG9ydF9uYW1lIjoiU3Vid2F5Iiwic3RhcnRfdXJsIjoiLyIsImRpc3BsYXkiOiJmdWxsc2NyZWVuIiwib3JpZW50YXRpb24iOiJwb3J0cmFpdCIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTJhIiwidGhlbWVfY29sb3IiOiIjMGEwYTJhIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBQUVBQUFBQkNBWUFBQUFDMHNKbEFBQUFERWxFUVZSNDJtTmdZR0FBQUFBRUFBRGxOVDRLQUFBQUFFbEZUa1N1UW1DQyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmcifV19" />
+<meta name="theme-color" content="#0a0a0a" />
+<title>GENGA Surfer</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiR0VOR0EgU3VyZmVyIiwic2hvcnRfbmFtZSI6IkdFTkdBIiwic3RhcnRfdXJsIjoiLyIsImRpc3BsYXkiOiJmdWxsc2NyZWVuIiwib3JpZW50YXRpb24iOiJwb3J0cmFpdCIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTBhIiwidGhlbWVfY29sb3IiOiIjMGEwYTBhIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBQUVBQUFBQkNBWUFBQUFDMHNKbEFBQUFERWxFUVZSNDJtTmdZR0FBQUFBRUFBRGxOVDRLQUFBQUFFbEZUa1N1UW1DQyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmcifV19" />
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html,body { width:100%; height:100%; overflow:hidden; background:#050518; font-family:'Rubik',sans-serif; color:#fff; }
+html,body { width:100%; height:100%; overflow:hidden; background:#0a0a0a; color:#fff; font-family:'Rubik',sans-serif; }
 
-/* CANVAS */
 #game {
   display:block; width:100%; height:100%;
   position:fixed; inset:0; z-index:0; pointer-events:none;
@@ -20,219 +19,198 @@ html,body { width:100%; height:100%; overflow:hidden; background:#050518; font-f
 
 /* HUD */
 #hud {
-  position:fixed; top:0; left:0; right:0; padding:14px 18px;
+  position:fixed; top:0; left:0; right:0; padding:16px 20px;
   pointer-events:none; z-index:10;
-  display:flex; flex-direction:column; gap:4px;
+  display:flex; flex-direction:column; gap:2px;
 }
 #score {
-  font-family:'Bungee',cursive; font-size:26px; letter-spacing:2px;
-  color:#fff; text-shadow:0 0 12px rgba(255,204,0,0.8), 3px 3px 0 #000;
+  font-family:'Bungee',cursive; font-size:22px; letter-spacing:1px;
+  color:#fff;
 }
 #coins {
-  font-family:'Bungee',cursive; font-size:20px;
-  color:#ffd700; text-shadow:0 0 10px rgba(255,215,0,0.6), 2px 2px 0 #000;
+  font-family:'Bungee',cursive; font-size:18px;
+  color:#ffd700;
 }
-#players { margin-top:6px; font-size:12px; color:#0ff; font-family:'Rubik',sans-serif; }
+#players { margin-top:4px; font-size:12px; color:#888; }
 
-/* BUTTONS oben (Mod + Pause) */
+/* TOP BUTTONS */
 .iconBtn {
-  position:fixed; top:14px; width:52px; height:52px; border-radius:50%;
+  position:fixed; top:14px; width:46px; height:46px; border-radius:12px;
   display:none; align-items:center; justify-content:center;
   cursor:pointer; z-index:100; user-select:none;
-  font-family:'Bungee',cursive; font-size:22px;
-  transition:transform 0.15s ease, box-shadow 0.15s ease;
-  backdrop-filter:blur(8px);
+  font-family:'Bungee',cursive; font-size:18px;
+  background:#1a1a1a; color:#ffd700;
+  border:1px solid #333; transition:background 0.15s, border-color 0.15s;
 }
 .iconBtn.show { display:flex; }
-.iconBtn:active { transform:scale(0.92); }
+.iconBtn:hover { background:#222; border-color:#555; }
+.iconBtn:active { transform:scale(0.96); }
 
-#modBtn {
-  right:14px;
-  background:linear-gradient(135deg, #1a1a1a, #000);
-  color:#ffcc00; border:2px solid #ffcc00;
-  box-shadow:0 0 20px rgba(255,204,0,0.5), inset 0 0 10px rgba(255,204,0,0.2);
-}
-#modBtn:hover { box-shadow:0 0 30px rgba(255,204,0,0.8); }
-
-#pauseBtn {
-  left:14px;
-  background:linear-gradient(135deg, #1a1a1a, #000);
-  color:#fff; border:2px solid #fff;
-  box-shadow:0 0 20px rgba(255,255,255,0.4);
-}
+#modBtn { right:14px; }
+#pauseBtn { left:14px; color:#fff; }
 
 /* MOD PANEL */
 #modPanel {
-  position:fixed; top:78px; right:14px; width:320px; max-height:80vh;
-  overflow-y:auto; background:rgba(10,10,30,0.97);
-  color:#fff; border:2px solid #ffcc00; border-radius:16px;
-  padding:18px; z-index:101; font-family:'Rubik',sans-serif;
-  display:none; box-shadow:0 8px 40px rgba(0,0,0,0.8), 0 0 30px rgba(255,204,0,0.2);
-  backdrop-filter:blur(12px);
+  position:fixed; top:72px; right:14px; width:320px; max-height:80vh;
+  overflow-y:auto; background:#111;
+  color:#fff; border:1px solid #333; border-radius:16px;
+  padding:20px; z-index:101; font-family:'Rubik',sans-serif;
+  display:none;
 }
-#modPanel.show { display:block; animation:slideIn 0.25s ease; }
+#modPanel.show { display:block; }
 #modPanel h2 {
-  font-family:'Bungee',cursive; color:#ffcc00; margin-bottom:14px;
-  text-align:center; letter-spacing:2px; font-size:20px;
+  font-family:'Bungee',cursive; color:#ffd700; margin-bottom:16px;
+  text-align:center; letter-spacing:2px; font-size:18px;
 }
 #modPanel label {
   display:flex; justify-content:space-between; align-items:center;
-  margin:8px 0; font-size:13px; gap:8px; color:#ccc;
+  margin:10px 0; font-size:13px; gap:8px; color:#bbb;
 }
 #modPanel input[type="number"], #modPanel input[type="text"] {
-  width:120px; padding:6px 8px; background:#050518; color:#fff;
-  border:1px solid #444; border-radius:6px; font-family:'Rubik',sans-serif;
+  width:120px; padding:6px 10px; background:#0a0a0a; color:#fff;
+  border:1px solid #333; border-radius:8px; font-family:'Rubik',sans-serif;
 }
-#modPanel input[type="checkbox"] { width:18px; height:18px; accent-color:#ffcc00; }
+#modPanel input[type="checkbox"] { width:16px; height:16px; accent-color:#ffd700; }
 #modPanel button {
-  width:100%; margin-top:14px; padding:10px; background:linear-gradient(135deg,#ffcc00,#ff9900);
-  color:#000; border:none; border-radius:10px; font-weight:800;
-  cursor:pointer; font-family:'Bungee',cursive; letter-spacing:1px;
-  transition:transform 0.15s;
+  width:100%; margin-top:14px; padding:10px; background:#ffd700;
+  color:#000; border:none; border-radius:10px; font-weight:700;
+  cursor:pointer; font-family:'Rubik',sans-serif;
 }
-#modPanel button:active { transform:scale(0.97); }
 
 /* OVERLAYS */
 .overlay {
   position:fixed; inset:0; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:16px; padding:24px;
-  background:radial-gradient(circle at center, rgba(20,20,60,0.95), rgba(5,5,24,0.98));
-  z-index:20; pointer-events:auto;
-  animation:fadeIn 0.3s ease;
+  align-items:center; justify-content:flex-start; gap:20px;
+  padding:60px 20px 40px;
+  background:#0a0a0a; z-index:20; pointer-events:auto;
   overflow-y:auto;
 }
 .overlay.hidden { display:none !important; }
 
-@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
-@keyframes slideIn { from{opacity:0;transform:translateX(20px);} to{opacity:1;transform:translateX(0);} }
-@keyframes pop { 0%{transform:scale(0.9);opacity:0;} 100%{transform:scale(1);opacity:1;} }
-
 h1 {
-  font-family:'Bungee',cursive; font-size:clamp(32px,7vw,52px);
-  color:#ffcc00; letter-spacing:4px; text-align:center;
-  text-shadow:
-    0 0 20px rgba(255,204,0,0.7),
-    0 0 40px rgba(255,153,0,0.5),
-    4px 4px 0 #000;
-  animation:pop 0.4s ease;
+  font-family:'Bungee',cursive;
+  font-size:clamp(28px,6vw,42px);
+  color:#fff; letter-spacing:2px; text-align:center;
+  margin-bottom:6px;
 }
+h1 .emoji { margin-right:8px; }
 h2 {
-  font-family:'Bungee',cursive; font-size:24px; color:#ffcc00;
-  letter-spacing:2px; text-shadow:2px 2px 0 #000;
+  font-family:'Bungee',cursive; font-size:20px; color:#fff;
+  letter-spacing:1px; margin-bottom:4px;
 }
 
-p { font-size:15px; color:#ccc; text-align:center; max-width:340px; }
+p { font-size:15px; color:#aaa; text-align:center; max-width:380px; line-height:1.5; }
+
+/* CARD für jede Sektion */
+.card {
+  width:min(420px, 94vw);
+  background:#111;
+  border:1px solid #222;
+  border-radius:16px;
+  padding:20px;
+  display:flex; flex-direction:column; gap:12px;
+}
 
 input, select {
-  padding:14px 18px; font-size:16px; width:min(320px, 90vw);
-  border-radius:12px; border:2px solid rgba(255,204,0,0.4);
-  background:rgba(5,5,24,0.9); color:#fff; font-family:'Rubik',sans-serif;
-  outline:none; transition:border-color 0.2s, box-shadow 0.2s;
+  padding:12px 14px; font-size:15px; width:100%;
+  border-radius:10px; border:1px solid #333;
+  background:#0a0a0a; color:#fff; font-family:'Rubik',sans-serif;
+  outline:none; transition:border-color 0.15s;
 }
-input:focus, select:focus {
-  border-color:#ffcc00; box-shadow:0 0 20px rgba(255,204,0,0.4);
-}
-input::placeholder { color:#666; }
+input:focus, select:focus { border-color:#ffd700; }
+input::placeholder { color:#555; }
 
 button {
-  padding:14px 36px; font-size:16px; border:none; border-radius:12px;
-  background:linear-gradient(135deg, #ffcc00, #ff9900);
-  color:#000; font-weight:800; font-family:'Bungee',cursive;
-  letter-spacing:1px; cursor:pointer; min-width:200px;
-  box-shadow:0 4px 0 #aa6600, 0 0 20px rgba(255,204,0,0.4);
-  transition:transform 0.1s, box-shadow 0.2s;
+  padding:12px 24px; font-size:15px; border:none; border-radius:10px;
+  background:#ffd700; color:#000; font-weight:700;
+  font-family:'Rubik',sans-serif; cursor:pointer;
+  transition:background 0.15s, opacity 0.15s;
+  width:100%;
 }
-button:active {
-  transform:translateY(3px);
-  box-shadow:0 1px 0 #aa6600, 0 0 15px rgba(255,204,0,0.6);
-}
+button:hover { background:#ffed4a; }
+button:active { opacity:0.85; }
 button.secondary {
-  background:linear-gradient(135deg, #2a2a4a, #1a1a3a);
-  color:#fff; box-shadow:0 4px 0 #0a0a1a, 0 0 15px rgba(100,100,255,0.2);
+  background:#1a1a1a; color:#fff; border:1px solid #333;
 }
-button:disabled { opacity:0.5; cursor:not-allowed; }
+button.secondary:hover { background:#222; border-color:#555; }
+button:disabled { opacity:0.4; cursor:not-allowed; }
 
 /* TABS */
 .tabs {
-  display:flex; gap:8px; margin-bottom:8px;
-  background:rgba(0,0,0,0.4); padding:6px; border-radius:14px;
-  border:1px solid rgba(255,204,0,0.2);
+  display:flex; gap:6px; padding:4px;
+  background:#111; border:1px solid #222; border-radius:12px;
+  width:min(420px, 94vw);
 }
 .tabs button {
-  padding:10px 22px; font-size:14px; min-width:auto;
-  background:transparent; color:#888; box-shadow:none;
-  border-radius:10px; font-family:'Rubik',sans-serif; font-weight:600;
-  letter-spacing:0;
+  flex:1; padding:10px 12px; font-size:14px;
+  background:transparent; color:#888;
+  border-radius:8px; font-weight:600;
 }
 .tabs button.active {
-  background:linear-gradient(135deg,#ffcc00,#ff9900); color:#000;
-  box-shadow:0 0 15px rgba(255,204,0,0.5);
+  background:#ffd700; color:#000;
 }
+.tabs button:not(.active):hover { background:#1a1a1a; color:#fff; }
 
 /* PANES */
 #paneGuest, #paneLogin, #paneRegister {
   display:flex; flex-direction:column; gap:12px; align-items:center;
+  width:min(420px, 94vw);
 }
 
 .err {
-  color:#ff5566; font-size:13px; max-width:320px; text-align:center;
-  min-height:18px; font-weight:600;
+  color:#ff5566; font-size:13px; max-width:380px; text-align:center;
+  min-height:16px; font-weight:500;
 }
-
 .small {
-  font-size:12px; color:#777; max-width:320px; text-align:center;
+  font-size:12px; color:#666; max-width:380px; text-align:center;
   line-height:1.5;
 }
 
 /* LEADERBOARD */
 #lbList {
-  max-height:50vh; overflow-y:auto; width:min(420px,92vw);
+  max-height:55vh; overflow-y:auto; width:min(420px,92vw);
   font-family:'Rubik',sans-serif; font-size:14px;
-  background:rgba(0,0,0,0.4); border-radius:12px; padding:8px;
-  border:1px solid rgba(255,204,0,0.2);
+  background:#111; border:1px solid #222; border-radius:14px; padding:6px;
 }
 #lbList div {
-  display:flex; justify-content:space-between; padding:10px 14px;
-  border-bottom:1px solid rgba(255,255,255,0.05); color:#ddd;
+  display:flex; justify-content:space-between; padding:12px 16px;
+  border-bottom:1px solid #1a1a1a; color:#ccc;
 }
-#lbList div:first-child { color:#ffd700; font-weight:800; text-shadow:0 0 8px rgba(255,215,0,0.5); }
-#lbList div:nth-child(2) { color:#c0c0c0; font-weight:700; }
-#lbList div:nth-child(3) { color:#cd7f32; font-weight:700; }
+#lbList div:last-child { border-bottom:none; }
+#lbList div:first-child { color:#ffd700; font-weight:700; }
 
 /* CHARACTERS */
 #charList {
   display:flex; flex-direction:column; gap:10px;
-  width:min(360px, 92vw); max-height:55vh; overflow-y:auto; padding:4px;
+  width:min(420px, 94vw); max-height:55vh; overflow-y:auto;
 }
 .charRow {
   display:flex; justify-content:space-between; align-items:center;
-  gap:12px; padding:14px; background:rgba(0,0,0,0.5);
-  border:2px solid rgba(255,204,0,0.2); border-radius:14px;
-  transition:border-color 0.2s, transform 0.15s;
+  gap:12px; padding:14px; background:#111;
+  border:1px solid #222; border-radius:14px;
+  transition:border-color 0.15s;
 }
-.charRow:hover { border-color:rgba(255,204,0,0.6); transform:translateY(-2px); }
-.charRow.selected { border-color:#ffcc00; box-shadow:0 0 20px rgba(255,204,0,0.4); }
+.charRow:hover { border-color:#333; }
+.charRow.selected { border-color:#ffd700; }
 .charColor {
   width:32px; height:32px; border-radius:8px;
-  box-shadow:0 0 12px currentColor, inset 0 0 8px rgba(255,255,255,0.3);
 }
-.charName { font-family:'Bungee',cursive; font-size:16px; letter-spacing:1px; }
-.charRow button { min-width:auto; padding:8px 16px; font-size:12px; }
+.charName { font-family:'Bungee',cursive; font-size:15px; letter-spacing:1px; }
+.charRow button { width:auto; padding:8px 18px; font-size:13px; }
 
-/* ADMIN LINK */
 #adminLink {
-  color:#0ff; font-size:14px; margin-top:10px;
-  text-decoration:none; padding:8px 16px;
-  border:1px solid #0ff; border-radius:8px;
-  transition:background 0.2s;
+  color:#ffd700; font-size:13px;
+  text-decoration:none; padding:10px 18px;
+  border:1px solid #333; border-radius:10px;
+  background:#111; transition:border-color 0.15s;
+  font-weight:600;
 }
-#adminLink:hover { background:rgba(0,255,255,0.1); }
+#adminLink:hover { border-color:#ffd700; }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:rgba(255,204,0,0.3); border-radius:3px; }
-::-webkit-scrollbar-thumb:hover { background:rgba(255,204,0,0.6); }
+::-webkit-scrollbar-thumb { background:#222; border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:#333; }
 </style>
 </head>
 <body>
@@ -263,89 +241,89 @@ button:disabled { opacity:0.5; cursor:not-allowed; }
   <div id="players"></div>
 </div>
 
-<!-- START MENU -->
 <div id="startMenu" class="overlay">
-  <h1>SUBWAY SURFERS</h1>
+  <h1><span class="emoji">🛹</span>GENGA Surfer</h1>
+
   <div class="tabs">
     <button id="tabGuest" class="active">Gast</button>
     <button id="tabLogin">Login</button>
     <button id="tabRegister">Registrieren</button>
   </div>
 
-  <div id="paneGuest">
+  <div id="paneGuest" class="card">
+    <h2>Als Gast spielen</h2>
+    <p class="small">Fortschritt wird lokal und am Server gespeichert. Nur auf diesem Gerät nutzbar.</p>
     <input id="guestName" placeholder="Dein Name" maxlength="16" />
     <div id="guestErr" class="err"></div>
-    <button id="guestPlay">Als Gast spielen</button>
-    <div class="small">Gast-Fortschritt bleibt nur auf diesem Gerät gespeichert.</div>
+    <button id="guestPlay">Los geht's</button>
   </div>
 
-  <div id="paneLogin" class="hidden">
+  <div id="paneLogin" class="card hidden">
+    <h2>Einloggen</h2>
+    <p class="small">Geräteübergreifend spielen mit Email und Passwort.</p>
     <input id="loginEmail" placeholder="Email" />
     <input id="loginPw" type="password" placeholder="Passwort" />
     <div id="loginErr" class="err"></div>
     <button id="loginBtn">Einloggen</button>
   </div>
 
-  <div id="paneRegister" class="hidden">
+  <div id="paneRegister" class="card hidden">
+    <h2>Account erstellen</h2>
+    <p class="small">Fortschritt wird synchronisiert auf allen Geräten.</p>
     <input id="regName" placeholder="Name" maxlength="16" />
     <input id="regEmail" placeholder="Email" />
-    <input id="regPw" type="password" placeholder="Passwort (min. 6)" />
+    <input id="regPw" type="password" placeholder="Passwort (min. 6 Zeichen)" />
     <div id="regErr" class="err"></div>
-    <button id="regBtn">Account erstellen</button>
+    <button id="regBtn">Registrieren</button>
   </div>
 
-  <button id="lbBtn" class="secondary">Leaderboard</button>
+  <button id="lbBtn" class="secondary" style="width:min(420px,94vw);">🏆 Leaderboard</button>
 </div>
 
-<!-- LOBBY -->
 <div id="lobby" class="overlay hidden">
-  <h1>BEREIT</h1>
+  <h1><span class="emoji">🛹</span>Bereit</h1>
   <p id="welcomeText">Eingeloggt als: -</p>
-  <input id="roomInput" placeholder="Room Code" maxlength="12" value="default" />
-  <button id="soloBtn">SOLO SPIELEN</button>
-  <button id="mpBtn">MULTIPLAYER</button>
-  <button id="charBtn" class="secondary">Charaktere</button>
-  <button id="logoutBtn" class="secondary">Logout</button>
+  <div class="card">
+    <h2>Spielmodus</h2>
+    <input id="roomInput" placeholder="Room Code" maxlength="12" value="default" />
+    <button id="soloBtn">Solo spielen</button>
+    <button id="mpBtn">Multiplayer</button>
+  </div>
+  <button id="charBtn" class="secondary" style="width:min(420px,94vw);">Charaktere</button>
+  <button id="logoutBtn" class="secondary" style="width:min(420px,94vw);">Logout</button>
 </div>
 
-<!-- CHARACTERS -->
 <div id="charMenu" class="overlay hidden">
-  <h1>CHARAKTERE</h1>
+  <h1><span class="emoji">🎭</span>Charaktere</h1>
   <div id="charList"></div>
-  <button id="charBack" class="secondary">Zurück</button>
+  <button id="charBack" class="secondary" style="width:min(420px,94vw);">Zurück</button>
 </div>
 
-<!-- PAUSE -->
 <div id="pauseMenu" class="overlay hidden">
-  <h1>PAUSE</h1>
-  <button id="resumeBtn">Weiter</button>
-  <button id="pauseSave" class="secondary">Speichern & Verlassen</button>
+  <h1><span class="emoji">⏸️</span>Pause</h1>
+  <button id="resumeBtn" style="width:min(420px,94vw);">Weiter</button>
+  <button id="pauseSave" class="secondary" style="width:min(420px,94vw);">Speichern und verlassen</button>
 </div>
 
-<!-- GAME OVER -->
 <div id="gameover" class="overlay hidden">
-  <h1>GAME OVER</h1>
+  <h1><span class="emoji">💥</span>Game Over</h1>
   <p id="finalScore"></p>
-  <button id="retryBtn">Nochmal</button>
-  <button id="backLobby" class="secondary">Zurück zum Menü</button>
+  <button id="retryBtn" style="width:min(420px,94vw);">Nochmal</button>
+  <button id="backLobby" class="secondary" style="width:min(420px,94vw);">Zurück zum Menü</button>
 </div>
 
-<!-- LEADERBOARD -->
 <div id="lbMenu" class="overlay hidden">
-  <h1>LEADERBOARD</h1>
+  <h1><span class="emoji">🏆</span>Leaderboard</h1>
   <div id="lbList"></div>
-  <button id="lbBack" class="secondary">Zurück</button>
+  <button id="lbBack" class="secondary" style="width:min(420px,94vw);">Zurück</button>
 </div>
 
 <script type="module">
 console.log('SCRIPT GESTARTET');
 
-/* ============================================================
-   SERVICE WORKER
-   ============================================================ */
 if ('serviceWorker' in navigator) {
   const swCode = `
-    const CACHE = 'subway-surfers-v3';
+    const CACHE = 'genga-surfer-v4';
     const ASSETS = ['/','/index.html'];
     self.addEventListener('install', (e) => {
       e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -371,9 +349,6 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
 }
 
-/* ============================================================
-   STATE
-   ============================================================ */
 const API = '';
 let AUTH = {
   token: localStorage.getItem('token') || null,
@@ -394,7 +369,7 @@ const CHARACTERS = [
 const MOD = {
   coins:0, score:0, speed:0.25, laneDelay:15, jumpHeight:2.2,
   obsRate:0.4, coinRate:0.6, fogNear:20, fogFar:80,
-  bg:0x0a0a2a, playerColor:0xff4444, god:false, infJump:false, mult:1
+  bg:0x0a0a0a, playerColor:0xff4444, god:false, infJump:false, mult:1
 };
 
 let THREE, renderer, scene, camera;
@@ -410,9 +385,6 @@ let clock;
 let jumpY = 0, jumpVel = 0, jumping = false;
 let heartbeatInterval = null;
 
-/* ============================================================
-   DOM
-   ============================================================ */
 const $ = id => document.getElementById(id);
 const canvas = $('game');
 const scoreEl = $('score'), coinsEl = $('coins'), playersEl = $('players');
@@ -420,18 +392,12 @@ const startMenu = $('startMenu'), lobby = $('lobby'), gameoverEl = $('gameover')
 const pauseMenu = $('pauseMenu'), charMenu = $('charMenu'), lbMenu = $('lbMenu');
 const modBtn = $('modBtn'), modPanel = $('modPanel'), pauseBtn = $('pauseBtn');
 
-/* ============================================================
-   THREE
-   ============================================================ */
 async function loadThree() {
   if (THREE) return THREE;
   THREE = await import('https://unpkg.com/three@0.160.0/build/three.module.js');
   return THREE;
 }
 
-/* ============================================================
-   API
-   ============================================================ */
 async function api(path, method = 'GET', body = null) {
   const headers = { 'Content-Type': 'application/json' };
   if (AUTH.token) headers['Authorization'] = 'Bearer ' + AUTH.token;
@@ -443,9 +409,6 @@ async function api(path, method = 'GET', body = null) {
   return { ok: res.ok, status: res.status, data };
 }
 
-/* ============================================================
-   TABS
-   ============================================================ */
 function showTab(name) {
   ['Guest','Login','Register'].forEach(t => {
     $('tab' + t).classList.toggle('active', t === name);
@@ -456,9 +419,6 @@ $('tabGuest').onclick = () => showTab('Guest');
 $('tabLogin').onclick = () => showTab('Login');
 $('tabRegister').onclick = () => showTab('Register');
 
-/* ============================================================
-   AUTH
-   ============================================================ */
 $('guestPlay').onclick = async () => {
   const name = $('guestName').value.trim();
   $('guestErr').textContent = '';
@@ -542,7 +502,7 @@ function enterLobby() {
       a.id = 'adminLink';
       a.href = '/admin';
       a.target = '_blank';
-      a.textContent = 'ADMIN PANEL ÖFFNEN';
+      a.textContent = 'Admin Panel öffnen';
       lobby.appendChild(a);
     }
   }
@@ -551,9 +511,6 @@ function enterLobby() {
   heartbeatInterval = setInterval(() => { api('/api/heartbeat', 'POST'); }, 60000);
 }
 
-/* ============================================================
-   CHARAKTERE
-   ============================================================ */
 $('charBtn').onclick = () => { renderCharMenu(); charMenu.classList.remove('hidden'); };
 $('charBack').onclick = () => charMenu.classList.add('hidden');
 
@@ -581,7 +538,7 @@ function renderCharMenu() {
     row.className = 'charRow' + (selected ? ' selected' : '');
     row.innerHTML = `
       <div style="display:flex;align-items:center;gap:12px;">
-        <div class="charColor" style="background:${colorHex};color:${colorHex};"></div>
+        <div class="charColor" style="background:${colorHex};"></div>
         <span class="charName">${c.name}</span>
       </div>
       <div>
@@ -628,9 +585,6 @@ function renderCharMenu() {
   });
 }
 
-/* ============================================================
-   SPIELSTART
-   ============================================================ */
 $('soloBtn').onclick = () => { room = $('roomInput').value || 'default'; startGame(false); };
 $('mpBtn').onclick = () => { room = $('roomInput').value || 'default'; startGame(true); };
 $('retryBtn').onclick = () => startGame(multiplayer);
@@ -667,9 +621,6 @@ async function saveProgress() {
   }
 }
 
-/* ============================================================
-   THREE INIT
-   ============================================================ */
 async function initThree() {
   await loadThree();
   scene = new THREE.Scene();
@@ -719,17 +670,17 @@ function createSegment(z) {
   const g = new THREE.Group();
   const ground = new THREE.Mesh(
     new THREE.BoxGeometry(9, 0.2, SEG_LEN),
-    new THREE.MeshLambertMaterial({ color: 0x333344 })
+    new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
   );
   ground.position.set(0, -0.1, z);
   g.add(ground);
-  const railMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa });
+  const railMat = new THREE.MeshLambertMaterial({ color: 0x555555 });
   for (const x of [-3, 3]) {
     const rail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, SEG_LEN), railMat);
     rail.position.set(x, 0.15, z);
     g.add(rail);
   }
-  const divMat = new THREE.MeshLambertMaterial({ color: 0x666677 });
+  const divMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
   for (const x of [-1.1, 1.1]) {
     const div = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, SEG_LEN), divMat);
     div.position.set(x, 0.02, z);
@@ -953,9 +904,6 @@ async function gameOver() {
   await saveProgress();
 }
 
-/* ============================================================
-   MOD MENU
-   ============================================================ */
 modBtn.onclick = () => modPanel.classList.toggle('show');
 $('modClose').onclick = () => modPanel.classList.remove('show');
 function bindMod(id, key, tf = v => v) {
@@ -982,9 +930,6 @@ function applyMods() {
   if (player) { player.material.color.setHex(MOD.playerColor); }
 }
 
-/* ============================================================
-   AUTOLOGIN
-   ============================================================ */
 async function tryAutoLogin() {
   if (!AUTH.token) return false;
   const r = await api('/api/me');
@@ -1001,9 +946,6 @@ async function tryAutoLogin() {
   return true;
 }
 
-/* ============================================================
-   BOOT
-   ============================================================ */
 initThree();
 tryAutoLogin();
 </script>
