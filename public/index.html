@@ -1,12 +1,11 @@
-<!-- public/index.html — alles in einer Datei: HTML + CSS + JS + PWA-Icons als Base64 -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <meta name="theme-color" content="#0a0a2a" />
 <title>Subway Surfers</title>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiU3Vid2F5IFN1cmZlcnMiLCJzaG9ydF9uYW1lIjoiU3Vid2F5Iiwic3RhcnRfdXJsIjoiLyIsImRpc3BsYXkiOiJmdWxsc2NyZWVuIiwib3JpZW50YXRpb24iOiJwb3J0cmFpdCIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTJhIiwidGhlbWVfY29sb3IiOiIjMGEwYTJhIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBQUVBQUFBQkNBWUFBQUFDMHNKbEFBQUFERWxFUVZSNDJtTmdZR0FBQUFBRUFBRGxOVDRLQUFBQUFFbEZUa1N1UW1DQyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmcifSx7InNyYyI6ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBQUVBQUFBQkNBWUFBQUFDMHNKbEFBQUFERWxFUVZSNDJtTmdZR0FBQUFBRUFBRGxOVDRLQUFBQUFFbEZUa1N1UW1DQyIsInNpemVzIjoiNTEyeDUxMiIsInR5cGUiOiJpbWFnZS9wbmcifV19" />
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiU3Vid2F5IFN1cmZlcnMiLCJzaG9ydF9uYW1lIjoiU3Vid2F5Iiwic3RhcnRfdXJsIjoiLyIsImRpc3BsYXkiOiJmdWxsc2NyZWVuIiwib3JpZW50YXRpb24iOiJwb3J0cmFpdCIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTJhIiwidGhlbWVfY29sb3IiOiIjMGEwYTJhIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBQUVBQUFBQkNBWUFBQUFDMHNKbEFBQUFERWxFUVZSNDJtTmdZR0FBQUFBRUFBRGxOVDRLQUFBQUFFbEZUa1N1UW1DQyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmcifV19" />
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -18,60 +17,62 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000; font-fami
 #coins { font-size:18px; color:#ffd700; }
 #players { margin-top:8px; font-size:12px; color:#0ff; }
 
-#menu, #gameover { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,20,0.92); color:#fff; z-index:20; gap:14px; }
-#menu h1 { font-size:42px; color:#ffcc00; text-shadow:4px 4px 0 #000; letter-spacing:3px; }
-#menu input { padding:12px; font-size:16px; width:260px; border-radius:8px; border:2px solid #ffcc00; background:#111; color:#fff; }
-#menu button, #gameover button { padding:14px 40px; font-size:18px; border:none; border-radius:8px; background:#ffcc00; color:#000; font-weight:bold; cursor:pointer; }
-
-.hidden { display:none !important; }
-
+/* MOD BUTTON - nur Owner */
 #modBtn {
-  position: fixed;
-  top: 14px;
-  right: 14px;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: #000;
-  color: #fff;
-  font-size: 26px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 100;
-  border: 2px solid #333;
-  user-select: none;
+  position: fixed; top: 14px; right: 14px; width: 48px; height: 48px;
+  border-radius: 50%; background: #000; color: #fff; font-size: 26px;
+  font-weight: bold; display: none; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 100; border: 2px solid #333; user-select: none;
 }
+#modBtn.show { display: flex; }
 #modBtn:active { transform: scale(0.94); }
 
 #modPanel {
-  position: fixed;
-  top: 70px;
-  right: 14px;
-  width: 300px;
-  max-height: 80vh;
-  overflow-y: auto;
-  background: rgba(0,0,0,0.95);
-  color: #fff;
-  border: 2px solid #ffcc00;
-  border-radius: 10px;
-  padding: 14px;
-  z-index: 101;
-  font-family: monospace;
+  position: fixed; top: 70px; right: 14px; width: 300px; max-height: 80vh;
+  overflow-y: auto; background: rgba(0,0,0,0.95); color: #fff;
+  border: 2px solid #ffcc00; border-radius: 10px; padding: 14px;
+  z-index: 101; font-family: monospace; display: none;
 }
+#modPanel.show { display: block; }
 #modPanel h2 { color: #ffcc00; margin-bottom: 10px; text-align: center; }
 #modPanel label { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; gap: 8px; }
 #modPanel input { width: 120px; padding: 4px; background: #111; color: #fff; border: 1px solid #555; }
 #modPanel button { width: 100%; margin-top: 10px; padding: 8px; background: #ffcc00; color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+/* Overlays */
+.overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:rgba(0,0,20,0.95); color:#fff; z-index:20; gap:14px; padding:20px; }
+.hidden { display:none !important; }
+
+h1 { font-size:38px; color:#ffcc00; text-shadow:4px 4px 0 #000; letter-spacing:3px; text-align:center; }
+h2 { font-size:24px; color:#ffcc00; }
+input, select { padding:12px; font-size:16px; width:280px; border-radius:8px; border:2px solid #ffcc00; background:#111; color:#fff; }
+button { padding:12px 30px; font-size:16px; border:none; border-radius:8px; background:#ffcc00; color:#000; font-weight:bold; cursor:pointer; }
+button.secondary { background:#444; color:#fff; }
+button:active { transform:scale(0.96); }
+.err { color:#f55; font-size:14px; max-width:300px; text-align:center; }
+.tabs { display:flex; gap:8px; margin-bottom:8px; }
+.tabs button { padding:8px 20px; font-size:14px; }
+.tabs button.active { background:#ffcc00; color:#000; }
+.tabs button:not(.active) { background:#333; color:#aaa; }
+.small { font-size:12px; color:#888; max-width:320px; text-align:center; }
+
+#pauseBtn {
+  position:fixed; top:14px; left:14px; width:48px; height:48px;
+  border-radius:50%; background:#000; color:#fff; font-size:20px;
+  display:none; align-items:center; justify-content:center;
+  cursor:pointer; z-index:100; border:2px solid #333; user-select:none;
+}
+#pauseBtn.show { display:flex; }
+
+#lbList { max-height:50vh; overflow-y:auto; width:100%; max-width:400px; font-family:monospace; font-size:14px; }
+#lbList div { display:flex; justify-content:space-between; padding:6px 10px; border-bottom:1px solid #333; }
 </style>
 </head>
 <body>
 
 <div id="modBtn">G</div>
-
-<div id="modPanel" class="hidden">
+<div id="modPanel">
   <h2>MOD MENU</h2>
   <label>Coins <input id="modCoins" type="number" value="0" /></label>
   <label>Score <input id="modScore" type="number" value="0" /></label>
@@ -80,15 +81,13 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000; font-fami
   <label>Jump Height <input id="modJump" type="number" step="0.1" value="2.2" /></label>
   <label>Obstacle Rate <input id="modObsRate" type="number" step="0.05" value="0.4" /></label>
   <label>Coin Rate <input id="modCoinRate" type="number" step="0.05" value="0.6" /></label>
-  <label>Fog Near <input id="modFogNear" type="number" value="20" /></label>
-  <label>Fog Far <input id="modFogFar" type="number" value="80" /></label>
-  <label>Background <input id="modBg" type="color" value="#0a0a2a" /></label>
-  <label>Player Color <input id="modPlayerColor" type="color" value="#ff4444" /></label>
   <label>Godmode <input id="modGod" type="checkbox" /></label>
   <label>Infinite Jump <input id="modInfJump" type="checkbox" /></label>
   <label>Score Multiplier <input id="modMult" type="number" step="1" value="1" /></label>
   <button id="modClose">CLOSE</button>
 </div>
+
+<div id="pauseBtn">II</div>
 
 <div id="hud">
   <div id="score">SCORE: 0</div>
@@ -98,27 +97,87 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000; font-fami
 
 <canvas id="game"></canvas>
 
-<div id="menu">
+<!-- START MENU: Auswahl Login / Gast / Registrieren -->
+<div id="startMenu" class="overlay">
   <h1>SUBWAY SURFERS</h1>
-  <input id="nameInput" placeholder="Your name" maxlength="12" />
-  <input id="roomInput" placeholder="Room code" maxlength="12" value="default" />
-  <button id="soloBtn">SOLO</button>
-  <button id="mpBtn">MULTIPLAYER</button>
+  <div class="tabs">
+    <button id="tabGuest" class="active">Gast</button>
+    <button id="tabLogin">Login</button>
+    <button id="tabRegister">Registrieren</button>
+  </div>
+
+  <div id="paneGuest">
+    <input id="guestName" placeholder="Dein Name" maxlength="16" />
+    <div id="guestErr" class="err"></div>
+    <button id="guestPlay">Als Gast spielen</button>
+    <div class="small">Gast-Fortschritt bleibt nur auf diesem Gerät gespeichert.</div>
+  </div>
+
+  <div id="paneLogin" class="hidden">
+    <input id="loginEmail" placeholder="Email" />
+    <input id="loginPw" type="password" placeholder="Passwort" />
+    <div id="loginErr" class="err"></div>
+    <button id="loginBtn">Einloggen</button>
+  </div>
+
+  <div id="paneRegister" class="hidden">
+    <input id="regName" placeholder="Name" maxlength="16" />
+    <input id="regEmail" placeholder="Email" />
+    <input id="regPw" type="password" placeholder="Passwort (min. 6)" />
+    <div id="regErr" class="err"></div>
+    <button id="regBtn">Account erstellen</button>
+  </div>
+
+  <button id="lbBtn" class="secondary">Leaderboard</button>
 </div>
 
-<div id="gameover" class="hidden">
-  <h2>GAME OVER</h2>
+<!-- LOBBY: Spielmodus wählen -->
+<div id="lobby" class="overlay hidden">
+  <h1>BEREIT</h1>
+  <p id="welcomeText">Eingeloggt als: -</p>
+  <input id="roomInput" placeholder="Room Code" maxlength="12" value="default" />
+  <button id="soloBtn">SOLO SPIELEN</button>
+  <button id="mpBtn">MULTIPLAYER</button>
+  <button id="charBtn" class="secondary">Charaktere</button>
+  <button id="logoutBtn" class="secondary">Logout</button>
+</div>
+
+<!-- CHARAKTER AUSWAHL -->
+<div id="charMenu" class="overlay hidden">
+  <h1>CHARAKTERE</h1>
+  <div id="charList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  <button id="charBack" class="secondary">Zurück</button>
+</div>
+
+<!-- PAUSE MENU -->
+<div id="pauseMenu" class="overlay hidden">
+  <h1>PAUSE</h1>
+  <button id="resumeBtn">Weiter</button>
+  <button id="pauseSave" class="secondary">Speichern & Verlassen</button>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameover" class="overlay hidden">
+  <h1>GAME OVER</h1>
   <p id="finalScore"></p>
-  <button id="retryBtn">RETRY</button>
+  <button id="retryBtn">Nochmal</button>
+  <button id="backLobby" class="secondary">Zurück zum Menü</button>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="lbMenu" class="overlay hidden">
+  <h1>LEADERBOARD</h1>
+  <div id="lbList"></div>
+  <button id="lbBack" class="secondary">Zurück</button>
 </div>
 
 <script type="module">
 /* ============================================================
-   SERVICE WORKER — inline (PWA offline cache)
+   SERVICE WORKER (inline)
    ============================================================ */
 if ('serviceWorker' in navigator) {
   const swCode = `
-    const CACHE = 'subway-surfers-v1';
+    const CACHE = 'subway-surfers-v2';
     const ASSETS = ['/','/index.html'];
     self.addEventListener('install', (e) => {
       e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -141,14 +200,61 @@ if ('serviceWorker' in navigator) {
     });
   `;
   const blob = new Blob([swCode], { type: 'application/javascript' });
-  const swUrl = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl).catch(() => {});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
 }
 
 /* ============================================================
-   THREE.JS LOADER
+   STATE
    ============================================================ */
-let THREE;
+const API = ''; // gleiche Domain
+let AUTH = {
+  token: localStorage.getItem('token') || null,
+  user: JSON.parse(localStorage.getItem('user') || 'null')
+};
+let isGuest = false;
+let guestLocal = JSON.parse(localStorage.getItem('guestData') || 'null') || {
+  high_score: 0, total_coins: 0, selected_character: 'jake', unlocked_characters: 'jake'
+};
+
+const CHARACTERS = [
+  { id:'jake',   name:'Jake',   color:0xff4444, cost:0 },
+  { id:'tricky', name:'Tricky', color:0x44ff88, cost:500 },
+  { id:'fresh',  name:'Fresh',  color:0x44aaff, cost:1500 },
+  { id:'yutani', name:'Yutani', color:0xffaa00, cost:3000 }
+];
+
+const MOD = {
+  coins:0, score:0, speed:0.25, laneDelay:15, jumpHeight:2.2,
+  obsRate:0.4, coinRate:0.6, fogNear:20, fogFar:80,
+  bg:0x0a0a2a, playerColor:0xff4444, god:false, infJump:false, mult:1
+};
+
+let THREE, renderer, scene, camera;
+let player, playerLane = 1;
+const LANE_X = [-2.2, 0, 2.2];
+let speed = 0.25, baseSpeed = 0.25;
+let score = 0, coins = 0;
+let running = false, paused = false, multiplayer = false;
+let socket = null, room = 'default';
+let remotePlayers = {};
+let trackSegments = [], obstacles = [], coinObjects = [];
+let clock;
+let jumpY = 0, jumpVel = 0, jumping = false;
+let heartbeatInterval = null;
+
+/* ============================================================
+   DOM REFS
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const canvas = $('game');
+const scoreEl = $('score'), coinsEl = $('coins'), playersEl = $('players');
+const startMenu = $('startMenu'), lobby = $('lobby'), gameoverEl = $('gameover');
+const pauseMenu = $('pauseMenu'), charMenu = $('charMenu'), lbMenu = $('lbMenu');
+const modBtn = $('modBtn'), modPanel = $('modPanel'), pauseBtn = $('pauseBtn');
+
+/* ============================================================
+   THREE LADEN
+   ============================================================ */
 async function loadThree() {
   if (THREE) return THREE;
   THREE = await import('https://unpkg.com/three@0.160.0/build/three.module.js');
@@ -156,49 +262,245 @@ async function loadThree() {
 }
 
 /* ============================================================
-   MOD CONFIG
+   API HELPER
    ============================================================ */
-const MOD = {
-  coins: 0,
-  score: 0,
-  speed: 0.25,
-  laneDelay: 15,
-  jumpHeight: 2.2,
-  obsRate: 0.4,
-  coinRate: 0.6,
-  fogNear: 20,
-  fogFar: 80,
-  bg: 0x0a0a2a,
-  playerColor: 0xff4444,
-  god: false,
-  infJump: false,
-  mult: 1
-};
-
-let renderer, scene, camera;
-let player, playerLane = 1;
-const LANE_X = [-2.2, 0, 2.2];
-let speed = 0.25, baseSpeed = 0.25;
-let score = 0, coins = 0;
-let running = false, multiplayer = false;
-let socket = null, room = 'default', myName = 'Player';
-let remotePlayers = {};
-let trackSegments = [], obstacles = [], coinObjects = [];
-let clock;
-let jumpY = 0, jumpVel = 0, jumping = false;
-
-const canvas = document.getElementById('game');
-const scoreEl = document.getElementById('score');
-const coinsEl = document.getElementById('coins');
-const playersEl = document.getElementById('players');
-const menuEl = document.getElementById('menu');
-const gameoverEl = document.getElementById('gameover');
-const finalScoreEl = document.getElementById('finalScore');
-const nameInput = document.getElementById('nameInput');
-const roomInput = document.getElementById('roomInput');
+async function api(path, method = 'GET', body = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (AUTH.token) headers['Authorization'] = 'Bearer ' + AUTH.token;
+  const res = await fetch(API + path, {
+    method, headers,
+    body: body ? JSON.stringify(body) : null
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
 
 /* ============================================================
-   INIT 3D
+   AUTH / MENÜ LOGIK
+   ============================================================ */
+function showTab(name) {
+  ['Guest','Login','Register'].forEach(t => {
+    $('tab' + t).classList.toggle('active', t === name);
+    $('pane' + t).classList.toggle('hidden', t !== name);
+  });
+}
+$('tabGuest').onclick = () => showTab('Guest');
+$('tabLogin').onclick = () => showTab('Login');
+$('tabRegister').onclick = () => showTab('Register');
+
+$('guestPlay').onclick = async () => {
+  const name = $('guestName').value.trim();
+  $('guestErr').textContent = '';
+  if (name.length < 2) { $('guestErr').textContent = 'Name zu kurz'; return; }
+  const r = await api('/api/guest/register', 'POST', { name });
+  if (!r.ok) { $('guestErr').textContent = r.data.error || 'Fehler'; return; }
+  AUTH.token = r.data.token;
+  AUTH.user = r.data.user;
+  isGuest = true;
+  localStorage.setItem('token', AUTH.token);
+  localStorage.setItem('user', JSON.stringify(AUTH.user));
+  enterLobby();
+};
+
+$('loginBtn').onclick = async () => {
+  const email = $('loginEmail').value.trim();
+  const password = $('loginPw').value;
+  $('loginErr').textContent = '';
+  const r = await api('/api/login', 'POST', { email, password });
+  if (!r.ok) { $('loginErr').textContent = r.data.error || 'Fehler'; return; }
+  AUTH.token = r.data.token;
+  AUTH.user = r.data.user;
+  isGuest = false;
+  localStorage.setItem('token', AUTH.token);
+  localStorage.setItem('user', JSON.stringify(AUTH.user));
+  enterLobby();
+};
+
+$('regBtn').onclick = async () => {
+  const username = $('regName').value.trim();
+  const email = $('regEmail').value.trim();
+  const password = $('regPw').value;
+  $('regErr').textContent = '';
+  const r = await api('/api/register', 'POST', { username, email, password });
+  if (!r.ok) { $('regErr').textContent = r.data.error || 'Fehler'; return; }
+  AUTH.token = r.data.token;
+  AUTH.user = r.data.user;
+  isGuest = false;
+  localStorage.setItem('token', AUTH.token);
+  localStorage.setItem('user', JSON.stringify(AUTH.user));
+  enterLobby();
+};
+
+$('logoutBtn').onclick = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('owner_player_token');
+  AUTH.token = null; AUTH.user = null;
+  if (socket) { socket.disconnect(); socket = null; }
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  lobby.classList.add('hidden');
+  startMenu.classList.remove('hidden');
+  modBtn.classList.remove('show');
+};
+
+$('lbBtn').onclick = async () => {
+  const r = await api('/api/leaderboard');
+  const list = $('lbList');
+  list.innerHTML = '';
+  (r.data.leaderboard || []).forEach((e, i) => {
+    const d = document.createElement('div');
+    d.innerHTML = `<span>#${i+1} ${e.name}</span><span>${e.score}</span>`;
+    list.appendChild(d);
+  });
+  lbMenu.classList.remove('hidden');
+};
+$('lbBack').onclick = () => lbMenu.classList.add('hidden');
+
+function enterLobby() {
+  startMenu.classList.add('hidden');
+  lobby.classList.remove('hidden');
+  $('welcomeText').textContent = 'Eingeloggt als: ' + AUTH.user.username +
+    (isGuest ? ' (Gast)' : ' (' + AUTH.user.role + ')');
+
+  // Mod-Menü nur für Owner
+  if (AUTH.user.role === 'owner') {
+    modBtn.classList.add('show');
+    // Owner-Spieler-Token in Cookie speichern, damit Admin-Panel Rollen setzen kann
+    document.cookie = `owner_player_token=${AUTH.token}; path=/; max-age=${60*60*24*30}; secure; samesite=Lax`;
+    // Admin-Link einblenden
+    if (!$('adminLink')) {
+      const a = document.createElement('a');
+      a.id = 'adminLink';
+      a.href = '/admin';
+      a.target = '_blank';
+      a.textContent = 'ADMIN PANEL ÖFFNEN';
+      a.style.cssText = 'color:#0ff;font-size:14px;margin-top:10px;';
+      lobby.appendChild(a);
+    }
+  }
+
+  // Heartbeat starten
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  heartbeatInterval = setInterval(() => { api('/api/heartbeat', 'POST'); }, 60000);
+}
+
+/* ============================================================
+   CHARAKTERE
+   ============================================================ */
+$('charBtn').onclick = () => { renderCharMenu(); charMenu.classList.remove('hidden'); };
+$('charBack').onclick = () => charMenu.classList.add('hidden');
+
+function getProgress() {
+  if (isGuest) return guestLocal;
+  return {
+    high_score: AUTH.user.high_score || 0,
+    total_coins: AUTH.user.total_coins || 0,
+    selected_character: AUTH.user.selected_character || 'jake',
+    unlocked_characters: AUTH.user.unlocked_characters || 'jake'
+  };
+}
+
+function saveGuestProgress() {
+  localStorage.setItem('guestData', JSON.stringify(guestLocal));
+}
+
+function renderCharMenu() {
+  const prog = getProgress();
+  const unlocked = (prog.unlocked_characters || 'jake').split(',');
+  const list = $('charList');
+  list.innerHTML = '';
+  CHARACTERS.forEach(c => {
+    const owned = unlocked.includes(c.id);
+    const selected = prog.selected_character === c.id;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px;background:#111;border:1px solid #333;border-radius:8px;width:320px;';
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:24px;height:24px;background:#${c.color.toString(16).padStart(6,'0')};border-radius:4px;"></div>
+        <span>${c.name}</span>
+      </div>
+      <div>
+        ${owned
+          ? `<button data-pick="${c.id}" ${selected ? 'disabled' : ''}>${selected ? 'Aktiv' : 'Wählen'}</button>`
+          : `<button data-buy="${c.id}">${c.cost} Coins</button>`}
+      </div>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('[data-pick]').forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.pick;
+      if (isGuest) { guestLocal.selected_character = id; saveGuestProgress(); }
+      else { AUTH.user.selected_character = id; localStorage.setItem('user', JSON.stringify(AUTH.user)); api('/api/save','POST',{score:0,coins:0,character:id,unlocked:getProgress().unlocked_characters}); }
+      renderCharMenu();
+    };
+  });
+  list.querySelectorAll('[data-buy]').forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.buy;
+      const c = CHARACTERS.find(x => x.id === id);
+      const prog = getProgress();
+      if (prog.total_coins < c.cost) { alert('Nicht genug Coins'); return; }
+      const newUnlocked = (prog.unlocked_characters || 'jake') + ',' + id;
+      if (isGuest) {
+        guestLocal.total_coins -= c.cost;
+        guestLocal.unlocked_characters = newUnlocked;
+        guestLocal.selected_character = id;
+        saveGuestProgress();
+      } else {
+        AUTH.user.total_coins -= c.cost;
+        AUTH.user.unlocked_characters = newUnlocked;
+        AUTH.user.selected_character = id;
+        localStorage.setItem('user', JSON.stringify(AUTH.user));
+        api('/api/save','POST',{score:0,coins:-c.cost,character:id,unlocked:newUnlocked});
+      }
+      renderCharMenu();
+    };
+  });
+}
+
+/* ============================================================
+   SPIEL STARTEN
+   ============================================================ */
+$('soloBtn').onclick = () => { room = $('roomInput').value || 'default'; startGame(false); };
+$('mpBtn').onclick = () => { room = $('roomInput').value || 'default'; startGame(true); };
+$('retryBtn').onclick = () => startGame(multiplayer);
+$('backLobby').onclick = () => { gameoverEl.classList.add('hidden'); lobby.classList.remove('hidden'); };
+
+$('pauseBtn').onclick = () => { if (running) { paused = true; pauseMenu.classList.remove('hidden'); } };
+$('resumeBtn').onclick = () => { paused = false; pauseMenu.classList.add('hidden'); };
+$('pauseSave').onclick = async () => {
+  await saveProgress();
+  paused = false; running = false;
+  pauseMenu.classList.add('hidden');
+  lobby.classList.remove('hidden');
+  pauseBtn.classList.remove('show');
+};
+
+async function saveProgress() {
+  const prog = getProgress();
+  const char = prog.selected_character || 'jake';
+  const unlocked = prog.unlocked_characters || 'jake';
+  if (isGuest) {
+    guestLocal.high_score = Math.max(guestLocal.high_score || 0, score);
+    guestLocal.total_coins = (guestLocal.total_coins || 0) + coins;
+    guestLocal.selected_character = char;
+    guestLocal.unlocked_characters = unlocked;
+    saveGuestProgress();
+    // Gast-Score an Server schicken (kein Token, aber guest_id wird aus /api/me geholt)
+    if (AUTH.token) api('/api/save', 'POST', { score, coins, character: char, unlocked });
+  } else {
+    const r = await api('/api/save', 'POST', { score, coins, character: char, unlocked });
+    if (r.ok) {
+      AUTH.user.high_score = r.data.high_score;
+      AUTH.user.total_coins = r.data.total_coins;
+      localStorage.setItem('user', JSON.stringify(AUTH.user));
+    }
+  }
+}
+
+/* ============================================================
+   THREE INIT
    ============================================================ */
 async function initThree() {
   await loadThree();
@@ -226,8 +528,6 @@ async function initThree() {
   scene.add(player);
 
   buildTrack();
-  spawnInitialObstacles();
-
   clock = new THREE.Clock();
   window.addEventListener('resize', onResize);
   animate();
@@ -240,7 +540,6 @@ function onResize() {
 }
 
 const SEG_LEN = 20, SEG_COUNT = 10;
-
 function buildTrack() {
   for (let i = 0; i < SEG_COUNT; i++) {
     const seg = createSegment(i * -SEG_LEN);
@@ -248,7 +547,6 @@ function buildTrack() {
     trackSegments.push(seg);
   }
 }
-
 function createSegment(z) {
   const g = new THREE.Group();
   const ground = new THREE.Mesh(
@@ -257,7 +555,6 @@ function createSegment(z) {
   );
   ground.position.set(0, -0.1, z);
   g.add(ground);
-
   const railMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa });
   for (const x of [-3, 3]) {
     const rail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, SEG_LEN), railMat);
@@ -272,7 +569,6 @@ function createSegment(z) {
   }
   return g;
 }
-
 function spawnObstacle(z) {
   const lane = Math.floor(Math.random() * 3);
   const type = Math.random();
@@ -290,11 +586,9 @@ function spawnObstacle(z) {
     );
     mesh.position.set(LANE_X[lane], 1.6, z);
   }
-  mesh.userData.lane = lane;
   scene.add(mesh);
   obstacles.push(mesh);
 }
-
 function spawnCoin(z) {
   const lane = Math.floor(Math.random() * 3);
   const geo = new THREE.TorusGeometry(0.25, 0.08, 8, 16);
@@ -305,14 +599,12 @@ function spawnCoin(z) {
   scene.add(c);
   coinObjects.push(c);
 }
-
 function spawnInitialObstacles() {
   for (let i = 1; i < SEG_COUNT; i++) {
     if (Math.random() < MOD.obsRate) spawnObstacle(-i * SEG_LEN - Math.random() * 8);
     if (Math.random() < MOD.coinRate) spawnCoin(-i * SEG_LEN - Math.random() * 8);
   }
 }
-
 function recycle() {
   for (const seg of trackSegments) {
     seg.position.z += speed;
@@ -334,7 +626,6 @@ function recycle() {
     if (c.position.z > 10) { scene.remove(c); coinObjects.splice(i, 1); }
   }
 }
-
 function checkCollisions() {
   const px = player.position.x, pz = player.position.z;
   for (const o of obstacles) {
@@ -356,11 +647,9 @@ function checkCollisions() {
   }
 }
 
-/* ============================================================
-   INPUT
-   ============================================================ */
 window.addEventListener('keydown', (e) => {
-  if (!running) return;
+  if (!running || paused) return;
+  if (e.key === 'Escape') { paused = true; pauseMenu.classList.remove('hidden'); return; }
   if (e.key === 'ArrowLeft' || e.key === 'a') moveLane(-1);
   if (e.key === 'ArrowRight' || e.key === 'd') moveLane(1);
   if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') && (MOD.infJump || !jumping)) {
@@ -368,14 +657,13 @@ window.addEventListener('keydown', (e) => {
     jumping = true;
   }
 });
-
 let touchStartX = 0, touchStartY = 0;
 window.addEventListener('touchstart', (e) => {
   touchStartX = e.touches[0].clientX;
   touchStartY = e.touches[0].clientY;
 });
 window.addEventListener('touchend', (e) => {
-  if (!running) return;
+  if (!running || paused) return;
   const dx = e.changedTouches[0].clientX - touchStartX;
   const dy = e.changedTouches[0].clientY - touchStartY;
   if (Math.abs(dx) > Math.abs(dy)) {
@@ -384,19 +672,14 @@ window.addEventListener('touchend', (e) => {
     if (dy < -40 && (MOD.infJump || !jumping)) { jumpVel = MOD.jumpHeight; jumping = true; }
   }
 });
+function moveLane(dir) { playerLane = Math.max(0, Math.min(2, playerLane + dir)); }
 
-function moveLane(dir) {
-  playerLane = Math.max(0, Math.min(2, playerLane + dir));
-}
-
-/* ============================================================
-   LOOP
-   ============================================================ */
 function animate() {
   requestAnimationFrame(animate);
+  if (!renderer) return;
   const dt = clock.getDelta();
 
-  if (running) {
+  if (running && !paused) {
     const targetX = LANE_X[playerLane];
     player.position.x += (targetX - player.position.x) * Math.min(1, dt * MOD.laneDelay);
 
@@ -444,9 +727,6 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-/* ============================================================
-   GAME CONTROL
-   ============================================================ */
 function startGame(mp) {
   multiplayer = mp;
   score = 0; coins = 0; speed = baseSpeed; playerLane = 1;
@@ -461,18 +741,27 @@ function startGame(mp) {
   }
   remotePlayers = {};
 
+  // Spielerfarbe aus Charakterwahl
+  const prog = getProgress();
+  const char = CHARACTERS.find(c => c.id === prog.selected_character) || CHARACTERS[0];
+  player.material.color.setHex(char.color);
+
   spawnInitialObstacles();
   player.position.set(0, 0.8, 0);
 
-  menuEl.classList.add('hidden');
+  lobby.classList.add('hidden');
+  charMenu.classList.add('hidden');
+  startMenu.classList.add('hidden');
   gameoverEl.classList.add('hidden');
-  running = true;
+  pauseMenu.classList.add('hidden');
+  pauseBtn.classList.add('show');
+  running = true; paused = false;
 
   if (multiplayer) {
     if (socket) socket.disconnect();
     socket = io();
     socket.on('connect', () => {
-      socket.emit('joinRoom', { room, name: myName });
+      socket.emit('joinRoom', { room, name: AUTH.user.username });
     });
     socket.on('roomState', (state) => {
       for (const id in state) {
@@ -488,42 +777,29 @@ function startGame(mp) {
   }
 }
 
-function gameOver() {
+async function gameOver() {
   running = false;
-  finalScoreEl.textContent = 'Score: ' + score + '  Coins: ' + coins;
+  pauseBtn.classList.remove('show');
+  $('finalScore').textContent = 'Score: ' + score + '  Coins: ' + coins;
   gameoverEl.classList.remove('hidden');
   if (multiplayer && socket) socket.emit('gameOver', { room, score });
+  await saveProgress();
 }
 
-document.getElementById('soloBtn').onclick = () => {
-  myName = nameInput.value || 'Player';
-  startGame(false);
-};
-document.getElementById('mpBtn').onclick = () => {
-  myName = nameInput.value || 'Player';
-  room = roomInput.value || 'default';
-  startGame(true);
-};
-document.getElementById('retryBtn').onclick = () => { startGame(multiplayer); };
-
 /* ============================================================
-   MOD MENU LOGIC
+   MOD MENU
    ============================================================ */
-const modBtn = document.getElementById('modBtn');
-const modPanel = document.getElementById('modPanel');
-modBtn.onclick = () => modPanel.classList.toggle('hidden');
-document.getElementById('modClose').onclick = () => modPanel.classList.add('hidden');
-
-function bindMod(id, key, transform = (v) => v) {
-  const el = document.getElementById(id);
+modBtn.onclick = () => modPanel.classList.toggle('show');
+$('modClose').onclick = () => modPanel.classList.remove('show');
+function bindMod(id, key, tf = v => v) {
+  const el = $(id);
   el.addEventListener('input', () => {
     let v = el.type === 'checkbox' ? el.checked : el.value;
     if (el.type === 'number') v = parseFloat(v);
-    MOD[key] = transform(v);
+    MOD[key] = tf(v);
     applyMods();
   });
 }
-
 bindMod('modCoins', 'coins', v => { coins = v; coinsEl.textContent = 'COINS: ' + coins; return v; });
 bindMod('modScore', 'score', v => { score = v; scoreEl.textContent = 'SCORE: ' + score; return v; });
 bindMod('modSpeed', 'speed', v => { speed = v; baseSpeed = v; return v; });
@@ -531,28 +807,38 @@ bindMod('modLaneDelay', 'laneDelay');
 bindMod('modJump', 'jumpHeight');
 bindMod('modObsRate', 'obsRate');
 bindMod('modCoinRate', 'coinRate');
-bindMod('modFogNear', 'fogNear');
-bindMod('modFogFar', 'fogFar');
-bindMod('modBg', 'bg', v => parseInt(v.replace('#',''),16));
-bindMod('modPlayerColor', 'playerColor', v => parseInt(v.replace('#',''),16));
 bindMod('modGod', 'god');
 bindMod('modInfJump', 'infJump');
 bindMod('modMult', 'mult');
-
 function applyMods() {
-  if (scene) {
-    scene.background = new THREE.Color(MOD.bg);
-    scene.fog = new THREE.Fog(MOD.bg, MOD.fogNear, MOD.fogFar);
+  if (scene) { scene.background = new THREE.Color(MOD.bg); }
+  if (player) { player.material.color.setHex(MOD.playerColor); }
+}
+
+/* ============================================================
+   AUTOLOGIN
+   ============================================================ */
+async function tryAutoLogin() {
+  if (!AUTH.token) return false;
+  const r = await api('/api/me');
+  if (!r.ok) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    AUTH.token = null; AUTH.user = null;
+    return false;
   }
-  if (player) {
-    player.material.color.setHex(MOD.playerColor);
-  }
+  AUTH.user = r.data;
+  isGuest = !!r.data.is_guest;
+  localStorage.setItem('user', JSON.stringify(AUTH.user));
+  enterLobby();
+  return true;
 }
 
 /* ============================================================
    BOOT
    ============================================================ */
 initThree();
+tryAutoLogin();
 </script>
 </body>
 </html>
