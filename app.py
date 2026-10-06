@@ -3,7 +3,6 @@ import re
 import json
 import uuid
 import secrets
-import string
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -57,60 +56,109 @@ def close_db(exc):
             pass
 
 
-_schema_ready = False
+# ------------------------------------------------------------------
+# Schema-Verwaltung – robust nach Vorbild deiner Gamble-Seite
+# ------------------------------------------------------------------
+# Jede Tabelle wird einzeln angelegt. Wenn das fehlschlägt, wird versucht,
+# die Tabelle neu zu erstellen (nach DROP). So werden alte Schemata
+# automatisch repariert.
+
+_TABLES = {
+    "users": """
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            email TEXT UNIQUE,
+            password_hash TEXT,
+            display_name TEXT NOT NULL,
+            role TEXT DEFAULT 'player',
+            is_guest INTEGER DEFAULT 0,
+            created_at INTEGER
+        )
+    """,
+    "saves": """
+        CREATE TABLE IF NOT EXISTS saves (
+            user_id TEXT PRIMARY KEY,
+            score INTEGER DEFAULT 0,
+            coins INTEGER DEFAULT 0,
+            best_score INTEGER DEFAULT 0,
+            difficulty TEXT DEFAULT 'normal',
+            upgrades TEXT DEFAULT '{}',
+            updated_at INTEGER
+        )
+    """,
+    "sessions": """
+        CREATE TABLE IF NOT EXISTS sessions (
+            token TEXT PRIMARY KEY,
+            user_id TEXT,
+            created_at INTEGER,
+            expires_at INTEGER
+        )
+    """,
+    "leaderboard": """
+        CREATE TABLE IF NOT EXISTS leaderboard (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT,
+            display_name TEXT,
+            score INTEGER,
+            created_at INTEGER
+        )
+    """,
+}
+
+# Erwartete Spalten pro Tabelle – wenn eine fehlt, wird die Tabelle neu angelegt
+_EXPECTED_COLUMNS = {
+    "users": {"id", "email", "password_hash", "display_name", "role", "is_guest", "created_at"},
+    "saves": {"user_id", "score", "coins", "best_score", "difficulty", "upgrades", "updated_at"},
+    "sessions": {"token", "user_id", "created_at", "expires_at"},
+    "leaderboard": {"id", "user_id", "display_name", "score", "created_at"},
+}
+
+
+def _table_columns(db, table):
+    try:
+        rows = db.execute(f"PRAGMA table_info({table})").fetchall()
+        return {r[1] for r in rows}
+    except Exception:
+        return set()
+
+
+def _table_exists(db, table):
+    try:
+        row = db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table,)
+        ).fetchone()
+        return bool(row)
+    except Exception:
+        return False
 
 
 def ensure_tables():
-    """Legt Tabellen an. Wird lazy beim ersten Request ausgeführt."""
-    global _schema_ready
-    if _schema_ready:
-        return
+    """Legt Tabellen an und repariert sie, wenn das Schema veraltet ist."""
     db = get_db()
-    try:
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id TEXT PRIMARY KEY,
-                email TEXT UNIQUE,
-                password_hash TEXT,
-                display_name TEXT NOT NULL,
-                role TEXT DEFAULT 'player',
-                is_guest INTEGER DEFAULT 0,
-                created_at INTEGER
-            )
-        """)
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS saves (
-                user_id TEXT PRIMARY KEY,
-                score INTEGER DEFAULT 0,
-                coins INTEGER DEFAULT 0,
-                best_score INTEGER DEFAULT 0,
-                difficulty TEXT DEFAULT 'normal',
-                upgrades TEXT DEFAULT '{}',
-                updated_at INTEGER
-            )
-        """)
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS sessions (
-                token TEXT PRIMARY KEY,
-                user_id TEXT,
-                created_at INTEGER,
-                expires_at INTEGER
-            )
-        """)
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS leaderboard (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT,
-                display_name TEXT,
-                score INTEGER,
-                created_at INTEGER
-            )
-        """)
-        db.commit()
-        _schema_ready = True
-        print("[INFO] ensure_tables OK")
-    except Exception as e:
-        print(f"[ERROR] ensure_tables: {e}")
+    for table, create_sql in _TABLES.items():
+        try:
+            if not _table_exists(db, table):
+                db.execute(create_sql)
+                db.commit()
+                print(f"[INFO] Tabelle '{table}' neu angelegt")
+                continue
+
+            existing = _table_columns(db, table)
+            expected = _EXPECTED_COLUMNS[table]
+            if expected.issubset(existing):
+                continue  # Schema passt
+
+            # Schema veraltet → Tabelle droppen und neu anlegen
+            print(f"[WARN] Tabelle '{table}' hat veraltetes Schema. "
+                  f"Fehlend: {expected - existing}. Wird neu angelegt.")
+            db.execute(f"DROP TABLE IF EXISTS {table}")
+            db.commit()
+            db.execute(create_sql)
+            db.commit()
+            print(f"[INFO] Tabelle '{table}' neu erstellt")
+        except Exception as e:
+            print(f"[ERROR] ensure_tables('{table}'): {e}")
 
 
 @app.before_request
@@ -133,25 +181,10 @@ def now_ts():
     return int(datetime.utcnow().timestamp())
 
 
-def fetch_user_by_id(uid):
-    db = get_db()
-    row = db.execute(
-        "SELECT id, email, password_hash, display_name, role, is_guest, created_at "
-        "FROM users WHERE id = ?",
-        (uid,)
-    ).fetchone()
-    if not row:
-        return None
-    return {
-        "id": row[0], "email": row[1], "password_hash": row[2],
-        "display_name": row[3], "role": row[4], "is_guest": row[5], "created_at": row[6],
-    }
-
-
 def fetch_user_by_email(email):
     db = get_db()
     row = db.execute(
-        "SELECT id, email, password_hash, display_name, role, is_guest, created_at "
+        "SELECT id, email, password_hash, display_name, role, is_guest "
         "FROM users WHERE email = ?",
         (email,)
     ).fetchone()
@@ -159,7 +192,7 @@ def fetch_user_by_email(email):
         return None
     return {
         "id": row[0], "email": row[1], "password_hash": row[2],
-        "display_name": row[3], "role": row[4], "is_guest": row[5], "created_at": row[6],
+        "display_name": row[3], "role": row[4], "is_guest": row[5],
     }
 
 
@@ -286,6 +319,20 @@ def health():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+@app.route("/api/debug/schema")
+def debug_schema():
+    """Zeigt aktuelles Schema der Tabellen – zum Debuggen."""
+    db = get_db()
+    out = {}
+    for table in _TABLES.keys():
+        try:
+            rows = db.execute(f"PRAGMA table_info({table})").fetchall()
+            out[table] = [{"name": r[1], "type": r[2]} for r in rows]
+        except Exception as e:
+            out[table] = f"error: {e}"
+    return jsonify(out)
+
+
 # ------------------------------------------------------------------
 # Auth
 # ------------------------------------------------------------------
@@ -300,17 +347,21 @@ def auth_guest():
 
     uid = new_id()
     db = get_db()
-    db.execute(
-        "INSERT INTO users (id, display_name, role, is_guest, created_at) "
-        "VALUES (?, ?, 'guest', 1, ?)",
-        (uid, name, now_ts())
-    )
-    db.execute(
-        "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades, updated_at) "
-        "VALUES (?, 0, 0, 0, 'normal', '{}', ?)",
-        (uid, now_ts())
-    )
-    db.commit()
+    try:
+        db.execute(
+            "INSERT INTO users (id, display_name, role, is_guest, created_at) "
+            "VALUES (?, ?, 'guest', 1, ?)",
+            (uid, name, now_ts())
+        )
+        db.execute(
+            "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades, updated_at) "
+            "VALUES (?, 0, 0, 0, 'normal', '{}', ?)",
+            (uid, now_ts())
+        )
+        db.commit()
+    except Exception as e:
+        print(f"[ERROR] auth_guest: {e}")
+        return jsonify({"error": f"Datenbankfehler: {e}"}), 500
 
     token = create_session(uid, days=365)
     resp = make_response(jsonify({
@@ -343,17 +394,21 @@ def auth_register():
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     role = "owner" if email == OWNER_EMAIL else "player"
 
-    db.execute(
-        "INSERT INTO users (id, email, password_hash, display_name, role, created_at) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (uid, email, pw_hash, name, role, now_ts())
-    )
-    db.execute(
-        "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades, updated_at) "
-        "VALUES (?, 0, 0, 0, 'normal', '{}', ?)",
-        (uid, now_ts())
-    )
-    db.commit()
+    try:
+        db.execute(
+            "INSERT INTO users (id, email, password_hash, display_name, role, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (uid, email, pw_hash, name, role, now_ts())
+        )
+        db.execute(
+            "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades, updated_at) "
+            "VALUES (?, 0, 0, 0, 'normal', '{}', ?)",
+            (uid, now_ts())
+        )
+        db.commit()
+    except Exception as e:
+        print(f"[ERROR] auth_register: {e}")
+        return jsonify({"error": f"Datenbankfehler: {e}"}), 500
 
     token = create_session(uid, days=90)
     resp = make_response(jsonify({
@@ -394,9 +449,12 @@ def auth_login():
 def auth_logout():
     token = request.cookies.get("session")
     if token:
-        db = get_db()
-        db.execute("DELETE FROM sessions WHERE token = ?", (token,))
-        db.commit()
+        try:
+            db = get_db()
+            db.execute("DELETE FROM sessions WHERE token = ?", (token,))
+            db.commit()
+        except Exception:
+            pass
     resp = make_response(jsonify({"ok": True}))
     resp.delete_cookie("session", path="/")
     return resp
@@ -441,27 +499,31 @@ def post_save():
     difficulty = str(d.get("difficulty", "normal"))
 
     db = get_db()
-    existing = db.execute("SELECT user_id FROM saves WHERE user_id = ?", (request.user["id"],)).fetchone()
-    if existing:
-        db.execute(
-            "UPDATE saves SET score=?, coins=?, best_score=?, difficulty=?, upgrades=?, "
-            "updated_at=? WHERE user_id=?",
-            (score, coins, best, difficulty, upgrades, now_ts(), request.user["id"])
-        )
-    else:
-        db.execute(
-            "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (request.user["id"], score, coins, best, difficulty, upgrades, now_ts())
-        )
+    try:
+        existing = db.execute("SELECT user_id FROM saves WHERE user_id = ?", (request.user["id"],)).fetchone()
+        if existing:
+            db.execute(
+                "UPDATE saves SET score=?, coins=?, best_score=?, difficulty=?, upgrades=?, "
+                "updated_at=? WHERE user_id=?",
+                (score, coins, best, difficulty, upgrades, now_ts(), request.user["id"])
+            )
+        else:
+            db.execute(
+                "INSERT INTO saves (user_id, score, coins, best_score, difficulty, upgrades, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (request.user["id"], score, coins, best, difficulty, upgrades, now_ts())
+            )
 
-    if best > 0:
-        db.execute(
-            "INSERT INTO leaderboard (user_id, display_name, score, created_at) VALUES (?, ?, ?, ?)",
-            (request.user["id"], request.user["display_name"], best, now_ts())
-        )
+        if best > 0:
+            db.execute(
+                "INSERT INTO leaderboard (user_id, display_name, score, created_at) VALUES (?, ?, ?, ?)",
+                (request.user["id"], request.user["display_name"], best, now_ts())
+            )
+        db.commit()
+    except Exception as e:
+        print(f"[ERROR] post_save: {e}")
+        return jsonify({"error": str(e)}), 500
 
-    db.commit()
     return jsonify({"ok": True})
 
 
