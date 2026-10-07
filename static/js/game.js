@@ -1,7 +1,11 @@
 let gameRunning = false;
+
 let score = 0;
+
 let playerLane = 1;
+
 let scoreTimer = 0;
+
 
 const lanePositions = [
     -2,
@@ -11,7 +15,7 @@ const lanePositions = [
 
 
 /* =========================================
-   SPIEL STARTEN
+   SPIEL START
 ========================================= */
 
 function startGame() {
@@ -20,56 +24,100 @@ function startGame() {
         return;
     }
 
+
     gameRunning = true;
 
     score = 0;
+
     playerLane = 1;
+
     scoreTimer = 0;
 
     worldSpeed = 0.35;
 
+
+    /*
+       Spieler zurücksetzen
+    */
+
     if (player) {
+
         player.position.x = 0;
+
         player.position.z = 5;
     }
 
-    /* Alte Hindernisse entfernen */
+
+    /*
+       Alte Blöcke löschen
+    */
 
     if (obstacleObjects) {
 
-        obstacleObjects.forEach(obstacle => {
-            scene.remove(obstacle);
-        });
+        obstacleObjects.forEach(
+            obstacle => {
+                scene.remove(
+                    obstacle
+                );
+            }
+        );
 
         obstacleObjects.length = 0;
     }
 
-    /* Startbildschirm schließen */
 
-    const startScreen =
-        document.getElementById("startScreen");
+    /*
+       Neue Blöcke
+    */
 
-    const gameOverScreen =
-        document.getElementById("gameOverScreen");
+    createDemoObstacles();
 
-    startScreen.classList.add("hidden");
-    gameOverScreen.classList.add("hidden");
 
-    document.getElementById("score").textContent = "0";
+    /*
+       Menüs
+    */
+
+    document
+        .getElementById(
+            "startScreen"
+        )
+        .classList.add(
+            "hidden"
+        );
+
+
+    document
+        .getElementById(
+            "gameOverScreen"
+        )
+        .classList.add(
+            "hidden"
+        );
+
+
+    document
+        .getElementById(
+            "score"
+        )
+        .textContent = "0";
 }
 
 
 /* =========================================
-   SPIEL UPDATE
+   SCORE
 ========================================= */
 
-function updateGame(delta) {
+function updateGame(
+    delta
+) {
 
     if (!gameRunning) {
         return;
     }
 
+
     scoreTimer += delta;
+
 
     if (scoreTimer >= 60) {
 
@@ -77,16 +125,29 @@ function updateGame(delta) {
 
         scoreTimer = 0;
 
-        document.getElementById("score").textContent =
+
+        document
+            .getElementById(
+                "score"
+            )
+            .textContent =
             Math.floor(score);
     }
 
-    worldSpeed += delta * 0.0005;
 
-    worldSpeed = Math.min(
-        worldSpeed,
-        0.9
-    );
+    /*
+       Geschwindigkeit langsam erhöhen
+    */
+
+    worldSpeed +=
+        delta * 0.0004;
+
+
+    worldSpeed =
+        Math.min(
+            worldSpeed,
+            0.9
+        );
 }
 
 
@@ -100,56 +161,81 @@ function endGame() {
         return;
     }
 
+
     gameRunning = false;
 
-    document.getElementById("finalScore").textContent =
-        Math.floor(score);
 
     document
-        .getElementById("gameOverScreen")
-        .classList.remove("hidden");
+        .getElementById(
+            "finalScore"
+        )
+        .textContent =
+        Math.floor(score);
+
+
+    document
+        .getElementById(
+            "gameOverScreen"
+        )
+        .classList.remove(
+            "hidden"
+        );
 }
 
 
 /* =========================================
-   GAME LOOP
+   SCORE LOOP
 ========================================= */
 
-let gameLastTime = performance.now();
+let scoreLastTime =
+    performance.now();
 
-function gameLoop(time) {
 
-    requestAnimationFrame(gameLoop);
+function scoreLoop(time) {
+
+    requestAnimationFrame(
+        scoreLoop
+    );
+
 
     const delta =
         Math.min(
-            (time - gameLastTime) / 16.67,
+            (time - scoreLastTime) /
+            16.67,
             3
         );
 
-    gameLastTime = time;
 
-    updateGame(delta);
+    scoreLastTime =
+        time;
+
+
+    updateGame(
+        delta
+    );
 }
 
-requestAnimationFrame(gameLoop);
+
+requestAnimationFrame(
+    scoreLoop
+);
 
 
 /* =========================================
    BUTTONS
 ========================================= */
 
-const startButton =
-    document.getElementById("startButton");
+document
+    .getElementById(
+        "startButton"
+    )
+    .onclick =
+    startGame;
 
-const restartButton =
-    document.getElementById("restartButton");
 
-
-if (startButton) {
-    startButton.onclick = startGame;
-}
-
-if (restartButton) {
-    restartButton.onclick = startGame;
-}
+document
+    .getElementById(
+        "restartButton"
+    )
+    .onclick =
+    startGame;
