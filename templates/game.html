@@ -12,6 +12,7 @@
 
     <title>GENGA Surfer</title>
 
+
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
@@ -31,7 +32,7 @@
 
 
     <!-- =========================
-         SPIEL-HEADER
+         HEADER
     ========================== -->
 
     <div class="game-header">
@@ -39,6 +40,7 @@
         <strong>
             GENGA SURFER
         </strong>
+
 
         <span>
 
@@ -60,13 +62,13 @@
     <div id="game">
 
 
-        <!-- 3D-Bereich -->
+        <!-- 3D SPIEL -->
 
         <div id="gameCanvas"></div>
 
 
         <!-- =====================
-             START
+             START SCREEN
         ====================== -->
 
         <div
@@ -78,9 +80,11 @@
                 GENGA SURFER
             </h1>
 
+
             <p>
                 Wische nach links oder rechts.
             </p>
+
 
             <button
                 id="startButton"
@@ -105,6 +109,7 @@
                 GAME OVER
             </h1>
 
+
             <p>
 
                 Punkte:
@@ -114,6 +119,7 @@
                 </strong>
 
             </p>
+
 
             <button
                 id="restartButton"
@@ -127,13 +133,11 @@
 
     </div>
 
-
 </main>
 
 
 <!-- =================================
      THREE.JS
-     r151.3
 ================================== -->
 
 <script
@@ -149,9 +153,11 @@
     src="{{ url_for('static', filename='js/game.js') }}"
 ></script>
 
+
 <script
     src="{{ url_for('static', filename='js/game3d.js') }}"
 ></script>
+
 
 <script
     src="{{ url_for('static', filename='js/controls.js') }}"
