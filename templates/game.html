@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>GENGA Surfer - Spiel</title>
+    <title>GENGA Surfer</title>
 
     <link
         rel="stylesheet"
@@ -14,13 +14,948 @@
 
 <body>
 
-    <main class="home">
-        <h1>GENGA SURFER</h1>
+<main class="game-page">
 
-        <p>Das Spiel kommt als Nächstes.</p>
+    <div class="game-header">
+        <div>
+            <strong>GENGA SURFER</strong>
+        </div>
 
-        <a href="/">Zurück zum Menü</a>
-    </main>
+        <div>
+            Punkte:
+            <strong id="score">0</strong>
+        </div>
+    </div>
+
+    <div class="game-wrapper">
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="startScreen" class="game-overlay">
+            <h1>GENGA SURFER</h1>
+
+            <p>
+                Weiche den farbigen Blöcken aus!
+            </p>
+
+            <button id="startButton">
+                Spielen
+            </button>
+        </div>
+
+        <div id="gameOverScreen" class="game-overlay hidden">
+
+            <h1>GAME OVER</h1>
+
+            <p>
+                Punkte:
+                <strong id="finalScore">0</strong>
+            </p>
+
+            <button id="restartButton">
+                Nochmal spielen
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="mobile-controls">
+
+        <button id="leftButton">
+            ◀
+        </button>
+
+        <button id="rightButton">
+            ▶
+        </button>
+
+    </div>
+
+</main>
+
+
+<script>
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const startScreen = document.getElementById("startScreen");
+const gameOverScreen = document.getElementById("gameOverScreen");
+
+const startButton = document.getElementById("startButton");
+const restartButton = document.getElementById("restartButton");
+
+const leftButton = document.getElementById("leftButton");
+const rightButton = document.getElementById("rightButton");
+
+const scoreElement = document.getElementById("score");
+const finalScoreElement = document.getElementById("finalScore");
+
+
+let width;
+let height;
+
+let gameRunning = false;
+
+let score = 0;
+
+let speed = 0.00055;
+
+let lastTime = 0;
+
+let spawnTimer = 0;
+
+let playerLane = 1;
+
+let obstacles = [];
+
+
+const colors = [
+    "#ff3b30",
+    "#007aff",
+    "#34c759",
+    "#ffcc00",
+    "#af52de",
+    "#ff9500"
+];
+
+
+function resizeCanvas() {
+
+    const rect = canvas.getBoundingClientRect();
+
+    width = rect.width;
+    height = rect.height;
+
+    canvas.width = width * window.devicePixelRatio;
+    canvas.height = height * window.devicePixelRatio;
+
+    ctx.setTransform(
+        window.devicePixelRatio,
+        0,
+        0,
+        window.devicePixelRatio,
+        0,
+        0
+    );
+}
+
+
+window.addEventListener("resize", resizeCanvas);
+
+resizeCanvas();
+
+
+/*
+    Perspektive
+
+    0 = weit hinten
+    1 = direkt beim Spieler
+*/
+
+
+function getRoadPoint(lane, depth) {
+
+    const horizonY = height * 0.28;
+    const playerY = height * 0.90;
+
+    const centerX = width / 2;
+
+    const roadTopWidth = width * 0.18;
+    const roadBottomWidth = width * 0.90;
+
+    const roadWidth =
+        roadTopWidth +
+        (roadBottomWidth - roadTopWidth) * depth;
+
+    const laneWidth = roadWidth / 3;
+
+    const x =
+        centerX -
+        roadWidth / 2 +
+        laneWidth * lane +
+        laneWidth / 2;
+
+    const y =
+        horizonY +
+        (playerY - horizonY) * depth;
+
+    return {
+        x,
+        y,
+        laneWidth
+    };
+}
+
+
+/*
+    Straße zeichnen
+*/
+
+function drawRoad() {
+
+    const horizonY = height * 0.28;
+
+    const centerX = width / 2;
+
+    const topWidth = width * 0.18;
+
+    const bottomWidth = width * 0.90;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        centerX - topWidth / 2,
+        horizonY
+    );
+
+    ctx.lineTo(
+        centerX + topWidth / 2,
+        horizonY
+    );
+
+    ctx.lineTo(
+        centerX + bottomWidth / 2,
+        height
+    );
+
+    ctx.lineTo(
+        centerX - bottomWidth / 2,
+        height
+    );
+
+    ctx.closePath();
+
+    ctx.fillStyle = "#252525";
+
+    ctx.fill();
+
+
+    /*
+        Straßenränder
+    */
+
+    ctx.strokeStyle = "#444";
+    ctx.lineWidth = 4;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        centerX - topWidth / 2,
+        horizonY
+    );
+
+    ctx.lineTo(
+        centerX - bottomWidth / 2,
+        height
+    );
+
+    ctx.moveTo(
+        centerX + topWidth / 2,
+        horizonY
+    );
+
+    ctx.lineTo(
+        centerX + bottomWidth / 2,
+        height
+    );
+
+    ctx.stroke();
+
+
+    /*
+        Spurmarkierungen
+    */
+
+    for (let lane = 1; lane < 3; lane++) {
+
+        ctx.beginPath();
+
+        const topX =
+            centerX -
+            topWidth / 2 +
+            topWidth * (lane / 3);
+
+        const bottomX =
+            centerX -
+            bottomWidth / 2 +
+            bottomWidth * (lane / 3);
+
+        ctx.moveTo(topX, horizonY);
+
+        ctx.lineTo(bottomX, height);
+
+        ctx.strokeStyle = "#555";
+        ctx.lineWidth = 3;
+
+        ctx.stroke();
+    }
+}
+
+
+/*
+    Hintergrund
+*/
+
+function drawBackground() {
+
+    ctx.fillStyle = "#10151c";
+
+    ctx.fillRect(
+        0,
+        0,
+        width,
+        height
+    );
+
+
+    /*
+        Horizont
+    */
+
+    const gradient = ctx.createLinearGradient(
+        0,
+        0,
+        0,
+        height
+    );
+
+    gradient.addColorStop(
+        0,
+        "#151d28"
+    );
+
+    gradient.addColorStop(
+        0.28,
+        "#263242"
+    );
+
+    gradient.addColorStop(
+        1,
+        "#11151b"
+    );
+
+    ctx.fillStyle = gradient;
+
+    ctx.fillRect(
+        0,
+        0,
+        width,
+        height
+    );
+}
+
+
+/*
+    Einen großen Block zeichnen
+*/
+
+function drawBlock(obstacle) {
+
+    const point = getRoadPoint(
+        obstacle.lane,
+        obstacle.depth
+    );
+
+
+    /*
+        Perspektivische Größe
+    */
+
+    const size =
+        18 +
+        obstacle.depth * 75;
+
+
+    const blockWidth = size;
+
+    const blockHeight = size;
+
+
+    const x = point.x;
+
+    const y = point.y;
+
+
+    /*
+        Schatten
+    */
+
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x,
+        y + blockHeight * 0.45,
+        blockWidth * 0.65,
+        blockHeight * 0.22,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    /*
+        Hauptseite
+    */
+
+    ctx.fillStyle = obstacle.color;
+
+    ctx.fillRect(
+        x - blockWidth / 2,
+        y - blockHeight,
+        blockWidth,
+        blockHeight
+    );
+
+
+    /*
+        obere Seite
+    */
+
+    ctx.fillStyle = lightenColor(
+        obstacle.color,
+        25
+    );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x - blockWidth / 2,
+        y - blockHeight
+    );
+
+    ctx.lineTo(
+        x - blockWidth * 0.25,
+        y - blockHeight * 1.25
+    );
+
+    ctx.lineTo(
+        x + blockWidth * 0.65,
+        y - blockHeight * 1.25
+    );
+
+    ctx.lineTo(
+        x + blockWidth / 2,
+        y - blockHeight
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /*
+        rechte Seite
+    */
+
+    ctx.fillStyle = darkenColor(
+        obstacle.color,
+        20
+    );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x + blockWidth / 2,
+        y - blockHeight
+    );
+
+    ctx.lineTo(
+        x + blockWidth * 0.65,
+        y - blockHeight * 1.25
+    );
+
+    ctx.lineTo(
+        x + blockWidth * 0.65,
+        y - blockHeight * 0.25
+    );
+
+    ctx.lineTo(
+        x + blockWidth / 2,
+        y
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+}
+
+
+/*
+    Spieler
+
+    Auch ein kantiger Block.
+*/
+
+function drawPlayer() {
+
+    const point = getRoadPoint(
+        playerLane,
+        1
+    );
+
+    const size = Math.min(
+        width * 0.13,
+        70
+    );
+
+
+    const x = point.x;
+
+    const y = point.y;
+
+
+    /*
+        Schatten
+    */
+
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x,
+        y + 8,
+        size * 0.7,
+        size * 0.25,
+        0,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    /*
+        Körper
+    */
+
+    ctx.fillStyle = "#00d4ff";
+
+    ctx.fillRect(
+        x - size / 2,
+        y - size,
+        size,
+        size
+    );
+
+
+    /*
+        obere Fläche
+    */
+
+    ctx.fillStyle = "#55e5ff";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x - size / 2,
+        y - size
+    );
+
+    ctx.lineTo(
+        x - size * 0.2,
+        y - size * 1.25
+    );
+
+    ctx.lineTo(
+        x + size * 0.65,
+        y - size * 1.25
+    );
+
+    ctx.lineTo(
+        x + size / 2,
+        y - size
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /*
+        rechte Fläche
+    */
+
+    ctx.fillStyle = "#0099bb";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x + size / 2,
+        y - size
+    );
+
+    ctx.lineTo(
+        x + size * 0.65,
+        y - size * 1.25
+    );
+
+    ctx.lineTo(
+        x + size * 0.65,
+        y - size * 0.25
+    );
+
+    ctx.lineTo(
+        x + size / 2,
+        y
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+}
+
+
+/*
+    Farben heller machen
+*/
+
+function lightenColor(hex, amount) {
+
+    let num = parseInt(
+        hex.replace("#", ""),
+        16
+    );
+
+    let r = Math.min(
+        255,
+        (num >> 16) + amount
+    );
+
+    let g = Math.min(
+        255,
+        ((num >> 8) & 255) + amount
+    );
+
+    let b = Math.min(
+        255,
+        (num & 255) + amount
+    );
+
+    return `rgb(${r},${g},${b})`;
+}
+
+
+/*
+    Farben dunkler machen
+*/
+
+function darkenColor(hex, amount) {
+
+    return lightenColor(
+        hex,
+        -amount
+    );
+}
+
+
+/*
+    Hindernis erzeugen
+*/
+
+function spawnObstacle() {
+
+    const lane =
+        Math.floor(
+            Math.random() * 3
+        );
+
+    obstacles.push({
+
+        lane: lane,
+
+        depth: 0,
+
+        color:
+            colors[
+                Math.floor(
+                    Math.random() *
+                    colors.length
+                )
+            ]
+
+    });
+}
+
+
+/*
+    Kollision
+*/
+
+function checkCollision(obstacle) {
+
+    if (
+        obstacle.lane === playerLane &&
+        obstacle.depth > 0.88 &&
+        obstacle.depth < 1.04
+    ) {
+
+        endGame();
+
+    }
+}
+
+
+/*
+    Spiel starten
+*/
+
+function startGame() {
+
+    score = 0;
+
+    speed = 0.00055;
+
+    playerLane = 1;
+
+    obstacles = [];
+
+    spawnTimer = 0;
+
+    gameRunning = true;
+
+    scoreElement.textContent = "0";
+
+    startScreen.classList.add("hidden");
+
+    gameOverScreen.classList.add("hidden");
+
+    lastTime = performance.now();
+
+    requestAnimationFrame(gameLoop);
+}
+
+
+/*
+    Game Over
+*/
+
+function endGame() {
+
+    gameRunning = false;
+
+    finalScoreElement.textContent =
+        Math.floor(score);
+
+    gameOverScreen.classList.remove(
+        "hidden"
+    );
+}
+
+
+/*
+    Spielschleife
+*/
+
+function gameLoop(timestamp) {
+
+    if (!gameRunning) {
+        return;
+    }
+
+
+    const delta =
+        timestamp - lastTime;
+
+    lastTime = timestamp;
+
+
+    score += delta * 0.01;
+
+    scoreElement.textContent =
+        Math.floor(score);
+
+
+    /*
+        Geschwindigkeit langsam erhöhen
+    */
+
+    speed += delta * 0.000000015;
+
+
+    /*
+        Neue Blöcke
+    */
+
+    spawnTimer += delta;
+
+    const spawnDelay =
+        Math.max(
+            420,
+            950 - score * 2
+        );
+
+
+    if (spawnTimer > spawnDelay) {
+
+        spawnTimer = 0;
+
+        spawnObstacle();
+    }
+
+
+    /*
+        Blöcke bewegen
+    */
+
+    obstacles.forEach(
+        obstacle => {
+
+            obstacle.depth +=
+                speed * delta;
+
+            checkCollision(
+                obstacle
+            );
+
+        }
+    );
+
+
+    /*
+        Alte Blöcke entfernen
+    */
+
+    obstacles =
+        obstacles.filter(
+            obstacle =>
+                obstacle.depth < 1.15
+        );
+
+
+    /*
+        Zeichnen
+    */
+
+    drawBackground();
+
+    drawRoad();
+
+
+    /*
+        Sortieren:
+
+        weit entfernte Blöcke zuerst,
+        nahe Blöcke zuletzt.
+    */
+
+    obstacles
+        .sort(
+            (a, b) =>
+                a.depth - b.depth
+        )
+        .forEach(
+            drawBlock
+        );
+
+
+    drawPlayer();
+
+
+    requestAnimationFrame(
+        gameLoop
+    );
+}
+
+
+/*
+    Bewegung
+*/
+
+function moveLeft() {
+
+    if (!gameRunning) {
+        return;
+    }
+
+    playerLane =
+        Math.max(
+            0,
+            playerLane - 1
+        );
+}
+
+
+function moveRight() {
+
+    if (!gameRunning) {
+        return;
+    }
+
+    playerLane =
+        Math.min(
+            2,
+            playerLane + 1
+        );
+}
+
+
+/*
+    Tastatur
+*/
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.key === "ArrowLeft" ||
+            event.key.toLowerCase() === "a"
+        ) {
+
+            moveLeft();
+
+        }
+
+
+        if (
+            event.key === "ArrowRight" ||
+            event.key.toLowerCase() === "d"
+        ) {
+
+            moveRight();
+
+        }
+    }
+);
+
+
+/*
+    Mobile Buttons
+*/
+
+leftButton.addEventListener(
+    "click",
+    moveLeft
+);
+
+rightButton.addEventListener(
+    "click",
+    moveRight
+);
+
+
+/*
+    Buttons
+*/
+
+startButton.addEventListener(
+    "click",
+    startGame
+);
+
+restartButton.addEventListener(
+    "click",
+    startGame
+);
+
+</script>
 
 </body>
 </html>
