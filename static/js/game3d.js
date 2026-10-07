@@ -6,8 +6,9 @@ let player;
 let road;
 
 let laneObjects = [];
-
 let obstacleObjects = [];
+
+let worldSpeed = 0.35;
 
 
 /* =========================================
@@ -19,22 +20,13 @@ function init3D() {
     const container =
         document.getElementById("gameCanvas");
 
-    /*
-       Szene
-    */
-
     scene = new THREE.Scene();
 
     scene.background =
         new THREE.Color(0x101820);
 
 
-    /*
-       Kamera
-
-       Wir schauen von hinten
-       leicht nach unten auf die Strecke.
-    */
+    /* Kamera */
 
     camera =
         new THREE.PerspectiveCamera(
@@ -54,13 +46,11 @@ function init3D() {
     camera.lookAt(
         0,
         1,
-        -15
+        -20
     );
 
 
-    /*
-       Renderer
-    */
+    /* Renderer */
 
     renderer =
         new THREE.WebGLRenderer({
@@ -84,14 +74,12 @@ function init3D() {
     );
 
 
-    /*
-       Licht
-    */
+    /* Licht */
 
     const ambientLight =
         new THREE.AmbientLight(
             0xffffff,
-            1.4
+            1.5
         );
 
     scene.add(
@@ -116,40 +104,18 @@ function init3D() {
     );
 
 
-    /*
-       Boden
-    */
-
     createRoad();
-
-
-    /*
-       Spieler
-    */
 
     createPlayer();
 
-
-    /*
-       Erste Blöcke
-    */
-
     createDemoObstacles();
 
-
-    /*
-       Resize
-    */
 
     window.addEventListener(
         "resize",
         resize3D
     );
 
-
-    /*
-       Start rendern
-    */
 
     render3D();
 }
@@ -163,8 +129,8 @@ function createRoad() {
 
     const geometry =
         new THREE.PlaneGeometry(
-            12,
-            300
+            10,
+            400
         );
 
     const material =
@@ -178,23 +144,12 @@ function createRoad() {
             material
         );
 
-
-    /*
-       Plane flach legen
-    */
-
     road.rotation.x =
         -Math.PI / 2;
 
-
-    /*
-       Hinter den Spieler
-    */
-
     road.position.y = 0;
 
-    road.position.z = -120;
-
+    road.position.z = -180;
 
     scene.add(
         road
@@ -202,46 +157,42 @@ function createRoad() {
 
 
     /*
-       Fahrbahn-Markierungen
+       Spur-Trennlinien
     */
 
     for (
         let lane = 0;
-        lane < 3;
+        lane < 2;
         lane++
     ) {
 
-        const lineGeometry =
+        const geometry =
             new THREE.BoxGeometry(
                 0.08,
-                0.02,
-                300
+                0.03,
+                400
             );
 
-        const lineMaterial =
+        const material =
             new THREE.MeshStandardMaterial({
-                color: 0x555555
+                color: 0x666666
             });
 
         const line =
             new THREE.Mesh(
-                lineGeometry,
-                lineMaterial
+                geometry,
+                material
             );
 
-
         line.position.x =
-            -2 +
+            -1 +
             lane * 2;
-
 
         line.position.y =
             0.02;
 
-
         line.position.z =
-            -120;
-
+            -180;
 
         scene.add(
             line
@@ -278,13 +229,11 @@ function createPlayer() {
             material
         );
 
-
     player.position.set(
         0,
         0.8,
         5
     );
-
 
     scene.add(
         player
@@ -293,7 +242,7 @@ function createPlayer() {
 
 
 /* =========================================
-   3D BLOCK
+   HINDERNIS
 ========================================= */
 
 function createObstacle(
@@ -320,32 +269,29 @@ function createObstacle(
             material
         );
 
-
-    /*
-       Drei Spuren:
-
-       -2
-        0
-        2
-    */
-
     obstacle.position.x =
         -2 +
         lane * 2;
 
-
     obstacle.position.y =
         0.9;
-
 
     obstacle.position.z =
         z;
 
 
+    /*
+       Zusätzliche Informationen
+       für die Spielphysik.
+    */
+
+    obstacle.userData.lane =
+        lane;
+
+
     scene.add(
         obstacle
     );
-
 
     obstacleObjects.push(
         obstacle
@@ -354,39 +300,150 @@ function createObstacle(
 
 
 /* =========================================
-   TEST-BLÖCKE
+   TEST-HINDERNISSE
 ========================================= */
 
 function createDemoObstacles() {
 
     createObstacle(
         0,
-        -20,
+        -25,
         0xff3030
     );
 
     createObstacle(
         2,
-        -35,
+        -50,
         0x00cc66
     );
 
     createObstacle(
         1,
-        -50,
+        -75,
         0xffcc00
     );
 
     createObstacle(
         0,
-        -65,
+        -100,
         0xaa55ff
     );
 
     createObstacle(
         2,
-        -80,
+        -125,
         0xff6600
+    );
+}
+
+
+/* =========================================
+   HINDERNISSE BEWEGEN
+========================================= */
+
+function updateObstacles(delta) {
+
+    if (!gameRunning) {
+        return;
+    }
+
+
+    for (
+        let i = obstacleObjects.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const obstacle =
+            obstacleObjects[i];
+
+
+        /*
+           Die Hindernisse kommen
+           auf den Spieler zu.
+
+           Der Spieler selbst bleibt
+           ungefähr an derselben Position.
+        */
+
+        obstacle.position.z +=
+            worldSpeed * delta;
+
+
+        /*
+           Kollision prüfen
+        */
+
+        if (
+            checkCollision(
+                obstacle
+            )
+        ) {
+
+            endGame();
+
+            return;
+        }
+
+
+        /*
+           Hindernis ist hinter dem Spieler.
+        */
+
+        if (
+            obstacle.position.z > 15
+        ) {
+
+            scene.remove(
+                obstacle
+            );
+
+            obstacleObjects.splice(
+                i,
+                1
+            );
+        }
+    }
+}
+
+
+/* =========================================
+   KOLLISION
+========================================= */
+
+function checkCollision(
+    obstacle
+) {
+
+    if (!player) {
+        return false;
+    }
+
+
+    /*
+       Abstand in X und Z.
+
+       Dadurch muss der Spieler
+       wirklich auf derselben Spur
+       sein.
+    */
+
+    const xDistance =
+        Math.abs(
+            player.position.x -
+            obstacle.position.x
+        );
+
+    const zDistance =
+        Math.abs(
+            player.position.z -
+            obstacle.position.z
+        );
+
+
+    return (
+        xDistance < 1.0 &&
+        zDistance < 1.2
     );
 }
 
@@ -409,14 +466,11 @@ function resize3D() {
         return;
     }
 
-
     camera.aspect =
         container.clientWidth /
         container.clientHeight;
 
-
     camera.updateProjectionMatrix();
-
 
     renderer.setSize(
         container.clientWidth,
@@ -426,28 +480,57 @@ function resize3D() {
 
 
 /* =========================================
-   RENDER
+   RENDER LOOP
 ========================================= */
 
-function render3D() {
+let lastRenderTime =
+    performance.now();
+
+
+function render3D(time) {
 
     requestAnimationFrame(
         render3D
     );
 
 
+    const delta =
+        Math.min(
+            (time - lastRenderTime) / 16.67,
+            3
+        );
+
+
+    lastRenderTime =
+        time;
+
+
     /*
-       Leichte Bewegung der Kamera,
-       damit die Szene lebendig wirkt.
+       Hindernisse bewegen.
+    */
+
+    updateObstacles(
+        delta
+    );
+
+
+    /*
+       Spieler folgt weich
+       seiner Spur.
     */
 
     if (player) {
 
-        camera.position.x +=
+        const targetX =
+            lanePositions[
+                playerLane
+            ];
+
+        player.position.x +=
             (
-                player.position.x -
-                camera.position.x
-            ) * 0.08;
+                targetX -
+                player.position.x
+            ) * 0.18;
     }
 
 
