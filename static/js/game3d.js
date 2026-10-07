@@ -1,27 +1,93 @@
+/* =========================================
+   GENGA SURFER
+   3D ENGINE
+========================================= */
+
+
 let scene = null;
+
 let camera = null;
+
 let renderer = null;
 
 let player = null;
 
+
 let obstacleObjects = [];
+
 
 let threeReady = false;
 
-let lastTime = performance.now();
+
+let lastTime =
+    performance.now();
 
 
 /* =========================================
    EINSTELLUNGEN
 ========================================= */
 
+
+/*
+   Geschwindigkeit der Blöcke
+*/
+
 const GAME_SPEED = 12;
 
-const SPAWN_DISTANCE = -100;
 
-const SPAWN_INTERVAL = 22;
+/*
+   Abstand zwischen Reihen
+*/
 
-let nextSpawnZ = SPAWN_DISTANCE;
+const SPAWN_INTERVAL = 24;
+
+
+/*
+   Erste Spawn-Position
+*/
+
+const SPAWN_DISTANCE = -110;
+
+
+/*
+   Nächste Spawn-Position
+*/
+
+let nextSpawnZ =
+    SPAWN_DISTANCE;
+
+
+/*
+   Letzte freie Spur.
+
+   Dadurch vermeiden wir,
+   dass ständig dasselbe Muster kommt.
+*/
+
+let lastSafeLane = -1;
+
+
+/* =========================================
+   FARBEN
+========================================= */
+
+const obstacleColors = [
+
+    0xff3030,
+
+    0x00cc66,
+
+    0xffcc00,
+
+    0xaa55ff,
+
+    0xff6600,
+
+    0x00aaff,
+
+    0xff4fa3
+
+];
 
 
 /* =========================================
@@ -30,10 +96,15 @@ let nextSpawnZ = SPAWN_DISTANCE;
 
 function init3D() {
 
-    console.log("GENGA: Starte 3D...");
+    console.log(
+        "GENGA: Starte 3D..."
+    );
+
 
     const container =
-        document.getElementById("gameCanvas");
+        document.getElementById(
+            "gameCanvas"
+        );
 
 
     if (!container) {
@@ -46,7 +117,10 @@ function init3D() {
     }
 
 
-    if (typeof THREE === "undefined") {
+    if (
+        typeof THREE ===
+        "undefined"
+    ) {
 
         console.error(
             "Three.js wurde nicht geladen!"
@@ -77,9 +151,12 @@ function init3D() {
     camera =
         new THREE.PerspectiveCamera(
             65,
+
             container.clientWidth /
             container.clientHeight,
+
             0.1,
+
             500
         );
 
@@ -104,21 +181,32 @@ function init3D() {
 
     renderer =
         new THREE.WebGLRenderer({
+
             antialias: true
+
         });
 
 
     renderer.setPixelRatio(
+
         Math.min(
-            window.devicePixelRatio || 1,
+
+            window.devicePixelRatio ||
+            1,
+
             2
+
         )
+
     );
 
 
     renderer.setSize(
+
         container.clientWidth,
+
         container.clientHeight
+
     );
 
 
@@ -133,9 +221,13 @@ function init3D() {
 
     const ambientLight =
         new THREE.HemisphereLight(
+
             0xffffff,
+
             0x444444,
+
             2
+
         );
 
 
@@ -146,15 +238,20 @@ function init3D() {
 
     const directionalLight =
         new THREE.DirectionalLight(
+
             0xffffff,
+
             2
+
         );
 
 
     directionalLight.position.set(
+
         5,
         10,
         5
+
     );
 
 
@@ -186,7 +283,7 @@ function init3D() {
 
 
     /*
-       Erste Hindernisse erzeugen.
+       Hindernisse vorbereiten
     */
 
     resetObstacles();
@@ -206,21 +303,29 @@ function createRoad() {
 
     const roadGeometry =
         new THREE.PlaneGeometry(
+
             10,
+
             300
+
         );
 
 
     const roadMaterial =
         new THREE.MeshStandardMaterial({
+
             color: 0x292929
+
         });
 
 
     const road =
         new THREE.Mesh(
+
             roadGeometry,
+
             roadMaterial
+
         );
 
 
@@ -237,6 +342,11 @@ function createRoad() {
     );
 
 
+    /*
+       Zwei Linien teilen
+       die drei Spuren.
+    */
+
     createLaneLine(-1);
 
     createLaneLine(1);
@@ -244,36 +354,49 @@ function createRoad() {
 
 
 /* =========================================
-   SPUR-LINIEN
+   SPUR-LINIE
 ========================================= */
 
 function createLaneLine(x) {
 
     const geometry =
         new THREE.BoxGeometry(
+
             0.05,
+
             0.03,
+
             300
+
         );
 
 
     const material =
         new THREE.MeshStandardMaterial({
+
             color: 0x777777
+
         });
 
 
     const line =
         new THREE.Mesh(
+
             geometry,
+
             material
+
         );
 
 
     line.position.set(
+
         x,
+
         0.03,
+
         -140
+
     );
 
 
@@ -291,29 +414,42 @@ function createPlayer() {
 
     const geometry =
         new THREE.BoxGeometry(
+
             1,
+
             1.8,
+
             1
+
         );
 
 
     const material =
         new THREE.MeshStandardMaterial({
+
             color: 0x00d9ff
+
         });
 
 
     player =
         new THREE.Mesh(
+
             geometry,
+
             material
+
         );
 
 
     player.position.set(
+
         0,
+
         0.9,
+
         3
+
     );
 
 
@@ -328,36 +464,53 @@ function createPlayer() {
 ========================================= */
 
 function createObstacle(
+
     lane,
+
     z,
+
     color
+
 ) {
 
     const geometry =
         new THREE.BoxGeometry(
+
             1.8,
+
             1.8,
+
             1.8
+
         );
 
 
     const material =
         new THREE.MeshStandardMaterial({
+
             color: color
+
         });
 
 
     const obstacle =
         new THREE.Mesh(
+
             geometry,
+
             material
+
         );
 
 
     obstacle.position.set(
+
         lanePositions[lane],
+
         0.9,
+
         z
+
     );
 
 
@@ -382,31 +535,85 @@ function createObstacle(
 
 function getRandomColor() {
 
-    const colors = [
+    return obstacleColors[
 
-        0xff3030,
-
-        0x00cc66,
-
-        0xffcc00,
-
-        0xaa55ff,
-
-        0xff6600,
-
-        0x00bfff,
-
-        0xff4fa3
-
-    ];
-
-
-    return colors[
         Math.floor(
+
             Math.random() *
-            colors.length
+            obstacleColors.length
+
         )
+
     ];
+}
+
+
+/* =========================================
+   ZUFÄLLIGE ZAHL
+========================================= */
+
+function randomInt(
+
+    min,
+
+    max
+
+) {
+
+    return Math.floor(
+
+        Math.random() *
+        (max - min + 1)
+
+    ) + min;
+}
+
+
+/* =========================================
+   SPURN MISCHEN
+========================================= */
+
+function shuffleArray(array) {
+
+    const result =
+        [...array];
+
+
+    for (
+
+        let i =
+            result.length - 1;
+
+        i > 0;
+
+        i--
+
+    ) {
+
+        const j =
+            Math.floor(
+
+                Math.random() *
+                (i + 1)
+
+            );
+
+
+        [
+            result[i],
+            result[j]
+
+        ] = [
+
+            result[j],
+            result[i]
+
+        ];
+
+    }
+
+
+    return result;
 }
 
 
@@ -416,71 +623,207 @@ function getRandomColor() {
 
 function spawnObstacleRow(z) {
 
-    const lanes = [0, 1, 2];
+    /*
+       Drei mögliche Spuren
+    */
+
+    const shuffledLanes =
+        shuffleArray([
+
+            0,
+            1,
+            2
+
+        ]);
+
 
     /*
-       Zufällige Reihenfolge der Spuren
+       55 % Wahrscheinlichkeit
+       für einen Block.
+
+       45 % für zwei Blöcke.
+
+       NIEMALS drei!
     */
-    for (let i = lanes.length - 1; i > 0; i--) {
 
-        const j = Math.floor(
-            Math.random() * (i + 1)
-        );
+    let blockCount;
 
-        [lanes[i], lanes[j]] =
-            [lanes[j], lanes[i]];
+
+    if (
+        Math.random() < 0.55
+    ) {
+
+        blockCount = 1;
+
+    } else {
+
+        blockCount = 2;
+
     }
 
 
     /*
-       ENTWEDER:
-       1 Block
-       ODER:
-       2 Blöcke
-
-       NIEMALS 3!
+       Bei zwei Blöcken:
+       Eine Spur bleibt frei.
     */
-    const blockCount =
-        Math.random() < 0.55
-            ? 1
-            : 2;
+
+    let safeLane;
 
 
-    /*
-       Gewählte Spuren
-    */
-    for (let i = 0; i < blockCount; i++) {
+    if (
+        blockCount === 2
+    ) {
 
-        const lane =
-            lanes[i];
+        /*
+           Die freie Spur darf nicht
+           dieselbe wie vorher sein,
+           wenn es vermeidbar ist.
+        */
+
+        const possibleSafeLanes =
+            shuffledLanes.filter(
+
+                lane =>
+                    lane !==
+                    lastSafeLane
+
+            );
+
+
+        if (
+            possibleSafeLanes.length > 0
+        ) {
+
+            safeLane =
+                possibleSafeLanes[
+                    randomInt(
+
+                        0,
+
+                        possibleSafeLanes.length - 1
+
+                    )
+                ];
+
+        } else {
+
+            safeLane =
+                shuffledLanes[0];
+
+        }
+
+
+        lastSafeLane =
+            safeLane;
 
 
         /*
-           Unterschiedliche Farben
+           Alle anderen beiden
+           Spuren bekommen einen Block.
         */
-        const colors = [
-            0xff3030,
-            0x00cc66,
-            0xffcc00,
-            0xaa55ff,
-            0xff6600,
-            0x00aaff
-        ];
 
-        const color =
-            colors[
-                Math.floor(
-                    Math.random() *
-                    colors.length
-                )
-            ];
+        for (
+            let lane = 0;
+            lane < 3;
+            lane++
+        ) {
+
+            if (
+                lane !== safeLane
+            ) {
+
+                createObstacle(
+
+                    lane,
+
+                    z,
+
+                    getRandomColor()
+
+                );
+
+            }
+
+        }
+
+    } else {
+
+        /*
+           Nur EIN Block.
+
+           Die freie Spur wird zufällig
+           gewählt.
+        */
+
+        let blockedLane;
+
+
+        /*
+           Verhindern, dass derselbe
+           Block zu oft auf derselben
+           Spur erscheint.
+        */
+
+        const possibleBlockedLanes =
+            shuffledLanes.filter(
+
+                lane =>
+                    lane !==
+                    lastSafeLane
+
+            );
+
+
+        if (
+            possibleBlockedLanes.length > 0
+        ) {
+
+            blockedLane =
+                possibleBlockedLanes[
+
+                    randomInt(
+
+                        0,
+
+                        possibleBlockedLanes.length - 1
+
+                    )
+
+                ];
+
+        } else {
+
+            blockedLane =
+                shuffledLanes[0];
+
+        }
+
+
+        /*
+           Die beiden anderen Spuren
+           sind sicher.
+        */
+
+        lastSafeLane =
+            shuffledLanes.find(
+
+                lane =>
+                    lane !==
+                    blockedLane
+
+            );
 
 
         createObstacle(
-            lane,
+
+            blockedLane,
+
             z,
-            color
+
+            getRandomColor()
+
         );
+
     }
 }
 
@@ -492,16 +835,23 @@ function spawnObstacleRow(z) {
 function resetObstacles() {
 
     /*
-       Alte entfernen
+       Alte Blöcke löschen
     */
 
     obstacleObjects.forEach(
+
         obstacle => {
 
-            scene.remove(
-                obstacle
-            );
+            if (scene) {
+
+                scene.remove(
+                    obstacle
+                );
+
+            }
+
         }
+
     );
 
 
@@ -509,74 +859,101 @@ function resetObstacles() {
 
 
     /*
-       Mehrere Reihen vorbereiten
+       Spawn-System zurücksetzen
     */
 
     nextSpawnZ =
         SPAWN_DISTANCE;
 
 
+    lastSafeLane =
+        -1;
+
+
+    /*
+       Mehrere Reihen vorbereiten
+    */
+
     for (
+
         let i = 0;
-        i < 5;
+
+        i < 6;
+
         i++
+
     ) {
 
         spawnObstacleRow(
+
             nextSpawnZ
+
         );
 
 
         nextSpawnZ +=
             SPAWN_INTERVAL;
+
     }
 }
 
 
 /* =========================================
-   NEUE HINDERNISSE SPAWNEN
+   NEUE REIHEN ERZEUGEN
 ========================================= */
 
 function updateSpawning() {
 
     /*
-       Wir schauen nach dem
-       weitesten Block.
+       Die weiteste vorhandene
+       Hindernis-Reihe suchen.
     */
 
     let furthestZ =
-        -Infinity;
+        Infinity;
 
 
     obstacleObjects.forEach(
+
         obstacle => {
 
             if (
-                obstacle.position.z >
+
+                obstacle.position.z <
                 furthestZ
+
             ) {
 
                 furthestZ =
                     obstacle.position.z;
+
             }
+
         }
+
     );
 
 
     /*
-       Wenn hinten nicht mehr
-       genug Hindernisse stehen,
-       neue Reihe erzeugen.
+       Falls nicht genug Hindernisse
+       in der Entfernung vorhanden sind,
+       eine neue Reihe erzeugen.
     */
 
     if (
+
         furthestZ >
-        -120
+        -150
+
     ) {
 
         spawnObstacleRow(
-            furthestZ - SPAWN_INTERVAL
+
+            furthestZ -
+            SPAWN_INTERVAL
+
         );
+
     }
 }
 
@@ -585,22 +962,23 @@ function updateSpawning() {
    HINDERNISSE BEWEGEN
 ========================================= */
 
-function updateObstacles(
-    delta
-) {
+function updateObstacles(delta) {
 
     if (!gameRunning) {
+
         return;
     }
 
 
     for (
+
         let i =
             obstacleObjects.length - 1;
 
         i >= 0;
 
         i--
+
     ) {
 
         const obstacle =
@@ -608,28 +986,32 @@ function updateObstacles(
 
 
         /*
-           Block kommt auf den
-           Spieler zu.
+           Hindernis kommt
+           auf den Spieler zu.
         */
 
         obstacle.position.z +=
+
             GAME_SPEED *
             delta;
 
 
         /*
-           Kollision
+           Kollision prüfen
         */
 
         if (
+
             checkCollision(
                 obstacle
             )
+
         ) {
 
             endGame();
 
             return;
+
         }
 
 
@@ -638,8 +1020,10 @@ function updateObstacles(
         */
 
         if (
+
             obstacle.position.z >
             15
+
         ) {
 
             scene.remove(
@@ -648,10 +1032,15 @@ function updateObstacles(
 
 
             obstacleObjects.splice(
+
                 i,
+
                 1
+
             );
+
         }
+
     }
 
 
@@ -668,27 +1057,37 @@ function checkCollision(
 ) {
 
     if (!player) {
+
         return false;
     }
 
 
     const xDistance =
+
         Math.abs(
+
             player.position.x -
             obstacle.position.x
+
         );
 
 
     const zDistance =
+
         Math.abs(
+
             player.position.z -
             obstacle.position.z
+
         );
 
 
     return (
+
         xDistance < 1.15 &&
+
         zDistance < 1.35
+
     );
 }
 
@@ -700,20 +1099,33 @@ function checkCollision(
 function updatePlayer() {
 
     if (!player) {
+
         return;
     }
 
 
+    /*
+       Zielposition der aktuellen Spur
+    */
+
     const targetX =
+
         lanePositions[
             playerLane
         ];
 
 
+    /*
+       Sanft zur neuen Spur bewegen
+    */
+
     player.position.x +=
+
         (
+
             targetX -
             player.position.x
+
         ) * 0.18;
 }
 
@@ -730,15 +1142,24 @@ function animate(time) {
 
 
     if (!threeReady) {
+
         return;
     }
 
 
     const delta =
+
         Math.min(
-            (time - lastTime) /
-            1000,
+
+            (
+
+                time -
+                lastTime
+
+            ) / 1000,
+
             0.05
+
         );
 
 
@@ -746,17 +1167,55 @@ function animate(time) {
         time;
 
 
+    /*
+       Blöcke bewegen
+    */
+
     updateObstacles(
         delta
     );
 
 
+    /*
+       Spieler bewegen
+    */
+
     updatePlayer();
 
 
+    /*
+       Leichte Bewegung
+    */
+
+    if (
+
+        player &&
+        gameRunning
+
+    ) {
+
+        player.rotation.y =
+
+            Math.sin(
+
+                time *
+                0.004
+
+            ) * 0.05;
+
+    }
+
+
+    /*
+       Rendern
+    */
+
     renderer.render(
+
         scene,
+
         camera
+
     );
 }
 
@@ -768,21 +1227,28 @@ function animate(time) {
 function resize3D() {
 
     const container =
+
         document.getElementById(
+
             "gameCanvas"
+
         );
 
 
     if (
+
         !renderer ||
         !camera ||
         !container
+
     ) {
+
         return;
     }
 
 
     camera.aspect =
+
         container.clientWidth /
         container.clientHeight;
 
@@ -791,15 +1257,21 @@ function resize3D() {
 
 
     renderer.setSize(
+
         container.clientWidth,
+
         container.clientHeight
+
     );
 }
 
 
 window.addEventListener(
+
     "resize",
+
     resize3D
+
 );
 
 
