@@ -10,7 +10,18 @@ let threeReady = false;
 
 let lastTime = performance.now();
 
+
+/* =========================================
+   EINSTELLUNGEN
+========================================= */
+
 const GAME_SPEED = 12;
+
+const SPAWN_DISTANCE = -100;
+
+const SPAWN_INTERVAL = 22;
+
+let nextSpawnZ = SPAWN_DISTANCE;
 
 
 /* =========================================
@@ -24,30 +35,22 @@ function init3D() {
     const container =
         document.getElementById("gameCanvas");
 
+
     if (!container) {
-        console.error("gameCanvas fehlt!");
+
+        console.error(
+            "gameCanvas fehlt!"
+        );
+
         return;
     }
+
 
     if (typeof THREE === "undefined") {
 
         console.error(
             "Three.js wurde nicht geladen!"
         );
-
-        container.innerHTML = `
-            <div style="
-                color:white;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                height:100%;
-                text-align:center;
-                padding:20px;
-            ">
-                Three.js konnte nicht geladen werden.
-            </div>
-        `;
 
         return;
     }
@@ -57,10 +60,14 @@ function init3D() {
        SZENE
     ===================================== */
 
-    scene = new THREE.Scene();
+    scene =
+        new THREE.Scene();
+
 
     scene.background =
-        new THREE.Color(0x101820);
+        new THREE.Color(
+            0x101820
+        );
 
 
     /* =====================================
@@ -76,11 +83,13 @@ function init3D() {
             500
         );
 
+
     camera.position.set(
         0,
         4,
         8
     );
+
 
     camera.lookAt(
         0,
@@ -98,6 +107,7 @@ function init3D() {
             antialias: true
         });
 
+
     renderer.setPixelRatio(
         Math.min(
             window.devicePixelRatio || 1,
@@ -105,10 +115,12 @@ function init3D() {
         )
     );
 
+
     renderer.setSize(
         container.clientWidth,
         container.clientHeight
     );
+
 
     container.appendChild(
         renderer.domElement
@@ -126,6 +138,7 @@ function init3D() {
             2
         );
 
+
     scene.add(
         ambientLight
     );
@@ -137,11 +150,13 @@ function init3D() {
             2
         );
 
+
     directionalLight.position.set(
         5,
         10,
         5
     );
+
 
     scene.add(
         directionalLight
@@ -152,40 +167,7 @@ function init3D() {
        STRASSE
     ===================================== */
 
-    const roadGeometry =
-        new THREE.PlaneGeometry(
-            10,
-            300
-        );
-
-    const roadMaterial =
-        new THREE.MeshStandardMaterial({
-            color: 0x292929
-        });
-
-    const road =
-        new THREE.Mesh(
-            roadGeometry,
-            roadMaterial
-        );
-
-    road.rotation.x =
-        -Math.PI / 2;
-
-    road.position.z =
-        -140;
-
-    scene.add(
-        road
-    );
-
-
-    /* =====================================
-       SPUR-LINIEN
-    ===================================== */
-
-    createLaneLine(-1);
-    createLaneLine(1);
+    createRoad();
 
 
     /* =====================================
@@ -195,46 +177,19 @@ function init3D() {
     createPlayer();
 
 
-    /* =====================================
-       TEST-HINDERNISSE
-    ===================================== */
-
-    createObstacle(
-        0,
-        -20,
-        0xff3030
-    );
-
-    createObstacle(
-        2,
-        -40,
-        0x00cc66
-    );
-
-    createObstacle(
-        1,
-        -60,
-        0xffcc00
-    );
-
-    createObstacle(
-        0,
-        -80,
-        0xaa55ff
-    );
-
-    createObstacle(
-        2,
-        -100,
-        0xff6600
-    );
-
-
     threeReady = true;
+
 
     console.log(
         "GENGA: 3D erfolgreich!"
     );
+
+
+    /*
+       Erste Hindernisse erzeugen.
+    */
+
+    resetObstacles();
 
 
     requestAnimationFrame(
@@ -244,7 +199,52 @@ function init3D() {
 
 
 /* =========================================
-   SPURLINIE
+   STRASSE
+========================================= */
+
+function createRoad() {
+
+    const roadGeometry =
+        new THREE.PlaneGeometry(
+            10,
+            300
+        );
+
+
+    const roadMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0x292929
+        });
+
+
+    const road =
+        new THREE.Mesh(
+            roadGeometry,
+            roadMaterial
+        );
+
+
+    road.rotation.x =
+        -Math.PI / 2;
+
+
+    road.position.z =
+        -140;
+
+
+    scene.add(
+        road
+    );
+
+
+    createLaneLine(-1);
+
+    createLaneLine(1);
+}
+
+
+/* =========================================
+   SPUR-LINIEN
 ========================================= */
 
 function createLaneLine(x) {
@@ -256,10 +256,12 @@ function createLaneLine(x) {
             300
         );
 
+
     const material =
         new THREE.MeshStandardMaterial({
             color: 0x777777
         });
+
 
     const line =
         new THREE.Mesh(
@@ -267,11 +269,13 @@ function createLaneLine(x) {
             material
         );
 
+
     line.position.set(
         x,
         0.03,
         -140
     );
+
 
     scene.add(
         line
@@ -292,10 +296,12 @@ function createPlayer() {
             1
         );
 
+
     const material =
         new THREE.MeshStandardMaterial({
             color: 0x00d9ff
         });
+
 
     player =
         new THREE.Mesh(
@@ -303,11 +309,13 @@ function createPlayer() {
             material
         );
 
+
     player.position.set(
         0,
         0.9,
         3
     );
+
 
     scene.add(
         player
@@ -316,7 +324,7 @@ function createPlayer() {
 
 
 /* =========================================
-   HINDERNIS
+   BLOCK ERSTELLEN
 ========================================= */
 
 function createObstacle(
@@ -332,10 +340,12 @@ function createObstacle(
             1.8
         );
 
+
     const material =
         new THREE.MeshStandardMaterial({
             color: color
         });
+
 
     const obstacle =
         new THREE.Mesh(
@@ -343,18 +353,22 @@ function createObstacle(
             material
         );
 
+
     obstacle.position.set(
         lanePositions[lane],
         0.9,
         z
     );
 
+
     obstacle.userData.lane =
         lane;
+
 
     scene.add(
         obstacle
     );
+
 
     obstacleObjects.push(
         obstacle
@@ -363,10 +377,198 @@ function createObstacle(
 
 
 /* =========================================
+   ZUFÄLLIGE FARBE
+========================================= */
+
+function getRandomColor() {
+
+    const colors = [
+
+        0xff3030,
+
+        0x00cc66,
+
+        0xffcc00,
+
+        0xaa55ff,
+
+        0xff6600,
+
+        0x00bfff,
+
+        0xff4fa3
+
+    ];
+
+
+    return colors[
+        Math.floor(
+            Math.random() *
+            colors.length
+        )
+    ];
+}
+
+
+/* =========================================
+   NEUE HINDERNIS-REIHE
+========================================= */
+
+function spawnObstacleRow(
+    z
+) {
+
+    /*
+       Zufällig bestimmen,
+       ob eine oder zwei Spuren
+       blockiert werden.
+    */
+
+    const lanes = [
+        0,
+        1,
+        2
+    ];
+
+
+    /*
+       Mischen
+    */
+
+    lanes.sort(
+        () => Math.random() - 0.5
+    );
+
+
+    /*
+       1 = ein Block
+       2 = zwei Blöcke
+    */
+
+    const amount =
+        Math.random() < 0.65
+            ? 1
+            : 2;
+
+
+    for (
+        let i = 0;
+        i < amount;
+        i++
+    ) {
+
+        createObstacle(
+            lanes[i],
+            z,
+            getRandomColor()
+        );
+    }
+}
+
+
+/* =========================================
+   HINDERNISSE ZURÜCKSETZEN
+========================================= */
+
+function resetObstacles() {
+
+    /*
+       Alte entfernen
+    */
+
+    obstacleObjects.forEach(
+        obstacle => {
+
+            scene.remove(
+                obstacle
+            );
+        }
+    );
+
+
+    obstacleObjects = [];
+
+
+    /*
+       Mehrere Reihen vorbereiten
+    */
+
+    nextSpawnZ =
+        SPAWN_DISTANCE;
+
+
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
+
+        spawnObstacleRow(
+            nextSpawnZ
+        );
+
+
+        nextSpawnZ +=
+            SPAWN_INTERVAL;
+    }
+}
+
+
+/* =========================================
+   NEUE HINDERNISSE SPAWNEN
+========================================= */
+
+function updateSpawning() {
+
+    /*
+       Wir schauen nach dem
+       weitesten Block.
+    */
+
+    let furthestZ =
+        -Infinity;
+
+
+    obstacleObjects.forEach(
+        obstacle => {
+
+            if (
+                obstacle.position.z >
+                furthestZ
+            ) {
+
+                furthestZ =
+                    obstacle.position.z;
+            }
+        }
+    );
+
+
+    /*
+       Wenn hinten nicht mehr
+       genug Hindernisse stehen,
+       neue Reihe erzeugen.
+    */
+
+    if (
+        furthestZ >
+        -120
+    ) {
+
+        spawnObstacleRow(
+            furthestZ - SPAWN_INTERVAL
+        );
+    }
+}
+
+
+/* =========================================
    HINDERNISSE BEWEGEN
 ========================================= */
 
-function updateObstacles(delta) {
+function updateObstacles(
+    delta
+) {
 
     if (!gameRunning) {
         return;
@@ -374,8 +576,11 @@ function updateObstacles(delta) {
 
 
     for (
-        let i = obstacleObjects.length - 1;
+        let i =
+            obstacleObjects.length - 1;
+
         i >= 0;
+
         i--
     ) {
 
@@ -384,12 +589,13 @@ function updateObstacles(delta) {
 
 
         /*
-           Hindernis kommt auf
-           den Spieler zu.
+           Block kommt auf den
+           Spieler zu.
         */
 
         obstacle.position.z +=
-            GAME_SPEED * delta;
+            GAME_SPEED *
+            delta;
 
 
         /*
@@ -409,17 +615,18 @@ function updateObstacles(delta) {
 
 
         /*
-           Hindernis ist hinter
-           dem Spieler.
+           Hinter dem Spieler
         */
 
         if (
-            obstacle.position.z > 15
+            obstacle.position.z >
+            15
         ) {
 
             scene.remove(
                 obstacle
             );
+
 
             obstacleObjects.splice(
                 i,
@@ -427,6 +634,9 @@ function updateObstacles(delta) {
             );
         }
     }
+
+
+    updateSpawning();
 }
 
 
@@ -481,10 +691,6 @@ function updatePlayer() {
         ];
 
 
-    /*
-       Sanft zur neuen Spur
-    */
-
     player.position.x +=
         (
             targetX -
@@ -511,7 +717,8 @@ function animate(time) {
 
     const delta =
         Math.min(
-            (time - lastTime) / 1000,
+            (time - lastTime) /
+            1000,
             0.05
         );
 
@@ -526,17 +733,6 @@ function animate(time) {
 
 
     updatePlayer();
-
-
-    /*
-       Spieler leicht animieren
-    */
-
-    if (player && gameRunning) {
-
-        player.rotation.y =
-            Math.sin(time * 0.004) * 0.05;
-    }
 
 
     renderer.render(
@@ -556,6 +752,7 @@ function resize3D() {
         document.getElementById(
             "gameCanvas"
         );
+
 
     if (
         !renderer ||
