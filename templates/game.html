@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0, viewport-fit=cover"
@@ -38,15 +39,22 @@
         <div id="gameCanvas"></div>
 
         <div id="startScreen" class="game-screen">
+
             <h1>GENGA SURFER</h1>
+
             <p>Wische nach links oder rechts.</p>
 
-            <button id="startButton">
+            <button id="startButton" type="button">
                 Spielen
             </button>
+
         </div>
 
-        <div id="gameOverScreen" class="game-screen hidden">
+        <div
+            id="gameOverScreen"
+            class="game-screen hidden"
+        >
+
             <h1>GAME OVER</h1>
 
             <p>
@@ -54,19 +62,27 @@
                 <strong id="finalScore">0</strong>
             </p>
 
-            <button id="restartButton">
+            <button
+                id="restartButton"
+                type="button"
+            >
                 Nochmal spielen
             </button>
+
         </div>
 
     </div>
 
 </main>
 
+
+<!-- THREE.JS -->
 <script
-    src="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js">
+    src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r180/three.min.js">
 </script>
 
+
+<!-- GENGA SURFER -->
 <script src="{{ url_for('static', filename='js/game3d.js') }}"></script>
 <script src="{{ url_for('static', filename='js/game.js') }}"></script>
 <script src="{{ url_for('static', filename='js/controls.js') }}"></script>
