@@ -1,81 +1,241 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
+let gameRunning = false;
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+let score = 0;
 
-    <title>GENGA Surfer</title>
+let playerLane = 1;
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}"
-    >
+let scoreTimer = 0;
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/game.css') }}"
-    >
-</head>
 
-<body>
+const lanePositions = [
+    -2,
+    0,
+    2
+];
 
-<main class="game-page">
 
-    <div class="game-header">
-        <strong>GENGA SURFER</strong>
+/* =========================================
+   SPIEL START
+========================================= */
 
-        <span>
-            Punkte:
-            <strong id="score">0</strong>
-        </span>
-    </div>
+function startGame() {
 
-    <div id="game">
+    if (gameRunning) {
+        return;
+    }
 
-        <div id="gameCanvas"></div>
 
-        <div id="startScreen" class="game-screen">
+    gameRunning = true;
 
-            <h1>GENGA SURFER</h1>
+    score = 0;
 
-            <p>Wische nach links oder rechts.</p>
+    playerLane = 1;
 
-            <button id="startButton" type="button">
-                Spielen
-            </button>
+    scoreTimer = 0;
 
-        </div>
+    worldSpeed = 0.35;
 
-        <div id="gameOverScreen" class="game-screen hidden">
 
-            <h1>GAME OVER</h1>
+    /*
+       Spieler zurücksetzen
+    */
 
-            <p>
-                Punkte:
-                <strong id="finalScore">0</strong>
-            </p>
+    if (player) {
 
-            <button id="restartButton" type="button">
-                Nochmal spielen
-            </button>
+        player.position.x = 0;
 
-        </div>
+        player.position.z = 5;
+    }
 
-    </div>
 
-</main>
+    /*
+       Alte Blöcke löschen
+    */
 
-<!-- Erst Three.js laden -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r180/three.min.js"></script>
+    if (obstacleObjects) {
 
-<!-- Danach unser Spiel -->
-<script src="{{ url_for('static', filename='js/game.js') }}"></script>
-<script src="{{ url_for('static', filename='js/game3d.js') }}"></script>
-<script src="{{ url_for('static', filename='js/controls.js') }}"></script>
+        obstacleObjects.forEach(
+            obstacle => {
+                scene.remove(
+                    obstacle
+                );
+            }
+        );
 
-</body>
-</html>
+        obstacleObjects.length = 0;
+    }
+
+
+    /*
+       Neue Blöcke
+    */
+
+    createDemoObstacles();
+
+
+    /*
+       Menüs
+    */
+
+    document
+        .getElementById(
+            "startScreen"
+        )
+        .classList.add(
+            "hidden"
+        );
+
+
+    document
+        .getElementById(
+            "gameOverScreen"
+        )
+        .classList.add(
+            "hidden"
+        );
+
+
+    document
+        .getElementById(
+            "score"
+        )
+        .textContent = "0";
+}
+
+
+/* =========================================
+   SCORE
+========================================= */
+
+function updateGame(
+    delta
+) {
+
+    if (!gameRunning) {
+        return;
+    }
+
+
+    scoreTimer += delta;
+
+
+    if (scoreTimer >= 60) {
+
+        score += 1;
+
+        scoreTimer = 0;
+
+
+        document
+            .getElementById(
+                "score"
+            )
+            .textContent =
+            Math.floor(score);
+    }
+
+
+    /*
+       Geschwindigkeit langsam erhöhen
+    */
+
+    worldSpeed +=
+        delta * 0.0004;
+
+
+    worldSpeed =
+        Math.min(
+            worldSpeed,
+            0.9
+        );
+}
+
+
+/* =========================================
+   GAME OVER
+========================================= */
+
+function endGame() {
+
+    if (!gameRunning) {
+        return;
+    }
+
+
+    gameRunning = false;
+
+
+    document
+        .getElementById(
+            "finalScore"
+        )
+        .textContent =
+        Math.floor(score);
+
+
+    document
+        .getElementById(
+            "gameOverScreen"
+        )
+        .classList.remove(
+            "hidden"
+        );
+}
+
+
+/* =========================================
+   SCORE LOOP
+========================================= */
+
+let scoreLastTime =
+    performance.now();
+
+
+function scoreLoop(time) {
+
+    requestAnimationFrame(
+        scoreLoop
+    );
+
+
+    const delta =
+        Math.min(
+            (time - scoreLastTime) /
+            16.67,
+            3
+        );
+
+
+    scoreLastTime =
+        time;
+
+
+    updateGame(
+        delta
+    );
+}
+
+
+requestAnimationFrame(
+    scoreLoop
+);
+
+
+/* =========================================
+   BUTTONS
+========================================= */
+
+document
+    .getElementById(
+        "startButton"
+    )
+    .onclick =
+    startGame;
+
+
+document
+    .getElementById(
+        "restartButton"
+    )
+    .onclick =
+    startGame;
