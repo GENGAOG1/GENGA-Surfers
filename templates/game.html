@@ -2,7 +2,10 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    >
 
     <title>GENGA Surfer</title>
 
@@ -18,92 +21,216 @@
 
     <div class="game-header">
         <strong>GENGA SURFER</strong>
-        <span>Punkte: <strong id="score">0</strong></span>
+
+        <span>
+            Punkte:
+            <strong id="score">0</strong>
+        </span>
     </div>
 
     <div id="game">
+
         <canvas id="canvas"></canvas>
 
+        <!-- Start -->
         <div id="startScreen" class="screen">
+
             <h1>GENGA SURFER</h1>
-            <p>Wische nach links oder rechts.</p>
-            <button id="start">Spielen</button>
+
+            <p>
+                Wische nach links oder rechts,
+                um die Spur zu wechseln.
+            </p>
+
+            <button id="startButton">
+                Spielen
+            </button>
+
         </div>
 
-        <div id="gameOver" class="screen hidden">
-            <h1>GAME OVER</h1>
-            <p>Punkte: <strong id="finalScore">0</strong></p>
-            <button id="restart">Nochmal spielen</button>
+
+        <!-- Pause -->
+        <div id="pauseScreen" class="screen hidden">
+
+            <h1>PAUSIERT</h1>
+
+            <p>
+                Dein Spielstand wurde gespeichert.
+            </p>
+
+            <button id="resumeButton">
+                Fortsetzen
+            </button>
+
+            <button id="newGameButton">
+                Neuer Lauf
+            </button>
+
         </div>
+
+
+        <!-- Game Over -->
+        <div id="gameOverScreen" class="screen hidden">
+
+            <h1>GAME OVER</h1>
+
+            <p>
+                Punkte:
+                <strong id="finalScore">0</strong>
+            </p>
+
+            <button id="restartButton">
+                Nochmal spielen
+            </button>
+
+        </div>
+
     </div>
 
 </main>
 
+
 <script>
+
+/* =========================================================
+   ELEMENTE
+========================================================= */
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const startScreen = document.getElementById("startScreen");
-const gameOver = document.getElementById("gameOver");
+const startScreen =
+    document.getElementById("startScreen");
 
-const startButton = document.getElementById("start");
-const restartButton = document.getElementById("restart");
+const pauseScreen =
+    document.getElementById("pauseScreen");
 
-const scoreText = document.getElementById("score");
-const finalScoreText = document.getElementById("finalScore");
+const gameOverScreen =
+    document.getElementById("gameOverScreen");
+
+const startButton =
+    document.getElementById("startButton");
+
+const resumeButton =
+    document.getElementById("resumeButton");
+
+const newGameButton =
+    document.getElementById("newGameButton");
+
+const restartButton =
+    document.getElementById("restartButton");
+
+const scoreText =
+    document.getElementById("score");
+
+const finalScoreText =
+    document.getElementById("finalScore");
 
 
-let width;
-let height;
+/* =========================================================
+   SPIELDATEN
+========================================================= */
+
+let width = 0;
+let height = 0;
 
 let playerLane = 1;
 
 let blocks = [];
 
-let running = false;
-
 let score = 0;
-
-let lastTime = 0;
-
-let spawnTimer = 0;
 
 let speed = 0.00035;
 
+let spawnTimer = 0;
 
-/* =========================
+let lastTime = 0;
+
+let animationFrame = null;
+
+
+/*
+   running = Spiel läuft gerade
+*/
+let running = false;
+
+
+/*
+   paused = Spiel wurde pausiert
+*/
+let paused = false;
+
+
+/*
+   gameOver = Lauf ist beendet
+*/
+let gameOver = false;
+
+
+/*
+   Damit beim Verlassen nicht
+   mehrfach gespeichert wird.
+*/
+let saveTimer = null;
+
+
+/* =========================================================
+   BLOCK-FARBEN
+========================================================= */
+
+const blockColors = [
+    "#ff3030",
+    "#00aaff",
+    "#00cc66",
+    "#ffcc00",
+    "#aa55ff",
+    "#ff6600"
+];
+
+
+/* =========================================================
    CANVAS
-========================= */
+========================================================= */
 
-function resize() {
+function resizeCanvas() {
 
-    const rect = canvas.getBoundingClientRect();
+    const rect =
+        canvas.getBoundingClientRect();
 
     width = rect.width;
     height = rect.height;
 
-    canvas.width = width * devicePixelRatio;
-    canvas.height = height * devicePixelRatio;
+    const pixelRatio =
+        window.devicePixelRatio || 1;
+
+    canvas.width =
+        width * pixelRatio;
+
+    canvas.height =
+        height * pixelRatio;
 
     ctx.setTransform(
-        devicePixelRatio,
+        pixelRatio,
         0,
         0,
-        devicePixelRatio,
+        pixelRatio,
         0,
         0
     );
 }
 
-window.addEventListener("resize", resize);
 
-resize();
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+resizeCanvas();
 
 
-/* =========================
+/* =========================================================
    SPUREN
-========================= */
+========================================================= */
 
 function laneX(lane) {
 
@@ -114,21 +241,11 @@ function laneX(lane) {
 }
 
 
-/* =========================
+/* =========================================================
    HINTERGRUND
-========================= */
+========================================================= */
 
 function drawBackground() {
-
-    ctx.fillStyle = "#101820";
-
-    ctx.fillRect(
-        0,
-        0,
-        width,
-        height
-    );
-
 
     /*
        Himmel
@@ -140,7 +257,7 @@ function drawBackground() {
         0,
         0,
         width,
-        height * 0.35
+        height
     );
 
 
@@ -181,11 +298,11 @@ function drawBackground() {
        Drei Spuren
     */
 
-    for (let i = 0; i < 3; i++) {
+    for (let lane = 0; lane < 3; lane++) {
+
+        const x = laneX(lane);
 
         ctx.beginPath();
-
-        const x = laneX(i);
 
         ctx.moveTo(
             x,
@@ -199,30 +316,61 @@ function drawBackground() {
 
         ctx.strokeStyle = "#383838";
 
-        ctx.lineWidth = width * 0.20;
+        ctx.lineWidth =
+            width * 0.20;
 
         ctx.stroke();
     }
 }
 
 
-/* =========================
+/* =========================================================
    SPIELER
-========================= */
+========================================================= */
 
 function drawPlayer() {
 
-    const x = laneX(playerLane);
+    const x =
+        laneX(playerLane);
 
-    const y = height * 0.82;
+    const y =
+        height * 0.82;
 
-    const size = Math.min(
-        width * 0.12,
-        55
+    const size =
+        Math.min(
+            width * 0.12,
+            55
+        );
+
+
+    /*
+       Schatten
+    */
+
+    ctx.fillStyle =
+        "rgba(0,0,0,0.35)";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x,
+        y + 5,
+        size * 0.55,
+        size * 0.18,
+        0,
+        0,
+        Math.PI * 2
     );
 
+    ctx.fill();
 
-    ctx.fillStyle = "#00d9ff";
+
+    /*
+       Spieler
+    */
+
+    ctx.fillStyle =
+        "#00d9ff";
 
     ctx.fillRect(
         x - size / 2,
@@ -233,22 +381,23 @@ function drawPlayer() {
 }
 
 
-/* =========================
-   BLOCK
-========================= */
+/* =========================================================
+   BLOCK ZEICHNEN
+========================================================= */
 
 function drawBlock(block) {
 
-    const x = laneX(block.lane);
+    const x =
+        laneX(block.lane);
+
+    const depth =
+        block.depth;
 
 
     /*
-       Perspektive:
-       Je näher der Block kommt,
-       desto größer wird er.
+       Block wird größer,
+       je näher er kommt.
     */
-
-    const depth = block.depth;
 
     const size =
         15 +
@@ -261,7 +410,12 @@ function drawBlock(block) {
         (height * 0.52);
 
 
-    ctx.fillStyle = block.color;
+    /*
+       Jede Spur ist gleich breit.
+    */
+
+    const laneWidth =
+        width * 0.20;
 
 
     /*
@@ -269,9 +423,8 @@ function drawBlock(block) {
        die komplette Spur.
     */
 
-    const laneWidth =
-        width * 0.20;
-
+    ctx.fillStyle =
+        block.color;
 
     ctx.fillRect(
 
@@ -286,137 +439,372 @@ function drawBlock(block) {
 }
 
 
-/* =========================
-   BLOCK ERZEUGEN
-========================= */
+/* =========================================================
+   BLOCK GENERATOR
+========================================================= */
 
-function createBlock() {
+/*
+   Wichtig:
+
+   Wir erzeugen NICHT mehr komplett zufällige
+   einzelne Blöcke.
+
+   Stattdessen wird eine sichere Folge erzeugt.
+
+   Es gibt immer mindestens EINE freie Spur.
+*/
+
+let lastBlockedLanes = [];
+
+
+function createBlockPattern() {
 
     /*
-       Nur eine zufällige Spur
+       Anzahl blockierter Spuren:
+
+       meistens 1
+       manchmal 2
+
+       niemals 3.
     */
 
-    const lane =
-        Math.floor(
-            Math.random() * 3
-        );
+    let amount = 1;
+
+    /*
+       Erst ab einer gewissen Punktzahl
+       können zwei Spuren blockiert werden.
+    */
+
+    if (
+        score > 250 &&
+        Math.random() < 0.30
+    ) {
+
+        amount = 2;
+    }
 
 
-    const colors = [
+    /*
+       Alle Spuren
+    */
 
-        "#ff3030",
-        "#00aaff",
-        "#00cc66",
-        "#ffcc00",
-        "#aa55ff",
-        "#ff6600"
-
+    const lanes = [
+        0,
+        1,
+        2
     ];
 
 
-    blocks.push({
+    /*
+       Mischen
+    */
 
-        lane: lane,
+    lanes.sort(
+        () => Math.random() - 0.5
+    );
 
-        depth: 0,
 
-        color:
-            colors[
-                Math.floor(
-                    Math.random() *
-                    colors.length
-                )
-            ]
+    /*
+       Hindernisse erzeugen
+    */
 
-    });
+    for (
+        let i = 0;
+        i < amount;
+        i++
+    ) {
+
+        const lane =
+            lanes[i];
+
+
+        /*
+           Keine direkte Wiederholung
+           desselben Musters.
+        */
+
+        if (
+            lastBlockedLanes.length === 1 &&
+            lastBlockedLanes[0] === lane &&
+            amount === 1
+        ) {
+
+            continue;
+        }
+
+
+        blocks.push({
+
+            lane: lane,
+
+            depth: 0,
+
+            color:
+                blockColors[
+                    Math.floor(
+                        Math.random() *
+                        blockColors.length
+                    )
+                ]
+
+        });
+    }
+
+
+    lastBlockedLanes =
+        lanes.slice(
+            0,
+            amount
+        );
 }
 
 
-/* =========================
+/* =========================================================
    KOLLISION
-========================= */
+========================================================= */
 
 function checkCollision(block) {
 
+    /*
+       Nur wenn der Block wirklich
+       beim Spieler angekommen ist.
+    */
+
     if (
         block.lane === playerLane &&
-        block.depth > 0.88
+        block.depth >= 0.88 &&
+        block.depth <= 1.04
     ) {
 
         endGame();
+
+        return true;
     }
+
+    return false;
 }
 
 
-/* =========================
-   SPIEL START
-========================= */
+/* =========================================================
+   SPIEL NEU STARTEN
+========================================================= */
 
-function startGame() {
+function startNewGame() {
 
-    running = true;
+    /*
+       Alten gespeicherten Lauf entfernen.
+    */
 
-    score = 0;
+    clearSavedGame();
+
+
+    /*
+       Spielwerte zurücksetzen.
+    */
 
     playerLane = 1;
 
     blocks = [];
 
-    spawnTimer = 0;
+    score = 0;
 
     speed = 0.00035;
 
-    scoreText.textContent = "0";
+    spawnTimer = 0;
 
-    startScreen.classList.add("hidden");
+    lastBlockedLanes = [];
 
-    gameOver.classList.add("hidden");
+    running = true;
 
-    lastTime = performance.now();
+    paused = false;
 
-    requestAnimationFrame(loop);
+    gameOver = false;
+
+
+    /*
+       Menüs schließen.
+    */
+
+    hideAllScreens();
+
+
+    scoreText.textContent =
+        "0";
+
+
+    lastTime =
+        performance.now();
+
+
+    /*
+       Alte Animation abbrechen.
+    */
+
+    if (animationFrame !== null) {
+
+        cancelAnimationFrame(
+            animationFrame
+        );
+    }
+
+
+    animationFrame =
+        requestAnimationFrame(
+            gameLoop
+        );
 }
 
 
-/* =========================
+/* =========================================================
+   PAUSE
+========================================================= */
+
+function pauseGame() {
+
+    if (
+        !running ||
+        gameOver
+    ) {
+
+        return;
+    }
+
+
+    running = false;
+
+    paused = true;
+
+
+    if (animationFrame !== null) {
+
+        cancelAnimationFrame(
+            animationFrame
+        );
+
+        animationFrame = null;
+    }
+
+
+    saveGame();
+
+
+    showPauseScreen();
+}
+
+
+/* =========================================================
+   FORTSETZEN
+========================================================= */
+
+function resumeGame() {
+
+    if (
+        !paused ||
+        gameOver
+    ) {
+
+        return;
+    }
+
+
+    paused = false;
+
+    running = true;
+
+
+    hideAllScreens();
+
+
+    lastTime =
+        performance.now();
+
+
+    animationFrame =
+        requestAnimationFrame(
+            gameLoop
+        );
+}
+
+
+/* =========================================================
    GAME OVER
-========================= */
+========================================================= */
 
 function endGame() {
 
+    if (gameOver) {
+
+        return;
+    }
+
+
     running = false;
+
+    paused = false;
+
+    gameOver = true;
+
+
+    if (animationFrame !== null) {
+
+        cancelAnimationFrame(
+            animationFrame
+        );
+
+        animationFrame = null;
+    }
+
+
+    /*
+       Lauf ist beendet.
+
+       Gespeicherten laufenden Spielstand
+       nicht mehr fortsetzen.
+    */
+
+    clearSavedGame();
+
 
     finalScoreText.textContent =
         Math.floor(score);
 
-    gameOver.classList.remove(
+
+    gameOverScreen.classList.remove(
         "hidden"
     );
 }
 
 
-/* =========================
-   SPIEL
-========================= */
+/* =========================================================
+   GAME LOOP
+========================================================= */
 
-function loop(time) {
+function gameLoop(time) {
 
     if (!running) {
+
         return;
     }
 
 
     const delta =
-        time - lastTime;
+        Math.min(
+            time - lastTime,
+            50
+        );
 
-    lastTime = time;
+
+    lastTime =
+        time;
 
 
     /*
        Punkte
     */
 
-    score += delta * 0.01;
+    score +=
+        delta * 0.01;
+
 
     scoreText.textContent =
         Math.floor(score);
@@ -424,49 +812,90 @@ function loop(time) {
 
     /*
        Geschwindigkeit
+       steigt langsam.
     */
 
     speed +=
-        delta * 0.00000001;
+        delta *
+        0.000000008;
 
 
     /*
-       Neue Blöcke
+       Neue Blockgruppe
     */
 
-    spawnTimer += delta;
+    spawnTimer +=
+        delta;
 
 
-    if (spawnTimer > 850) {
+    /*
+       Genug Abstand zwischen
+       den Blockgruppen.
+
+       Dadurch wird das Spiel
+       nicht plötzlich unmöglich.
+    */
+
+    const spawnDelay =
+        Math.max(
+            1000,
+            1450 -
+            score * 1.2
+        );
+
+
+    if (
+        spawnTimer >=
+        spawnDelay
+    ) {
 
         spawnTimer = 0;
 
-        createBlock();
+        createBlockPattern();
     }
 
 
     /*
-       Blöcke nach vorne bewegen
+       Blöcke bewegen
     */
 
-    blocks.forEach(block => {
+    for (
+        let i = blocks.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const block =
+            blocks[i];
+
 
         block.depth +=
             speed * delta;
 
-        checkCollision(block);
 
-    });
+        if (
+            checkCollision(block)
+        ) {
+
+            return;
+        }
 
 
-    /*
-       Alte Blöcke entfernen
-    */
+        /*
+           Block ist vorbei.
+        */
 
-    blocks = blocks.filter(
-        block =>
-            block.depth < 1.2
-    );
+        if (
+            block.depth >
+            1.2
+        ) {
+
+            blocks.splice(
+                i,
+                1
+            );
+        }
+    }
 
 
     /*
@@ -477,27 +906,33 @@ function loop(time) {
 
 
     /*
-       Entfernte Blöcke zuerst
+       Entfernte Blöcke zuerst.
     */
 
     blocks
         .sort(
             (a, b) =>
-                a.depth - b.depth
+                a.depth -
+                b.depth
         )
-        .forEach(drawBlock);
+        .forEach(
+            drawBlock
+        );
 
 
     drawPlayer();
 
 
-    requestAnimationFrame(loop);
+    animationFrame =
+        requestAnimationFrame(
+            gameLoop
+        );
 }
 
 
-/* =========================
-   SWIPE
-========================= */
+/* =========================================================
+   SWIPE STEUERUNG
+========================================================= */
 
 let touchStartX = null;
 
@@ -506,11 +941,19 @@ canvas.addEventListener(
     "touchstart",
     event => {
 
+        if (!running) {
+
+            return;
+        }
+
+
         touchStartX =
             event.touches[0].clientX;
 
     },
-    { passive: true }
+    {
+        passive: true
+    }
 );
 
 
@@ -518,7 +961,13 @@ canvas.addEventListener(
     "touchend",
     event => {
 
-        if (touchStartX === null) {
+        if (
+            touchStartX === null ||
+            !running
+        ) {
+
+            touchStartX = null;
+
             return;
         }
 
@@ -528,61 +977,436 @@ canvas.addEventListener(
 
 
         const difference =
-            touchEndX - touchStartX;
+            touchEndX -
+            touchStartX;
 
 
         /*
-           Nur deutliche Swipes
+           Swipe nach links
         */
 
-        if (Math.abs(difference) > 40) {
+        if (
+            difference < -40
+        ) {
 
-            if (difference < 0) {
+            playerLane =
+                Math.max(
+                    0,
+                    playerLane - 1
+                );
+        }
 
-                /*
-                   Nach links
-                */
 
-                playerLane =
-                    Math.max(
-                        0,
-                        playerLane - 1
-                    );
+        /*
+           Swipe nach rechts
+        */
 
-            } else {
+        else if (
+            difference > 40
+        ) {
 
-                /*
-                   Nach rechts
-                */
-
-                playerLane =
-                    Math.min(
-                        2,
-                        playerLane + 1
-                    );
-            }
+            playerLane =
+                Math.min(
+                    2,
+                    playerLane + 1
+                );
         }
 
 
         touchStartX = null;
+
     },
-    { passive: true }
+    {
+        passive: true
+    }
 );
 
 
-/* =========================
+/* =========================================================
+   MENÜS
+========================================================= */
+
+function hideAllScreens() {
+
+    startScreen.classList.add(
+        "hidden"
+    );
+
+    pauseScreen.classList.add(
+        "hidden"
+    );
+
+    gameOverScreen.classList.add(
+        "hidden"
+    );
+}
+
+
+function showPauseScreen() {
+
+    startScreen.classList.add(
+        "hidden"
+    );
+
+    gameOverScreen.classList.add(
+        "hidden"
+    );
+
+    pauseScreen.classList.remove(
+        "hidden"
+    );
+}
+
+
+/* =========================================================
+   LOCAL STORAGE
+========================================================= */
+
+const SAVE_KEY =
+    "genga_surfer_current_game";
+
+
+function saveGame() {
+
+    /*
+       Nur laufenden/pausierten
+       Spielstand speichern.
+    */
+
+    if (
+        gameOver ||
+        (!running && !paused)
+    ) {
+
+        return;
+    }
+
+
+    const saveData = {
+
+        version: 1,
+
+        score: score,
+
+        playerLane: playerLane,
+
+        speed: speed,
+
+        spawnTimer: spawnTimer,
+
+        blocks: blocks.map(
+            block => ({
+
+                lane:
+                    block.lane,
+
+                depth:
+                    block.depth,
+
+                color:
+                    block.color
+
+            })
+        ),
+
+        savedAt:
+            Date.now()
+
+    };
+
+
+    try {
+
+        localStorage.setItem(
+            SAVE_KEY,
+            JSON.stringify(
+                saveData
+            )
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Spielstand konnte nicht gespeichert werden:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   SPIELSTAND LADEN
+========================================================= */
+
+function loadGame() {
+
+    try {
+
+        const saved =
+            localStorage.getItem(
+                SAVE_KEY
+            );
+
+
+        if (!saved) {
+
+            return false;
+        }
+
+
+        const data =
+            JSON.parse(saved);
+
+
+        /*
+           Alte/kaputte Spielstände
+           ignorieren.
+        */
+
+        if (
+            data.version !== 1 ||
+            !Array.isArray(
+                data.blocks
+            )
+        ) {
+
+            clearSavedGame();
+
+            return false;
+        }
+
+
+        score =
+            Number(data.score) || 0;
+
+        playerLane =
+            Math.max(
+                0,
+                Math.min(
+                    2,
+                    Number(
+                        data.playerLane
+                    ) || 1
+                )
+            );
+
+        speed =
+            Number(data.speed) ||
+            0.00035;
+
+        spawnTimer =
+            Number(data.spawnTimer) ||
+            0;
+
+
+        blocks =
+            data.blocks.map(
+                block => ({
+
+                    lane:
+                        Math.max(
+                            0,
+                            Math.min(
+                                2,
+                                Number(
+                                    block.lane
+                                )
+                            )
+                        ),
+
+                    depth:
+                        Number(
+                            block.depth
+                        ) || 0,
+
+                    color:
+                        block.color ||
+                        "#00aaff"
+
+                })
+            );
+
+
+        scoreText.textContent =
+            Math.floor(score);
+
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Spielstand konnte nicht geladen werden:",
+            error
+        );
+
+        clearSavedGame();
+
+        return false;
+    }
+}
+
+
+/* =========================================================
+   SPIELSTAND LÖSCHEN
+========================================================= */
+
+function clearSavedGame() {
+
+    try {
+
+        localStorage.removeItem(
+            SAVE_KEY
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Spielstand konnte nicht gelöscht werden:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   BEIM VERLASSEN AUTOMATISCH SPEICHERN
+========================================================= */
+
+/*
+   visibilitychange ist für Mobile besonders wichtig.
+
+   Wenn der Browser die Seite in den Hintergrund
+   schiebt, speichern wir sofort.
+*/
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if (
+            document.visibilityState ===
+            "hidden"
+        ) {
+
+            if (running) {
+
+                pauseGame();
+
+            } else if (paused) {
+
+                saveGame();
+            }
+        }
+    }
+);
+
+
+/*
+   Zusätzlich für Navigation/Tab schließen.
+*/
+
+window.addEventListener(
+    "pagehide",
+    () => {
+
+        if (running) {
+
+            /*
+               Nicht auf einen UI-Zustand
+               warten – direkt speichern.
+            */
+
+            running = false;
+
+            paused = true;
+
+            saveGame();
+        }
+    }
+);
+
+
+/* =========================================================
    BUTTONS
-========================= */
+========================================================= */
 
 startButton.addEventListener(
     "click",
-    startGame
+    () => {
+
+        startNewGame();
+    }
 );
+
+
+resumeButton.addEventListener(
+    "click",
+    () => {
+
+        resumeGame();
+    }
+);
+
+
+newGameButton.addEventListener(
+    "click",
+    () => {
+
+        startNewGame();
+    }
+);
+
 
 restartButton.addEventListener(
     "click",
-    startGame
+    () => {
+
+        startNewGame();
+    }
 );
+
+
+/* =========================================================
+   INITIALER ZUSTAND
+========================================================= */
+
+hideAllScreens();
+
+
+/*
+   Gibt es einen gespeicherten Lauf?
+*/
+
+const hasSavedGame =
+    loadGame();
+
+
+if (hasSavedGame) {
+
+    /*
+       Wir zeigen zunächst den
+       Pause-Bildschirm.
+
+       Dadurch kann der Spieler entscheiden,
+       ob er fortsetzen möchte.
+    */
+
+    paused = true;
+
+    showPauseScreen();
+
+} else {
+
+    /*
+       Kein gespeicherter Lauf:
+       normaler Startbildschirm.
+    */
+
+    startScreen.classList.remove(
+        "hidden"
+    );
+}
 
 </script>
 
