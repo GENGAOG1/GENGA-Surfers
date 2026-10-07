@@ -4,9 +4,6 @@ let score = 0;
 
 let playerLane = 1;
 
-let scoreTimer = 0;
-
-
 const lanePositions = [
     -2,
     0,
@@ -14,16 +11,9 @@ const lanePositions = [
 ];
 
 
-/* =========================================
-   SPIEL START
-========================================= */
-
 function startGame() {
 
-    if (gameRunning) {
-        return;
-    }
-
+    console.log("GENGA: Spiel gestartet");
 
     gameRunning = true;
 
@@ -31,211 +21,72 @@ function startGame() {
 
     playerLane = 1;
 
-    scoreTimer = 0;
+    const scoreElement =
+        document.getElementById("score");
 
-    worldSpeed = 0.35;
-
-
-    /*
-       Spieler zurücksetzen
-    */
-
-    if (player) {
-
-        player.position.x = 0;
-
-        player.position.z = 5;
+    if (scoreElement) {
+        scoreElement.textContent = "0";
     }
 
+    const startScreen =
+        document.getElementById("startScreen");
 
-    /*
-       Alte Blöcke löschen
-    */
-
-    if (obstacleObjects) {
-
-        obstacleObjects.forEach(
-            obstacle => {
-                scene.remove(
-                    obstacle
-                );
-            }
-        );
-
-        obstacleObjects.length = 0;
+    if (startScreen) {
+        startScreen.classList.add("hidden");
     }
-
-
-    /*
-       Neue Blöcke
-    */
-
-    createDemoObstacles();
-
-
-    /*
-       Menüs
-    */
-
-    document
-        .getElementById(
-            "startScreen"
-        )
-        .classList.add(
-            "hidden"
-        );
-
-
-    document
-        .getElementById(
-            "gameOverScreen"
-        )
-        .classList.add(
-            "hidden"
-        );
-
-
-    document
-        .getElementById(
-            "score"
-        )
-        .textContent = "0";
 }
 
-
-/* =========================================
-   SCORE
-========================================= */
-
-function updateGame(
-    delta
-) {
-
-    if (!gameRunning) {
-        return;
-    }
-
-
-    scoreTimer += delta;
-
-
-    if (scoreTimer >= 60) {
-
-        score += 1;
-
-        scoreTimer = 0;
-
-
-        document
-            .getElementById(
-                "score"
-            )
-            .textContent =
-            Math.floor(score);
-    }
-
-
-    /*
-       Geschwindigkeit langsam erhöhen
-    */
-
-    worldSpeed +=
-        delta * 0.0004;
-
-
-    worldSpeed =
-        Math.min(
-            worldSpeed,
-            0.9
-        );
-}
-
-
-/* =========================================
-   GAME OVER
-========================================= */
 
 function endGame() {
 
-    if (!gameRunning) {
-        return;
-    }
-
-
     gameRunning = false;
 
+    const finalScore =
+        document.getElementById("finalScore");
 
-    document
-        .getElementById(
-            "finalScore"
-        )
-        .textContent =
-        Math.floor(score);
+    if (finalScore) {
+        finalScore.textContent =
+            Math.floor(score);
+    }
 
-
-    document
-        .getElementById(
+    const gameOverScreen =
+        document.getElementById(
             "gameOverScreen"
-        )
-        .classList.remove(
+        );
+
+    if (gameOverScreen) {
+        gameOverScreen.classList.remove(
             "hidden"
         );
+    }
 }
 
 
-/* =========================================
-   SCORE LOOP
-========================================= */
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
 
-let scoreLastTime =
-    performance.now();
+        const startButton =
+            document.getElementById(
+                "startButton"
+            );
 
-
-function scoreLoop(time) {
-
-    requestAnimationFrame(
-        scoreLoop
-    );
-
-
-    const delta =
-        Math.min(
-            (time - scoreLastTime) /
-            16.67,
-            3
-        );
+        const restartButton =
+            document.getElementById(
+                "restartButton"
+            );
 
 
-    scoreLastTime =
-        time;
+        if (startButton) {
+            startButton.onclick =
+                startGame;
+        }
 
 
-    updateGame(
-        delta
-    );
-}
+        if (restartButton) {
+            restartButton.onclick =
+                startGame;
+        }
 
-
-requestAnimationFrame(
-    scoreLoop
+    }
 );
-
-
-/* =========================================
-   BUTTONS
-========================================= */
-
-document
-    .getElementById(
-        "startButton"
-    )
-    .onclick =
-    startGame;
-
-
-document
-    .getElementById(
-        "restartButton"
-    )
-    .onclick =
-    startGame;
