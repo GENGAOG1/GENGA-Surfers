@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -19,63 +21,143 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/game.css') }}"
     >
+
 </head>
+
 
 <body>
 
 <main class="game-page">
 
+
+    <!-- =========================
+         SPIEL-HEADER
+    ========================== -->
+
     <div class="game-header">
-        <strong>GENGA SURFER</strong>
+
+        <strong>
+            GENGA SURFER
+        </strong>
 
         <span>
+
             Punkte:
-            <strong id="score">0</strong>
+
+            <strong id="score">
+                0
+            </strong>
+
         </span>
+
     </div>
+
+
+    <!-- =========================
+         SPIEL
+    ========================== -->
 
     <div id="game">
 
+
+        <!-- 3D-Bereich -->
+
         <div id="gameCanvas"></div>
 
-        <div id="startScreen" class="game-screen">
 
-            <h1>GENGA SURFER</h1>
+        <!-- =====================
+             START
+        ====================== -->
 
-            <p>Wische nach links oder rechts.</p>
+        <div
+            id="startScreen"
+            class="game-screen"
+        >
 
-            <button id="startButton" type="button">
+            <h1>
+                GENGA SURFER
+            </h1>
+
+            <p>
+                Wische nach links oder rechts.
+            </p>
+
+            <button
+                id="startButton"
+                type="button"
+            >
                 Spielen
             </button>
 
         </div>
 
-        <div id="gameOverScreen" class="game-screen hidden">
 
-            <h1>GAME OVER</h1>
+        <!-- =====================
+             GAME OVER
+        ====================== -->
+
+        <div
+            id="gameOverScreen"
+            class="game-screen hidden"
+        >
+
+            <h1>
+                GAME OVER
+            </h1>
 
             <p>
+
                 Punkte:
-                <strong id="finalScore">0</strong>
+
+                <strong id="finalScore">
+                    0
+                </strong>
+
             </p>
 
-            <button id="restartButton" type="button">
+            <button
+                id="restartButton"
+                type="button"
+            >
                 Nochmal spielen
             </button>
 
         </div>
 
+
     </div>
+
 
 </main>
 
-<!-- Erst Three.js laden -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r180/three.min.js"></script>
 
-<!-- Danach unser Spiel -->
-<script src="{{ url_for('static', filename='js/game.js') }}"></script>
-<script src="{{ url_for('static', filename='js/game3d.js') }}"></script>
-<script src="{{ url_for('static', filename='js/controls.js') }}"></script>
+<!-- =================================
+     THREE.JS
+     r151.3
+================================== -->
+
+<script
+    src="https://unpkg.com/three@0.151.3/build/three.min.js"
+></script>
+
+
+<!-- =================================
+     GENGA SURFER
+================================== -->
+
+<script
+    src="{{ url_for('static', filename='js/game.js') }}"
+></script>
+
+<script
+    src="{{ url_for('static', filename='js/game3d.js') }}"
+></script>
+
+<script
+    src="{{ url_for('static', filename='js/controls.js') }}"
+></script>
+
 
 </body>
+
 </html>
