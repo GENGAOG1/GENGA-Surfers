@@ -414,53 +414,72 @@ function getRandomColor() {
    NEUE HINDERNIS-REIHE
 ========================================= */
 
-function spawnObstacleRow(
-    z
-) {
+function spawnObstacleRow(z) {
+
+    const lanes = [0, 1, 2];
 
     /*
-       Zufällig bestimmen,
-       ob eine oder zwei Spuren
-       blockiert werden.
+       Zufällige Reihenfolge der Spuren
     */
+    for (let i = lanes.length - 1; i > 0; i--) {
 
-    const lanes = [
-        0,
-        1,
-        2
-    ];
+        const j = Math.floor(
+            Math.random() * (i + 1)
+        );
 
-
-    /*
-       Mischen
-    */
-
-    lanes.sort(
-        () => Math.random() - 0.5
-    );
+        [lanes[i], lanes[j]] =
+            [lanes[j], lanes[i]];
+    }
 
 
     /*
-       1 = ein Block
-       2 = zwei Blöcke
-    */
+       ENTWEDER:
+       1 Block
+       ODER:
+       2 Blöcke
 
-    const amount =
-        Math.random() < 0.65
+       NIEMALS 3!
+    */
+    const blockCount =
+        Math.random() < 0.55
             ? 1
             : 2;
 
 
-    for (
-        let i = 0;
-        i < amount;
-        i++
-    ) {
+    /*
+       Gewählte Spuren
+    */
+    for (let i = 0; i < blockCount; i++) {
+
+        const lane =
+            lanes[i];
+
+
+        /*
+           Unterschiedliche Farben
+        */
+        const colors = [
+            0xff3030,
+            0x00cc66,
+            0xffcc00,
+            0xaa55ff,
+            0xff6600,
+            0x00aaff
+        ];
+
+        const color =
+            colors[
+                Math.floor(
+                    Math.random() *
+                    colors.length
+                )
+            ];
+
 
         createObstacle(
-            lanes[i],
+            lane,
             z,
-            getRandomColor()
+            color
         );
     }
 }
