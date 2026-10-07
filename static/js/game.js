@@ -4,10 +4,12 @@ let score = 0;
 
 let playerLane = 1;
 
+let scoreTimer = 0;
 
-/*
-   Positionen der drei Spuren
-*/
+
+/* =========================================
+   SPUREN
+========================================= */
 
 const lanePositions = [
     -2,
@@ -28,31 +30,136 @@ function startGame() {
 
     playerLane = 1;
 
+    scoreTimer = 0;
+
 
     /*
-       Spieler in die mittlere Spur
+       Geschwindigkeit zurücksetzen
+    */
+
+    worldSpeed = 0.35;
+
+
+    /*
+       Spieler zurücksetzen
     */
 
     if (player) {
 
-        player.position.x =
-            lanePositions[playerLane];
+        player.position.x = 0;
+
+        player.position.z = 5;
     }
 
 
+    /*
+       Alte Hindernisse entfernen
+    */
+
+    obstacleObjects.forEach(
+        obstacle => {
+
+            scene.remove(
+                obstacle
+            );
+        }
+    );
+
+
+    obstacleObjects = [];
+
+
+    /*
+       Neue Hindernisse
+    */
+
+    createDemoObstacles();
+
+
+    /*
+       Anzeigen
+    */
+
     document
-        .getElementById("startScreen")
-        .classList.add("hidden");
+        .getElementById(
+            "startScreen"
+        )
+        .classList.add(
+            "hidden"
+        );
 
 
     document
-        .getElementById("gameOverScreen")
-        .classList.add("hidden");
+        .getElementById(
+            "gameOverScreen"
+        )
+        .classList.add(
+            "hidden"
+        );
 
 
     document
-        .getElementById("score")
+        .getElementById(
+            "score"
+        )
         .textContent = "0";
+}
+
+
+/* =========================================
+   SPIEL UPDATE
+========================================= */
+
+function updateGame(
+    delta
+) {
+
+    if (!gameRunning) {
+        return;
+    }
+
+
+    /*
+       Score steigt kontinuierlich.
+    */
+
+    scoreTimer += delta;
+
+
+    if (
+        scoreTimer >= 1
+    ) {
+
+        score += 1;
+
+        scoreTimer = 0;
+
+
+        document
+            .getElementById(
+                "score"
+            )
+            .textContent =
+            score;
+    }
+
+
+    /*
+       Das Spiel wird langsam schneller.
+
+       Aber nicht zu schnell.
+    */
+
+    worldSpeed +=
+        delta *
+        0.0005;
+
+
+    worldSpeed =
+        Math.min(
+            worldSpeed,
+            0.9
+        );
 }
 
 
@@ -71,13 +178,17 @@ function endGame() {
 
 
     document
-        .getElementById("finalScore")
+        .getElementById(
+            "finalScore"
+        )
         .textContent =
         Math.floor(score);
 
 
     document
-        .getElementById("gameOverScreen")
+        .getElementById(
+            "gameOverScreen"
+        )
         .classList.remove(
             "hidden"
         );
@@ -85,11 +196,52 @@ function endGame() {
 
 
 /* =========================================
+   GAME LOOP
+========================================= */
+
+let gameLastTime =
+    performance.now();
+
+
+function gameLoop(time) {
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+
+    const delta =
+        Math.min(
+            (time -
+            gameLastTime) /
+            16.67,
+            3
+        );
+
+
+    gameLastTime =
+        time;
+
+
+    updateGame(
+        delta
+    );
+}
+
+
+requestAnimationFrame(
+    gameLoop
+);
+
+
+/* =========================================
    BUTTONS
 ========================================= */
 
 document
-    .getElementById("startButton")
+    .getElementById(
+        "startButton"
+    )
     .addEventListener(
         "click",
         startGame
@@ -97,7 +249,9 @@ document
 
 
 document
-    .getElementById("restartButton")
+    .getElementById(
+        "restartButton"
+    )
     .addEventListener(
         "click",
         startGame
