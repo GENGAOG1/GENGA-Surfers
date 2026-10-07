@@ -1,15 +1,7 @@
 let gameRunning = false;
-
 let score = 0;
-
 let playerLane = 1;
-
 let scoreTimer = 0;
-
-
-/* =========================================
-   SPUREN
-========================================= */
 
 const lanePositions = [
     -2,
@@ -19,90 +11,51 @@ const lanePositions = [
 
 
 /* =========================================
-   SPIEL START
+   SPIEL STARTEN
 ========================================= */
 
 function startGame() {
 
+    if (gameRunning) {
+        return;
+    }
+
     gameRunning = true;
 
     score = 0;
-
     playerLane = 1;
-
     scoreTimer = 0;
-
-
-    /*
-       Geschwindigkeit zurücksetzen
-    */
 
     worldSpeed = 0.35;
 
-
-    /*
-       Spieler zurücksetzen
-    */
-
     if (player) {
-
         player.position.x = 0;
-
         player.position.z = 5;
     }
 
+    /* Alte Hindernisse entfernen */
 
-    /*
-       Alte Hindernisse entfernen
-    */
+    if (obstacleObjects) {
 
-    obstacleObjects.forEach(
-        obstacle => {
+        obstacleObjects.forEach(obstacle => {
+            scene.remove(obstacle);
+        });
 
-            scene.remove(
-                obstacle
-            );
-        }
-    );
+        obstacleObjects.length = 0;
+    }
 
+    /* Startbildschirm schließen */
 
-    obstacleObjects = [];
+    const startScreen =
+        document.getElementById("startScreen");
 
+    const gameOverScreen =
+        document.getElementById("gameOverScreen");
 
-    /*
-       Neue Hindernisse
-    */
+    startScreen.classList.add("hidden");
+    gameOverScreen.classList.add("hidden");
 
-    createDemoObstacles();
-
-
-    /*
-       Anzeigen
-    */
-
-    document
-        .getElementById(
-            "startScreen"
-        )
-        .classList.add(
-            "hidden"
-        );
-
-
-    document
-        .getElementById(
-            "gameOverScreen"
-        )
-        .classList.add(
-            "hidden"
-        );
-
-
-    document
-        .getElementById(
-            "score"
-        )
-        .textContent = "0";
+    document.getElementById("score").textContent = "0";
 }
 
 
@@ -110,56 +63,30 @@ function startGame() {
    SPIEL UPDATE
 ========================================= */
 
-function updateGame(
-    delta
-) {
+function updateGame(delta) {
 
     if (!gameRunning) {
         return;
     }
 
-
-    /*
-       Score steigt kontinuierlich.
-    */
-
     scoreTimer += delta;
 
-
-    if (
-        scoreTimer >= 1
-    ) {
+    if (scoreTimer >= 60) {
 
         score += 1;
 
         scoreTimer = 0;
 
-
-        document
-            .getElementById(
-                "score"
-            )
-            .textContent =
-            score;
+        document.getElementById("score").textContent =
+            Math.floor(score);
     }
 
+    worldSpeed += delta * 0.0005;
 
-    /*
-       Das Spiel wird langsam schneller.
-
-       Aber nicht zu schnell.
-    */
-
-    worldSpeed +=
-        delta *
-        0.0005;
-
-
-    worldSpeed =
-        Math.min(
-            worldSpeed,
-            0.9
-        );
+    worldSpeed = Math.min(
+        worldSpeed,
+        0.9
+    );
 }
 
 
@@ -173,25 +100,14 @@ function endGame() {
         return;
     }
 
-
     gameRunning = false;
 
-
-    document
-        .getElementById(
-            "finalScore"
-        )
-        .textContent =
+    document.getElementById("finalScore").textContent =
         Math.floor(score);
 
-
     document
-        .getElementById(
-            "gameOverScreen"
-        )
-        .classList.remove(
-            "hidden"
-        );
+        .getElementById("gameOverScreen")
+        .classList.remove("hidden");
 }
 
 
@@ -199,60 +115,41 @@ function endGame() {
    GAME LOOP
 ========================================= */
 
-let gameLastTime =
-    performance.now();
-
+let gameLastTime = performance.now();
 
 function gameLoop(time) {
 
-    requestAnimationFrame(
-        gameLoop
-    );
-
+    requestAnimationFrame(gameLoop);
 
     const delta =
         Math.min(
-            (time -
-            gameLastTime) /
-            16.67,
+            (time - gameLastTime) / 16.67,
             3
         );
 
+    gameLastTime = time;
 
-    gameLastTime =
-        time;
-
-
-    updateGame(
-        delta
-    );
+    updateGame(delta);
 }
 
-
-requestAnimationFrame(
-    gameLoop
-);
+requestAnimationFrame(gameLoop);
 
 
 /* =========================================
    BUTTONS
 ========================================= */
 
-document
-    .getElementById(
-        "startButton"
-    )
-    .addEventListener(
-        "click",
-        startGame
-    );
+const startButton =
+    document.getElementById("startButton");
+
+const restartButton =
+    document.getElementById("restartButton");
 
 
-document
-    .getElementById(
-        "restartButton"
-    )
-    .addEventListener(
-        "click",
-        startGame
-    );
+if (startButton) {
+    startButton.onclick = startGame;
+}
+
+if (restartButton) {
+    restartButton.onclick = startGame;
+}
