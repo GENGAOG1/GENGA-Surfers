@@ -1,3 +1,9 @@
+/* =========================================
+   GENGA SURFER
+   GAME CONTROLLER
+========================================= */
+
+
 let gameRunning = false;
 
 let score = 0;
@@ -5,6 +11,15 @@ let score = 0;
 let playerLane = 1;
 
 let scoreTimer = 0;
+
+
+/*
+   Positionen der drei Spuren
+
+   0 = links
+   1 = mitte
+   2 = rechts
+*/
 
 const lanePositions = [
     -2,
@@ -14,17 +29,19 @@ const lanePositions = [
 
 
 /* =========================================
-   SPIEL START / NEUSTART
+   SPIEL STARTEN
 ========================================= */
 
 function startGame() {
 
-    console.log("GENGA: Spiel wird gestartet...");
+    console.log(
+        "GENGA: Spiel startet..."
+    );
 
 
-    /* ==============================
-       SPIELZUSTAND ZURÜCKSETZEN
-    ============================== */
+    /*
+       Alten Spielzustand löschen
+    */
 
     gameRunning = false;
 
@@ -35,9 +52,9 @@ function startGame() {
     scoreTimer = 0;
 
 
-    /* ==============================
+    /* =====================================
        SPIELER ZURÜCKSETZEN
-    ============================== */
+    ===================================== */
 
     if (player) {
 
@@ -55,79 +72,27 @@ function startGame() {
     }
 
 
-    /* ==============================
-       ALTE HINDERNISSE ENTFERNEN
-    ============================== */
+    /* =====================================
+       HINDERNISSE ZURÜCKSETZEN
+    ===================================== */
 
     if (
-        typeof obstacleObjects !== "undefined" &&
-        obstacleObjects
+        typeof resetObstacles === "function"
     ) {
 
-        obstacleObjects.forEach(
-            obstacle => {
-
-                if (scene) {
-                    scene.remove(
-                        obstacle
-                    );
-                }
-
-            }
-        );
-
-        obstacleObjects.length = 0;
+        resetObstacles();
     }
 
 
-    /* ==============================
-       NEUE HINDERNISSE
-    ============================== */
-
-    if (
-        typeof createObstacle === "function"
-    ) {
-
-        createObstacle(
-            0,
-            -20,
-            0xff3030
-        );
-
-        createObstacle(
-            2,
-            -40,
-            0x00cc66
-        );
-
-        createObstacle(
-            1,
-            -60,
-            0xffcc00
-        );
-
-        createObstacle(
-            0,
-            -80,
-            0xaa55ff
-        );
-
-        createObstacle(
-            2,
-            -100,
-            0xff6600
-        );
-    }
-
-
-    /* ==============================
+    /* =====================================
        SCORE ZURÜCKSETZEN
-    ============================== */
+    ===================================== */
 
     const scoreElement =
         document.getElementById(
             "score"
         );
+
 
     if (scoreElement) {
 
@@ -141,6 +106,7 @@ function startGame() {
             "finalScore"
         );
 
+
     if (finalScoreElement) {
 
         finalScoreElement.textContent =
@@ -148,14 +114,15 @@ function startGame() {
     }
 
 
-    /* ==============================
-       GAME OVER AUSBLENDEN
-    ============================== */
+    /* =====================================
+       GAME OVER SCREEN VERSTECKEN
+    ===================================== */
 
     const gameOverScreen =
         document.getElementById(
             "gameOverScreen"
         );
+
 
     if (gameOverScreen) {
 
@@ -165,14 +132,15 @@ function startGame() {
     }
 
 
-    /* ==============================
-       STARTSCREEN AUSBLENDEN
-    ============================== */
+    /* =====================================
+       START SCREEN VERSTECKEN
+    ===================================== */
 
     const startScreen =
         document.getElementById(
             "startScreen"
         );
+
 
     if (startScreen) {
 
@@ -182,25 +150,27 @@ function startGame() {
     }
 
 
-    /* ==============================
-       SPIEL WIEDER AKTIVIEREN
-    ============================== */
+    /* =====================================
+       SPIEL AKTIVIEREN
+    ===================================== */
 
     gameRunning = true;
 
+
     console.log(
-        "GENGA: Spiel läuft wieder."
+        "GENGA: Spiel läuft."
     );
 }
 
 
 /* =========================================
-   SCORE
+   SCORE AKTUALISIEREN
 ========================================= */
 
 function updateGame(delta) {
 
     if (!gameRunning) {
+
         return;
     }
 
@@ -209,7 +179,7 @@ function updateGame(delta) {
 
 
     /*
-       1 Punkt pro Sekunde
+       Alle Sekunden einen Punkt
     */
 
     if (scoreTimer >= 1) {
@@ -223,6 +193,7 @@ function updateGame(delta) {
             document.getElementById(
                 "score"
             );
+
 
         if (scoreElement) {
 
@@ -240,6 +211,7 @@ function updateGame(delta) {
 function endGame() {
 
     if (!gameRunning) {
+
         return;
     }
 
@@ -252,14 +224,15 @@ function endGame() {
     gameRunning = false;
 
 
-    /* ==============================
+    /* =====================================
        FINAL SCORE
-    ============================== */
+    ===================================== */
 
     const finalScoreElement =
         document.getElementById(
             "finalScore"
         );
+
 
     if (finalScoreElement) {
 
@@ -268,14 +241,15 @@ function endGame() {
     }
 
 
-    /* ==============================
+    /* =====================================
        GAME OVER SCREEN
-    ============================== */
+    ===================================== */
 
     const gameOverScreen =
         document.getElementById(
             "gameOverScreen"
         );
+
 
     if (gameOverScreen) {
 
@@ -303,7 +277,8 @@ function scoreLoop(time) {
 
     const delta =
         Math.min(
-            (time - scoreLastTime) / 1000,
+            (time - scoreLastTime) /
+            1000,
             0.1
         );
 
@@ -330,6 +305,7 @@ requestAnimationFrame(
 document.addEventListener(
     "DOMContentLoaded",
     () => {
+
 
         const startButton =
             document.getElementById(
