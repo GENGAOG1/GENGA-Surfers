@@ -7,10 +7,10 @@
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     >
 
-    <title>GENGA Surfer</title>
+    <title>GENGA SURFER</title>
 
     <link
         rel="stylesheet"
@@ -22,9 +22,9 @@
 
 <body>
 
-    <!-- =================================
-         3D GAME
-    ================================== -->
+    <!-- =====================================
+         3D SPIEL
+    ====================================== -->
 
     <div
         id="gameCanvas"
@@ -32,14 +32,31 @@
     ></div>
 
 
-    <!-- =================================
-         HUD
-    ================================== -->
+    <!-- =====================================
+         SPIEL HUD
+    ====================================== -->
 
     <div
         id="gameHUD"
-        class="game-hud"
+        class="game-hud hidden"
     >
+
+        <div class="hud-left">
+
+            <div
+                id="hudCoins"
+                class="hud-coins"
+            >
+                🪙 0
+            </div>
+
+            <div
+                id="hudLives"
+                class="hud-lives"
+            ></div>
+
+        </div>
+
 
         <div
             id="score"
@@ -49,89 +66,98 @@
         </div>
 
 
-        <div
-            id="lives"
-            class="lives"
-        ></div>
+        <div class="hud-right">
 
+            <div
+                id="hudMultiplier"
+                class="hud-multiplier"
+            >
+                x1
+            </div>
 
-        <div
-            id="activeUpgradeDisplay"
-            class="active-upgrade-display"
-        ></div>
+            <button
+                id="pauseButton"
+                class="pause-button"
+                type="button"
+            >
+                ⏸
+            </button>
+
+        </div>
 
     </div>
 
 
-    <!-- =================================
-         START SCREEN
-    ================================== -->
+    <!-- =====================================
+         START / HAUPTMENÜ
+    ====================================== -->
 
     <div
         id="startScreen"
         class="overlay"
     >
 
-        <div class="menu">
+        <div class="main-menu">
 
-            <h1>
+            <div class="game-title">
                 GENGA SURFER
-            </h1>
+            </div>
 
+            <div class="game-subtitle">
+                RUN • DODGE • SURVIVE
+            </div>
+
+
+            <!-- MÜNZEN -->
 
             <div
-                class="coin-display"
+                id="menuCoins"
+                class="menu-coins"
             >
                 🪙 0
             </div>
 
 
+            <!-- SPIELEN -->
+
             <button
                 id="startButton"
                 class="main-button"
+                type="button"
             >
                 SPIELEN
             </button>
 
 
-            <!-- =========================
-                 UPGRADE MENU
-            ========================== -->
+            <!-- SHOP BUTTON -->
+
+            <button
+                id="shopButton"
+                class="menu-button"
+                type="button"
+            >
+                🛒 SHOP
+            </button>
+
+
+            <!-- UPGRADE BUTTON -->
+
+            <button
+                id="upgradeButton"
+                class="menu-button"
+                type="button"
+            >
+                ⚡ UPGRADES
+            </button>
+
+
+            <!-- AKTIVES UPGRADE -->
 
             <div
-                id="upgradeMenu"
-                class="upgrade-menu"
+                id="menuActiveUpgrade"
+                class="menu-active-upgrade"
             >
-
-                <div
-                    class="upgrade-header"
-                >
-
-                    <h2>
-                        UPGRADES
-                    </h2>
-
-                    <div
-                        id="upgradeCoinDisplay"
-                        class="upgrade-coins"
-                    >
-                        🪙 0
-                    </div>
-
-                </div>
-
-
-                <div
-                    id="upgradeMessage"
-                    class="upgrade-message"
-                ></div>
-
-
-                <div
-                    id="upgradeList"
-                    class="upgrade-list"
-                ></div>
-
+                Kein Upgrade aktiv
             </div>
 
         </div>
@@ -139,24 +165,165 @@
     </div>
 
 
-    <!-- =================================
+    <!-- =====================================
+         SHOP
+    ====================================== -->
+
+    <div
+        id="shopScreen"
+        class="overlay hidden"
+    >
+
+        <div class="panel">
+
+            <div class="panel-header">
+
+                <h2>
+                    🛒 SHOP
+                </h2>
+
+                <div
+                    id="shopCoins"
+                    class="panel-coins"
+                >
+                    🪙 0
+                </div>
+
+            </div>
+
+
+            <div class="panel-subtitle">
+                Kaufe Skins und ändere die Farbe deines Spielers.
+            </div>
+
+
+            <div
+                id="skinList"
+                class="shop-list"
+            ></div>
+
+
+            <button
+                id="closeShopButton"
+                class="secondary-button"
+                type="button"
+            >
+                ZURÜCK
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================
+         UPGRADES
+    ====================================== -->
+
+    <div
+        id="upgradeScreen"
+        class="overlay hidden"
+    >
+
+        <div class="panel">
+
+            <div class="panel-header">
+
+                <h2>
+                    ⚡ UPGRADES
+                </h2>
+
+                <div
+                    id="upgradeCoins"
+                    class="panel-coins"
+                >
+                    🪙 0
+                </div>
+
+            </div>
+
+
+            <div
+                id="upgradeMessage"
+                class="upgrade-message"
+            ></div>
+
+
+            <div
+                id="upgradeList"
+                class="upgrade-list"
+            ></div>
+
+
+            <button
+                id="closeUpgradeButton"
+                class="secondary-button"
+                type="button"
+            >
+                ZURÜCK
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================
+         PAUSE
+    ====================================== -->
+
+    <div
+        id="pauseScreen"
+        class="overlay hidden"
+    >
+
+        <div class="pause-panel">
+
+            <h2>
+                PAUSIERT
+            </h2>
+
+
+            <button
+                id="resumeButton"
+                class="main-button"
+                type="button"
+            >
+                ▶ FORTSETZEN
+            </button>
+
+
+            <button
+                id="pauseMenuButton"
+                class="secondary-button"
+                type="button"
+            >
+                HAUPTMENÜ
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================
          GAME OVER
-    ================================== -->
+    ====================================== -->
 
     <div
         id="gameOverScreen"
         class="overlay hidden"
     >
 
-        <div class="menu">
+        <div class="game-over-panel">
 
-            <h1>
+            <div class="game-over-title">
                 GAME OVER
-            </h1>
+            </div>
 
 
-            <div>
-                SCORE:
+            <div class="game-over-score-label">
+                SCORE
             </div>
 
 
@@ -168,18 +335,27 @@
             </div>
 
 
+            <div
+                id="finalCoins"
+                class="final-coins"
+            >
+                🪙 +0
+            </div>
+
+
             <button
                 id="restartButton"
                 class="main-button"
+                type="button"
             >
                 NEU STARTEN
             </button>
 
 
             <button
-                id="menuButton"
+                id="gameOverMenuButton"
                 class="secondary-button"
-                onclick="location.reload()"
+                type="button"
             >
                 HAUPTMENÜ
             </button>
@@ -189,18 +365,18 @@
     </div>
 
 
-    <!-- =================================
+    <!-- =====================================
          THREE.JS
-    ================================== -->
+    ====================================== -->
 
     <script
         src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"
     ></script>
 
 
-    <!-- =================================
-         GAME SCRIPTS
-    ================================== -->
+    <!-- =====================================
+         GENGA JS
+    ====================================== -->
 
     <script
         src="{{ url_for('static', filename='js/upgrades.js') }}"
