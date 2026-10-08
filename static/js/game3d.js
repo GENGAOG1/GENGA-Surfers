@@ -20,7 +20,7 @@ const obstacleColors = [
     0xaf52de
 ];
 
-let nextSpawnZ = SPAWN_DISTANCE;
+let lastTime = 0;
 
 
 /* =========================
@@ -28,7 +28,9 @@ let nextSpawnZ = SPAWN_DISTANCE;
 ========================= */
 
 function randomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    return Math.floor(
+        Math.random() * (max - min + 1)
+    ) + min;
 }
 
 function getRandomColor() {
@@ -43,27 +45,45 @@ function getRandomColor() {
 ========================= */
 
 function createScene() {
+
     scene = new THREE.Scene();
 
-    scene.background = new THREE.Color(0x07111f);
+    scene.background =
+        new THREE.Color(0x07111f);
 
-    camera = new THREE.PerspectiveCamera(
-        65,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        300
+
+    camera =
+        new THREE.PerspectiveCamera(
+            65,
+            window.innerWidth /
+                window.innerHeight,
+            0.1,
+            300
+        );
+
+    camera.position.set(
+        0,
+        5,
+        9
     );
 
-    camera.position.set(0, 5, 9);
-    camera.lookAt(0, 0, -20);
+    camera.lookAt(
+        0,
+        0,
+        -20
+    );
 
 
-    renderer = new THREE.WebGLRenderer({
-        antialias: true
-    });
+    renderer =
+        new THREE.WebGLRenderer({
+            antialias: true
+        });
 
     renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio, 2)
+        Math.min(
+            window.devicePixelRatio,
+            2
+        )
     );
 
     renderer.setSize(
@@ -71,12 +91,19 @@ function createScene() {
         window.innerHeight
     );
 
+
     const container =
-        document.getElementById("gameCanvas");
+        document.getElementById(
+            "gameCanvas"
+        );
 
     if (container) {
+
         container.innerHTML = "";
-        container.appendChild(renderer.domElement);
+
+        container.appendChild(
+            renderer.domElement
+        );
     }
 
 
@@ -88,7 +115,9 @@ function createScene() {
             0.7
         );
 
-    scene.add(ambientLight);
+    scene.add(
+        ambientLight
+    );
 
 
     const directionalLight =
@@ -103,17 +132,23 @@ function createScene() {
         5
     );
 
-    scene.add(directionalLight);
+    scene.add(
+        directionalLight
+    );
 
 
     createRoad();
+
     createPlayer();
+
     resetObstacles();
+
 
     window.addEventListener(
         "resize",
         onWindowResize
     );
+
 
     animate();
 }
@@ -124,6 +159,7 @@ function createScene() {
 ========================= */
 
 function createRoad() {
+
     const roadGeometry =
         new THREE.BoxGeometry(
             8,
@@ -148,10 +184,13 @@ function createRoad() {
         -100
     );
 
-    scene.add(road);
+    scene.add(
+        road
+    );
 
 
     createLaneLine(-1);
+
     createLaneLine(1);
 }
 
@@ -161,6 +200,7 @@ function createRoad() {
 ========================= */
 
 function createLaneLine(x) {
+
     const geometry =
         new THREE.BoxGeometry(
             0.08,
@@ -185,7 +225,9 @@ function createLaneLine(x) {
         -100
     );
 
-    scene.add(line);
+    scene.add(
+        line
+    );
 }
 
 
@@ -194,6 +236,7 @@ function createLaneLine(x) {
 ========================= */
 
 function createPlayer() {
+
     const geometry =
         new THREE.BoxGeometry(
             1.2,
@@ -218,12 +261,14 @@ function createPlayer() {
         3
     );
 
-    scene.add(player);
+    scene.add(
+        player
+    );
 }
 
 
 /* =========================
-   HINDERNIS
+   HINDERNIS ERSTELLEN
 ========================= */
 
 function createObstacle(
@@ -231,6 +276,7 @@ function createObstacle(
     z,
     color
 ) {
+
     const geometry =
         new THREE.BoxGeometry(
             1.35,
@@ -255,7 +301,9 @@ function createObstacle(
         z
     );
 
-    scene.add(obstacle);
+    scene.add(
+        obstacle
+    );
 
     obstacleObjects.push(
         obstacle
@@ -270,8 +318,8 @@ function createObstacle(
 function spawnObstacleRow(z) {
 
     /*
-        50 % Wahrscheinlichkeit:
-        Nur EIN Block
+        50 %:
+        Nur 1 Block
     */
 
     const oneBlock =
@@ -294,12 +342,12 @@ function spawnObstacleRow(z) {
 
 
     /*
-        Sonst ZWEI Blöcke.
+        50 %:
+        2 Blöcke
 
         Eine Spur bleibt frei.
-        Die freie Spur darf auch
-        in der nächsten Reihe
-        wieder dieselbe sein.
+        Die freie Spur darf
+        wiederholt werden.
     */
 
     const safeLane =
@@ -312,7 +360,9 @@ function spawnObstacleRow(z) {
         lane++
     ) {
 
-        if (lane === safeLane) {
+        if (
+            lane === safeLane
+        ) {
             continue;
         }
 
@@ -334,18 +384,23 @@ function resetObstacles() {
     for (
         const obstacle of obstacleObjects
     ) {
-        scene.remove(obstacle);
+
+        scene.remove(
+            obstacle
+        );
     }
 
     obstacleObjects = [];
 
-    nextSpawnZ =
-        SPAWN_DISTANCE;
-
 
     /*
-        Erste Reihen erzeugen.
+        Reihen weit nach hinten
+        verteilen.
     */
+
+    let spawnZ =
+        SPAWN_DISTANCE;
+
 
     for (
         let i = 0;
@@ -354,17 +409,17 @@ function resetObstacles() {
     ) {
 
         spawnObstacleRow(
-            nextSpawnZ
+            spawnZ
         );
 
-        nextSpawnZ -=
+        spawnZ -=
             SPAWN_INTERVAL;
     }
 }
 
 
 /* =========================
-   NEUE REIHEN SPAWNEN
+   NEUE REIHEN
 ========================= */
 
 function updateSpawning() {
@@ -376,13 +431,9 @@ function updateSpawning() {
     }
 
 
-    /*
-        Die am weitesten hinten
-        liegende Reihe finden.
-    */
-
     let furthestZ =
         Infinity;
+
 
     for (
         const obstacle of obstacleObjects
@@ -392,21 +443,15 @@ function updateSpawning() {
             obstacle.position.z <
             furthestZ
         ) {
+
             furthestZ =
                 obstacle.position.z;
         }
     }
 
 
-    /*
-        Sobald die hinterste Reihe
-        weit genug vorne ist,
-        neue Reihe erzeugen.
-    */
-
     if (
-        furthestZ >
-        -150
+        furthestZ > -150
     ) {
 
         spawnObstacleRow(
@@ -434,22 +479,19 @@ function updateObstacles(delta) {
             obstacleObjects[i];
 
 
-        /*
-            Hindernisse kommen
-            auf den Spieler zu.
-        */
-
         obstacle.position.z +=
             GAME_SPEED * delta;
 
 
         /*
-            Kollision prüfen
+            Nur während des Spiels
+            Kollision prüfen.
         */
 
         if (
-            typeof checkCollision ===
-            "function"
+            typeof gameRunning !==
+            "undefined" &&
+            gameRunning
         ) {
 
             if (
@@ -462,6 +504,7 @@ function updateObstacles(delta) {
                     typeof endGame ===
                     "function"
                 ) {
+
                     endGame();
                 }
 
@@ -471,9 +514,7 @@ function updateObstacles(delta) {
 
 
         /*
-            Hindernisse entfernen,
-            wenn sie hinter dem Spieler
-            sind.
+            Alte Blöcke entfernen.
         */
 
         if (
@@ -539,14 +580,21 @@ function updatePlayer() {
     }
 
 
-    const targetX =
-        lanePositions[playerLane];
-
-
     /*
-        Sanfte Bewegung
-        zur ausgewählten Spur.
+        playerLane kommt
+        aus game.js / controls.js.
     */
+
+    const currentLane =
+        typeof playerLane !==
+        "undefined"
+            ? playerLane
+            : 1;
+
+
+    const targetX =
+        lanePositions[currentLane];
+
 
     player.position.x +=
         (
@@ -560,8 +608,6 @@ function updatePlayer() {
    ANIMATION
 ========================= */
 
-let lastTime = 0;
-
 function animate(
     currentTime = 0
 ) {
@@ -574,16 +620,17 @@ function animate(
     const delta =
         Math.min(
             (currentTime - lastTime) /
-            1000,
+                1000,
             0.05
         );
+
 
     lastTime =
         currentTime;
 
 
     /*
-        Nur bewegen,
+        3D-Bewegung nur,
         wenn das Spiel läuft.
     */
 
@@ -603,7 +650,12 @@ function animate(
     }
 
 
-    if (renderer && scene && camera) {
+    if (
+        renderer &&
+        scene &&
+        camera
+    ) {
+
         renderer.render(
             scene,
             camera
@@ -613,12 +665,15 @@ function animate(
 
 
 /* =========================
-   FENSTER-GRÖSSE
+   RESIZE
 ========================= */
 
 function onWindowResize() {
 
-    if (!camera || !renderer) {
+    if (
+        !camera ||
+        !renderer
+    ) {
         return;
     }
 
@@ -626,6 +681,7 @@ function onWindowResize() {
     camera.aspect =
         window.innerWidth /
         window.innerHeight;
+
 
     camera.updateProjectionMatrix();
 
@@ -638,19 +694,36 @@ function onWindowResize() {
 
 
 /* =========================
-   START
+   START DER 3D-SZENE
 ========================= */
 
-if (
-    typeof THREE !==
-    "undefined"
-) {
+/*
+    Wichtig:
+    Die 3D-Szene wird erst nach
+    dem Laden der Seite gestartet.
 
-    createScene();
+    Der Spielen-Button bleibt
+    vollständig unter der Kontrolle
+    von game.js.
+*/
 
-} else {
+window.addEventListener(
+    "DOMContentLoaded",
+    function () {
 
-    console.error(
-        "Three.js wurde nicht geladen."
-    );
-}
+        if (
+            typeof THREE ===
+            "undefined"
+        ) {
+
+            console.error(
+                "Three.js wurde nicht geladen."
+            );
+
+            return;
+        }
+
+
+        createScene();
+    }
+);
