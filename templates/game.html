@@ -7,16 +7,10 @@
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     >
 
     <title>GENGA Surfer</title>
-
-
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}"
-    >
 
     <link
         rel="stylesheet"
@@ -28,48 +22,57 @@
 
 <body>
 
-<main class="game-page">
+
+    <main id="game">
 
 
-    <!-- =========================
-         HEADER
-    ========================== -->
-
-    <div class="game-header">
-
-        <strong>
-            GENGA SURFER
-        </strong>
-
-
-        <span>
-
-            Punkte:
-
-            <strong id="score">
-                0
-            </strong>
-
-        </span>
-
-    </div>
-
-
-    <!-- =========================
-         SPIEL
-    ========================== -->
-
-    <div id="game">
-
-
-        <!-- 3D SPIEL -->
+        <!-- =====================================
+             3D SPIEL
+        ====================================== -->
 
         <div id="gameCanvas"></div>
 
 
-        <!-- =====================
+
+        <!-- =====================================
+             GAME HEADER
+        ====================================== -->
+
+        <div class="game-header">
+
+
+            <!-- SCORE -->
+
+            <div class="score">
+
+                Score:
+
+                <span id="score">
+                    0
+                </span>
+
+            </div>
+
+
+
+            <!-- PAUSE BUTTON -->
+
+            <button
+                id="pauseButton"
+                type="button"
+                aria-label="Spiel pausieren"
+            >
+                ⏸
+            </button>
+
+
+        </div>
+
+
+
+        <!-- =====================================
              START SCREEN
-        ====================== -->
+        ====================================== -->
 
         <div
             id="startScreen"
@@ -82,23 +85,74 @@
 
 
             <p>
-                Wische nach links oder rechts.
+                Run. Dodge. Survive.
             </p>
 
+
+            <!--
+                Dieser Button wird nur angezeigt,
+                wenn ein gespeicherter Lauf existiert.
+            -->
+
+            <button
+                id="continueButton"
+                type="button"
+                class="hidden"
+            >
+                Fortsetzen
+            </button>
+
+
+            <!--
+                Startet einen komplett neuen Lauf.
+            -->
 
             <button
                 id="startButton"
                 type="button"
             >
-                Spielen
+                Neues Spiel
             </button>
+
 
         </div>
 
 
-        <!-- =====================
-             GAME OVER
-        ====================== -->
+
+        <!-- =====================================
+             PAUSE SCREEN
+        ====================================== -->
+
+        <div
+            id="pauseScreen"
+            class="game-screen hidden"
+        >
+
+            <h1>
+                PAUSE
+            </h1>
+
+
+            <p>
+                Dein Spiel wurde gespeichert.
+            </p>
+
+
+            <button
+                id="resumeButton"
+                type="button"
+            >
+                Fortsetzen
+            </button>
+
+
+        </div>
+
+
+
+        <!-- =====================================
+             GAME OVER SCREEN
+        ====================================== -->
 
         <div
             id="gameOverScreen"
@@ -112,11 +166,11 @@
 
             <p>
 
-                Punkte:
+                Score:
 
-                <strong id="finalScore">
+                <span id="finalScore">
                     0
-                </strong>
+                </span>
 
             </p>
 
@@ -125,43 +179,54 @@
                 id="restartButton"
                 type="button"
             >
-                Nochmal spielen
+                Neues Spiel
             </button>
+
 
         </div>
 
 
-    </div>
-
-</main>
+    </main>
 
 
-<!-- =================================
-     THREE.JS
-================================== -->
 
-<script
-    src="https://unpkg.com/three@0.151.3/build/three.min.js"
-></script>
+    <!-- =====================================
+         THREE.JS
+    ====================================== -->
 
-
-<!-- =================================
-     GENGA SURFER
-================================== -->
-
-<script
-    src="{{ url_for('static', filename='js/game.js') }}"
-></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"
+    ></script>
 
 
-<script
-    src="{{ url_for('static', filename='js/game3d.js') }}"
-></script>
+
+    <!-- =====================================
+         GAME 3D
+    ====================================== -->
+
+    <script
+        src="{{ url_for('static', filename='js/game3d.js') }}"
+    ></script>
 
 
-<script
-    src="{{ url_for('static', filename='js/controls.js') }}"
-></script>
+
+    <!-- =====================================
+         GAME CONTROLLER
+    ====================================== -->
+
+    <script
+        src="{{ url_for('static', filename='js/game.js') }}"
+    ></script>
+
+
+
+    <!-- =====================================
+         CONTROLS / SWIPE
+    ====================================== -->
+
+    <script
+        src="{{ url_for('static', filename='js/controls.js') }}"
+    ></script>
 
 
 </body>
