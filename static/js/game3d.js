@@ -1,20 +1,27 @@
 /* =========================================
-   GENGA SURFER - 3D GAME
+   GENGA SURFER
+   3D GAME ENGINE
 ========================================= */
 
-let scene;
-let camera;
-let renderer;
-let player;
+let scene = null;
+let camera = null;
+let renderer = null;
+let player = null;
 
 let obstacleObjects = [];
+
+let lastTime = 0;
+
+/* =========================================
+   EINSTELLUNGEN
+========================================= */
 
 const START_SPEED = 12;
 const MAX_SPEED = 24;
 const SPEED_INCREASE = 0.35;
 
 const SPAWN_INTERVAL = 24;
-const SPAWN_DISTANCE = -110;
+const SPAWN_DISTANCE = -105;
 
 const lanePositions = [-2, 0, 2];
 
@@ -27,11 +34,9 @@ const obstacleColors = [
     0xaf52de
 ];
 
-let lastTime = 0;
-
 /*
-    Verhindert zwei einzelne Block-Reihen
-    direkt hintereinander.
+   Verhindert, dass zwei einzelne
+   Blöcke direkt hintereinander kommen.
 */
 let lastRowWasOneBlock = false;
 
@@ -41,29 +46,64 @@ let lastRowWasOneBlock = false;
 ========================================= */
 
 function randomInt(min, max) {
+
     return Math.floor(
-        Math.random() * (max - min + 1)
+        Math.random() *
+        (max - min + 1)
     ) + min;
 }
 
 
 function getRandomColor() {
+
     return obstacleColors[
-        randomInt(0, obstacleColors.length - 1)
+        randomInt(
+            0,
+            obstacleColors.length - 1
+        )
     ];
 }
 
 
 /* =========================================
-   SZENE
+   SZENE ERSTELLEN
 ========================================= */
 
 function createScene() {
 
-    scene = new THREE.Scene();
+    /*
+       Verhindert doppelte Initialisierung.
+    */
+
+    if (renderer) {
+        return;
+    }
+
+
+    const container =
+        document.getElementById(
+            "gameCanvas"
+        );
+
+
+    if (!container) {
+
+        console.error(
+            "GENGA: gameCanvas nicht gefunden."
+        );
+
+        return;
+    }
+
+
+    scene =
+        new THREE.Scene();
+
 
     scene.background =
-        new THREE.Color(0x07111f);
+        new THREE.Color(
+            0x07111f
+        );
 
 
     /* =====================================
@@ -81,29 +121,20 @@ function createScene() {
 
 
     /*
-        Etwas weiter weg als vorher,
-        aber weiterhin nah genug für
-        den Subway-Surfer-Look.
+       Etwas weiter weg als vorher.
+       Die Kamera bleibt komplett statisch.
     */
 
     camera.position.set(
         0,
-        4.5,
-        9.5
+        4.8,
+        10.5
     );
 
 
-    /*
-        Kamera EINMAL ausrichten.
-
-        Nicht in animate()!
-        Dadurch kann die Kamera
-        nicht anfangen zu wackeln.
-    */
-
     camera.lookAt(
         0,
-        0,
+        0.8,
         -25
     );
 
@@ -115,7 +146,8 @@ function createScene() {
     renderer =
         new THREE.WebGLRenderer({
             antialias: true,
-            powerPreference: "high-performance"
+            powerPreference:
+                "high-performance"
         });
 
 
@@ -134,11 +166,6 @@ function createScene() {
     );
 
 
-    /*
-        Canvas fest positionieren,
-        damit die Seite nicht mitscrollt.
-    */
-
     renderer.domElement.style.position =
         "fixed";
 
@@ -154,24 +181,18 @@ function createScene() {
     renderer.domElement.style.height =
         "100%";
 
+    renderer.domElement.style.display =
+        "block";
+
     renderer.domElement.style.touchAction =
         "none";
 
 
-    const container =
-        document.getElementById(
-            "gameCanvas"
-        );
+    container.innerHTML = "";
 
-
-    if (container) {
-
-        container.innerHTML = "";
-
-        container.appendChild(
-            renderer.domElement
-        );
-    }
+    container.appendChild(
+        renderer.domElement
+    );
 
 
     /* =====================================
@@ -181,7 +202,7 @@ function createScene() {
     const ambientLight =
         new THREE.AmbientLight(
             0xffffff,
-            0.7
+            0.8
         );
 
     scene.add(
@@ -207,7 +228,7 @@ function createScene() {
 
 
     /* =====================================
-       WELT
+       SPIELWELT
     ===================================== */
 
     createRoad();
@@ -217,13 +238,26 @@ function createScene() {
     resetObstacles();
 
 
+    /* =====================================
+       RESIZE
+    ===================================== */
+
     window.addEventListener(
         "resize",
         onWindowResize
     );
 
 
-    animate();
+    /* =====================================
+       LOOP
+    ===================================== */
+
+    lastTime =
+        performance.now();
+
+    requestAnimationFrame(
+        animate
+    );
 }
 
 
@@ -233,7 +267,7 @@ function createScene() {
 
 function createRoad() {
 
-    const roadGeometry =
+    const geometry =
         new THREE.BoxGeometry(
             8,
             0.2,
@@ -241,7 +275,7 @@ function createRoad() {
         );
 
 
-    const roadMaterial =
+    const material =
         new THREE.MeshStandardMaterial({
             color: 0x252525
         });
@@ -249,8 +283,8 @@ function createRoad() {
 
     const road =
         new THREE.Mesh(
-            roadGeometry,
-            roadMaterial
+            geometry,
+            material
         );
 
 
@@ -353,7 +387,7 @@ function createPlayer() {
 
 
 /* =========================================
-   HINDERNIS ERSTELLEN
+   HINDERNIS
 ========================================= */
 
 function createObstacle(
@@ -408,14 +442,12 @@ function createObstacle(
 function spawnObstacleRow(z) {
 
     /*
-        Einzelner Block nur selten.
+       Einzelner Block:
 
-        15 % Wahrscheinlichkeit.
+       Nur 15 % Wahrscheinlichkeit.
 
-        Wenn die letzte Reihe bereits
-        ein einzelner Block war, wird
-        automatisch eine normale Reihe
-        erzeugt.
+       Und niemals direkt nach einem
+       anderen Einzelblock.
     */
 
     let oneBlock = false;
@@ -434,12 +466,15 @@ function spawnObstacleRow(z) {
 
     if (oneBlock) {
 
-        const blockLane =
-            randomInt(0, 2);
+        const lane =
+            randomInt(
+                0,
+                2
+            );
 
 
         createObstacle(
-            blockLane,
+            lane,
             z,
             getRandomColor()
         );
@@ -454,11 +489,14 @@ function spawnObstacleRow(z) {
 
 
     /* =====================================
-       NORMALE 2-BLOCK-REIHE
+       ZWEI BLÖCKE
     ===================================== */
 
     const safeLane =
-        randomInt(0, 2);
+        randomInt(
+            0,
+            2
+        );
 
 
     for (
@@ -470,6 +508,7 @@ function spawnObstacleRow(z) {
         if (
             lane === safeLane
         ) {
+
             continue;
         }
 
@@ -494,7 +533,8 @@ function spawnObstacleRow(z) {
 function resetObstacles() {
 
     for (
-        const obstacle of obstacleObjects
+        const obstacle
+        of obstacleObjects
     ) {
 
         scene.remove(
@@ -506,22 +546,58 @@ function resetObstacles() {
     obstacleObjects = [];
 
 
-    /*
-        Wichtig:
-        Nach einem Neustart darf nicht
-        automatisch mit einem einzelnen
-        Block begonnen werden.
-    */
-
-    lastRowWasOneBlock = false;
+    lastRowWasOneBlock =
+        false;
 
 
     let spawnZ =
         SPAWN_DISTANCE;
 
 
+    /*
+       Die erste Reihe wird absichtlich
+       als normale 2-Block-Reihe erzeugt.
+    */
+
+    const firstSafeLane =
+        randomInt(
+            0,
+            2
+        );
+
+
     for (
-        let i = 0;
+        let lane = 0;
+        lane < 3;
+        lane++
+    ) {
+
+        if (
+            lane === firstSafeLane
+        ) {
+
+            continue;
+        }
+
+
+        createObstacle(
+            lane,
+            spawnZ,
+            getRandomColor()
+        );
+    }
+
+
+    spawnZ -=
+        SPAWN_INTERVAL;
+
+
+    /*
+       Restliche Reihen zufällig.
+    */
+
+    for (
+        let i = 1;
         i < 7;
         i++
     ) {
@@ -538,7 +614,7 @@ function resetObstacles() {
 
 
 /* =========================================
-   NEUE REIHEN SPAWNEN
+   SPAWN
 ========================================= */
 
 function updateSpawning() {
@@ -546,6 +622,7 @@ function updateSpawning() {
     if (
         obstacleObjects.length === 0
     ) {
+
         return;
     }
 
@@ -555,7 +632,8 @@ function updateSpawning() {
 
 
     for (
-        const obstacle of obstacleObjects
+        const obstacle
+        of obstacleObjects
     ) {
 
         if (
@@ -582,28 +660,21 @@ function updateSpawning() {
 
 
 /* =========================================
-   AKTUELLE GESCHWINDIGKEIT
+   GESCHWINDIGKEIT
 ========================================= */
 
 function getCurrentGameSpeed() {
 
-    /*
-        Geschwindigkeit steigt mit
-        der Punktzahl langsam an.
-    */
-
-    if (
-        typeof score ===
-        "undefined"
-    ) {
-
-        return START_SPEED;
-    }
+    const currentScore =
+        typeof score !== "undefined"
+            ? score
+            : 0;
 
 
     return Math.min(
         START_SPEED +
-        score * SPEED_INCREASE,
+        currentScore *
+        SPEED_INCREASE,
         MAX_SPEED
     );
 }
@@ -615,7 +686,7 @@ function getCurrentGameSpeed() {
 
 function updateObstacles(delta) {
 
-    const currentSpeed =
+    const speed =
         getCurrentGameSpeed();
 
 
@@ -631,7 +702,7 @@ function updateObstacles(delta) {
 
 
         obstacle.position.z +=
-            currentSpeed * delta;
+            speed * delta;
 
 
         /* =================================
@@ -665,12 +736,12 @@ function updateObstacles(delta) {
 
 
         /* =================================
-           ALTE BLÖCKE ENTFERNEN
+           ALTE BLÖCKE LÖSCHEN
         ================================= */
 
         if (
             obstacle.position.z >
-            10
+            12
         ) {
 
             scene.remove(
@@ -722,7 +793,7 @@ function checkCollision(
 
 
 /* =========================================
-   SPIELER BEWEGEN
+   SPIELER
 ========================================= */
 
 function updatePlayer() {
@@ -740,21 +811,16 @@ function updatePlayer() {
 
 
     const targetX =
-        lanePositions[currentLane];
+        lanePositions[
+            currentLane
+        ];
 
-
-    /*
-        Weiche Bewegung auf die Spur.
-
-        Die Kamera wird dabei NICHT
-        bewegt.
-    */
 
     player.position.x +=
         (
             targetX -
             player.position.x
-        ) * 0.2;
+        ) * 0.18;
 }
 
 
@@ -762,23 +828,16 @@ function updatePlayer() {
    ANIMATION
 ========================================= */
 
-function animate(
-    currentTime = 0
-) {
+function animate(currentTime) {
 
     requestAnimationFrame(
         animate
     );
 
 
-    /*
-        Erster Frame:
-        Delta auf 0 setzen,
-        damit kein großer Sprung
-        entsteht.
-    */
-
-    if (lastTime === 0) {
+    if (
+        !lastTime
+    ) {
 
         lastTime =
             currentTime;
@@ -799,9 +858,12 @@ function animate(
         currentTime;
 
 
-    /* =====================================
-       SPIEL-UPDATE
-    ===================================== */
+    /*
+       Nur das Spiel bewegt sich.
+
+       Die Kamera wird hier NICHT
+       verändert.
+    */
 
     if (
         typeof gameRunning !==
@@ -818,10 +880,6 @@ function animate(
         updateSpawning();
     }
 
-
-    /* =====================================
-       RENDER
-    ===================================== */
 
     if (
         renderer &&
@@ -847,6 +905,7 @@ function onWindowResize() {
         !camera ||
         !renderer
     ) {
+
         return;
     }
 
@@ -871,23 +930,42 @@ function onWindowResize() {
    START
 ========================================= */
 
-window.addEventListener(
-    "DOMContentLoaded",
-    function () {
+function initGame3D() {
 
-        if (
-            typeof THREE ===
-            "undefined"
-        ) {
+    if (
+        typeof THREE ===
+        "undefined"
+    ) {
 
-            console.error(
-                "Three.js wurde nicht geladen."
-            );
+        console.error(
+            "GENGA: Three.js wurde nicht geladen."
+        );
 
-            return;
-        }
-
-
-        createScene();
+        return;
     }
-);
+
+
+    if (renderer) {
+        return;
+    }
+
+
+    createScene();
+}
+
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initGame3D,
+        { once: true }
+    );
+
+} else {
+
+    initGame3D();
+}
