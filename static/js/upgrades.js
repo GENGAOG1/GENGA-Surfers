@@ -1,20 +1,82 @@
 /* =========================================
    GENGA SURFER
-   UPGRADE SYSTEM
+   COINS / SHOP / SKINS / UPGRADES
 ========================================= */
 
-const UPGRADE_STORAGE_KEY =
-    "gengaSurferUpgrades";
-
-const COIN_STORAGE_KEY =
+const COIN_KEY =
     "gengaSurferCoins";
+
+const SKIN_KEY =
+    "gengaSurferSkins";
+
+const EQUIPPED_SKIN_KEY =
+    "gengaSurferEquippedSkin";
+
+const UPGRADE_KEY =
+    "gengaSurferUpgrades";
 
 const ACTIVE_UPGRADE_KEY =
     "gengaSurferActiveUpgrade";
 
 
 /* =========================================
-   UPGRADE DEFINITIONEN
+   SKINS
+========================================= */
+
+const skins = {
+
+    blue: {
+        name: "Standard Blau",
+        color: 0x008cff,
+        price: 0
+    },
+
+    red: {
+        name: "Feuer Rot",
+        color: 0xff3b30,
+        price: 100
+    },
+
+    green: {
+        name: "Neon Grün",
+        color: 0x34c759,
+        price: 250
+    },
+
+    purple: {
+        name: "Cyber Lila",
+        color: 0xaf52de,
+        price: 500
+    },
+
+    yellow: {
+        name: "Gold",
+        color: 0xffcc00,
+        price: 1000
+    },
+
+    cyan: {
+        name: "Neon Cyan",
+        color: 0x00e5ff,
+        price: 1500
+    },
+
+    pink: {
+        name: "Hot Pink",
+        color: 0xff2d78,
+        price: 2000
+    },
+
+    rainbow: {
+        name: "Rainbow",
+        color: 0xffffff,
+        price: 3000
+    }
+};
+
+
+/* =========================================
+   UPGRADES
 ========================================= */
 
 const upgradeDefinitions = {
@@ -26,25 +88,30 @@ const upgradeDefinitions = {
         icon: "⭐",
 
         description:
-            "Erhöht deinen Score-Multiplikator.",
+            "Erhöht deinen Score.",
 
         levels: [
+
             {
                 multiplier: 1.10,
                 cost: 300
             },
+
             {
                 multiplier: 1.20,
                 cost: 500
             },
+
             {
                 multiplier: 1.35,
                 cost: 800
             },
+
             {
                 multiplier: 1.50,
                 cost: 1200
             },
+
             {
                 multiplier: 1.75,
                 cost: 1800
@@ -63,14 +130,17 @@ const upgradeDefinitions = {
             "Überlebt eine Kollision.",
 
         levels: [
+
             {
                 lives: 1,
                 cost: 500
             },
+
             {
                 lives: 2,
                 cost: 900
             },
+
             {
                 lives: 3,
                 cost: 1500
@@ -89,18 +159,22 @@ const upgradeDefinitions = {
             "Sammelt Münzen aus größerer Entfernung.",
 
         levels: [
+
             {
                 radius: 1.5,
                 cost: 400
             },
+
             {
                 radius: 2.0,
                 cost: 700
             },
+
             {
                 radius: 2.7,
                 cost: 1100
             },
+
             {
                 radius: 3.5,
                 cost: 1700
@@ -116,21 +190,25 @@ const upgradeDefinitions = {
         icon: "💰",
 
         description:
-            "Erhöht die Anzahl deiner verdienten Münzen.",
+            "Mehr Münzen pro eingesammelter Münze.",
 
         levels: [
+
             {
                 multiplier: 1.25,
                 cost: 450
             },
+
             {
                 multiplier: 1.50,
                 cost: 750
             },
+
             {
                 multiplier: 1.75,
                 cost: 1200
             },
+
             {
                 multiplier: 2.00,
                 cost: 2000
@@ -146,17 +224,20 @@ const upgradeDefinitions = {
         icon: "⚡",
 
         description:
-            "Startet den Run mit höherer Geschwindigkeit.",
+            "Startet den Run schneller.",
 
         levels: [
+
             {
                 speedBonus: 2,
                 cost: 400
             },
+
             {
                 speedBonus: 4,
                 cost: 700
             },
+
             {
                 speedBonus: 6,
                 cost: 1100
@@ -167,19 +248,305 @@ const upgradeDefinitions = {
 
 
 /* =========================================
-   DATEN LADEN
+   COINS
 ========================================= */
 
-function loadUpgradeData() {
+function getCoins() {
+
+    const value =
+        Number(
+            localStorage.getItem(
+                COIN_KEY
+            )
+        );
+
+
+    return Number.isFinite(value)
+        ? Math.max(0, Math.floor(value))
+        : 0;
+}
+
+
+function setCoins(
+    value
+) {
+
+    value =
+        Math.max(
+            0,
+            Math.floor(value)
+        );
+
+
+    localStorage.setItem(
+        COIN_KEY,
+        String(value)
+    );
+
+
+    updateAllCoinDisplays();
+}
+
+
+function addCoins(
+    amount
+) {
+
+    if (
+        !Number.isFinite(amount)
+    ) {
+        return;
+    }
+
+
+    setCoins(
+        getCoins() +
+        Math.floor(amount)
+    );
+}
+
+
+function spendCoins(
+    amount
+) {
+
+    if (
+        getCoins() < amount
+    ) {
+        return false;
+    }
+
+
+    setCoins(
+        getCoins() - amount
+    );
+
+
+    return true;
+}
+
+
+/* =========================================
+   SKINS
+========================================= */
+
+function loadOwnedSkins() {
 
     let data;
+
 
     try {
 
         data =
             JSON.parse(
                 localStorage.getItem(
-                    UPGRADE_STORAGE_KEY
+                    SKIN_KEY
+                )
+            );
+
+    } catch {
+
+        data = null;
+    }
+
+
+    if (
+        !Array.isArray(data)
+    ) {
+
+        data = ["blue"];
+    }
+
+
+    if (
+        !data.includes("blue")
+    ) {
+
+        data.push("blue");
+    }
+
+
+    return data;
+}
+
+
+function saveOwnedSkins(
+    skinsArray
+) {
+
+    localStorage.setItem(
+        SKIN_KEY,
+        JSON.stringify(
+            skinsArray
+        )
+    );
+}
+
+
+function getEquippedSkin() {
+
+    const skin =
+        localStorage.getItem(
+            EQUIPPED_SKIN_KEY
+        );
+
+
+    if (
+        !skins[skin]
+    ) {
+
+        return "blue";
+    }
+
+
+    return skin;
+}
+
+
+function equipSkin(
+    skinId
+) {
+
+    const owned =
+        loadOwnedSkins();
+
+
+    if (
+        !owned.includes(skinId)
+    ) {
+        return;
+    }
+
+
+    localStorage.setItem(
+        EQUIPPED_SKIN_KEY,
+        skinId
+    );
+
+
+    applySkinToPlayer();
+
+    renderShop();
+}
+
+
+function buySkin(
+    skinId
+) {
+
+    const skin =
+        skins[skinId];
+
+
+    if (!skin) {
+        return;
+    }
+
+
+    const owned =
+        loadOwnedSkins();
+
+
+    if (
+        owned.includes(skinId)
+    ) {
+
+        equipSkin(
+            skinId
+        );
+
+        return;
+    }
+
+
+    if (
+        !spendCoins(
+            skin.price
+        )
+    ) {
+
+        showShopMessage(
+            "Nicht genug Münzen! 🪙"
+        );
+
+        return;
+    }
+
+
+    owned.push(
+        skinId
+    );
+
+
+    saveOwnedSkins(
+        owned
+    );
+
+
+    equipSkin(
+        skinId
+    );
+
+
+    showShopMessage(
+        `${skin.name} gekauft! 🎨`
+    );
+}
+
+
+/* =========================================
+   PLAYER SKIN ANWENDEN
+========================================= */
+
+function applySkinToPlayer() {
+
+    if (
+        typeof player ===
+        "undefined" ||
+        !player
+    ) {
+        return;
+    }
+
+
+    const skin =
+        skins[
+            getEquippedSkin()
+        ];
+
+
+    if (!skin) {
+        return;
+    }
+
+
+    if (
+        player.material &&
+        player.material.color
+    ) {
+
+        player.material.color.setHex(
+            skin.color
+        );
+    }
+}
+
+
+/* =========================================
+   UPGRADE DATEN
+========================================= */
+
+function loadUpgradeData() {
+
+    let data;
+
+
+    try {
+
+        data =
+            JSON.parse(
+                localStorage.getItem(
+                    UPGRADE_KEY
                 )
             );
 
@@ -205,8 +572,7 @@ function loadUpgradeData() {
     ) {
 
         if (
-            typeof data[id] !==
-            "number"
+            typeof data[id] !== "number"
         ) {
 
             data[id] = 0;
@@ -218,90 +584,98 @@ function loadUpgradeData() {
 }
 
 
-/* =========================================
-   SPEICHERN
-========================================= */
-
 function saveUpgradeData(
     data
 ) {
 
     localStorage.setItem(
-        UPGRADE_STORAGE_KEY,
+        UPGRADE_KEY,
         JSON.stringify(data)
     );
 }
 
 
+function getUpgradeLevel(
+    id
+) {
+
+    const data =
+        loadUpgradeData();
+
+
+    return data[id] || 0;
+}
+
+
 /* =========================================
-   MÜNZEN
+   UPGRADE KAUFEN
 ========================================= */
 
-function getCoins() {
+function buyUpgrade(
+    id
+) {
 
-    const coins =
-        Number(
-            localStorage.getItem(
-                COIN_STORAGE_KEY
-            )
-        );
+    const definition =
+        upgradeDefinitions[id];
 
 
-    if (
-        !Number.isFinite(coins)
-    ) {
-
-        return 0;
+    if (!definition) {
+        return;
     }
 
 
-    return coins;
-}
+    const data =
+        loadUpgradeData();
 
 
-function setCoins(
-    amount
-) {
-
-    amount =
-        Math.max(
-            0,
-            Math.floor(amount)
-        );
-
-
-    localStorage.setItem(
-        COIN_STORAGE_KEY,
-        String(amount)
-    );
-
-
-    updateCoinDisplays();
-}
-
-
-function spendCoins(
-    amount
-) {
-
-    const coins =
-        getCoins();
+    const currentLevel =
+        data[id] || 0;
 
 
     if (
-        coins < amount
+        currentLevel >=
+        definition.levels.length
     ) {
 
-        return false;
+        return;
     }
 
 
-    setCoins(
-        coins - amount
+    const next =
+        definition.levels[
+            currentLevel
+        ];
+
+
+    if (
+        !spendCoins(
+            next.cost
+        )
+    ) {
+
+        showUpgradeMessage(
+            "Nicht genug Münzen! 🪙"
+        );
+
+        return;
+    }
+
+
+    data[id] =
+        currentLevel + 1;
+
+
+    saveUpgradeData(
+        data
     );
 
 
-    return true;
+    showUpgradeMessage(
+        `${definition.icon} ${definition.name} Level ${currentLevel + 1}!`
+    );
+
+
+    renderUpgrades();
 }
 
 
@@ -318,189 +692,55 @@ function getActiveUpgrade() {
 
 
 function setActiveUpgrade(
-    upgradeId
+    id
 ) {
 
     if (
-        !upgradeDefinitions[
-            upgradeId
-        ]
+        getUpgradeLevel(id) <= 0
     ) {
-
         return;
     }
 
 
     localStorage.setItem(
         ACTIVE_UPGRADE_KEY,
-        upgradeId
+        id
     );
 
 
-    renderUpgradeMenu();
-}
+    renderUpgrades();
 
-
-/* =========================================
-   UPGRADE LEVEL
-========================================= */
-
-function getUpgradeLevel(
-    upgradeId
-) {
-
-    const data =
-        loadUpgradeData();
-
-
-    return data[
-        upgradeId
-    ] || 0;
-}
-
-
-/* =========================================
-   NÄCHSTES LEVEL KAUFEN
-========================================= */
-
-function buyUpgrade(
-    upgradeId
-) {
-
-    const definition =
-        upgradeDefinitions[
-            upgradeId
-        ];
-
-
-    if (!definition) {
-
-        return;
-    }
-
-
-    const data =
-        loadUpgradeData();
-
-
-    const currentLevel =
-        data[
-            upgradeId
-        ] || 0;
-
-
-    /*
-     * Schon Max-Level
-     */
-
-    if (
-        currentLevel >=
-        definition.levels.length
-    ) {
-
-        return;
-    }
-
-
-    const nextLevel =
-        definition.levels[
-            currentLevel
-        ];
-
-
-    const price =
-        nextLevel.cost;
-
-
-    if (
-        !spendCoins(price)
-    ) {
-
-        showUpgradeMessage(
-            "Nicht genug Münzen! 🪙"
-        );
-
-        return;
-    }
-
-
-    data[
-        upgradeId
-    ] =
-        currentLevel + 1;
-
-
-    saveUpgradeData(
-        data
-    );
-
-
-    showUpgradeMessage(
-        `${definition.icon} ${definition.name} Level ${currentLevel + 1} freigeschaltet!`
-    );
-
-
-    renderUpgradeMenu();
-}
-
-
-/* =========================================
-   UPGRADE EFFEKT
-========================================= */
-
-function getActiveUpgradeLevel() {
-
-    const active =
-        getActiveUpgrade();
-
-
-    if (!active) {
-
-        return 0;
-    }
-
-
-    return getUpgradeLevel(
-        active
-    );
+    updateMenuActiveUpgrade();
 }
 
 
 function getActiveUpgradeDefinition() {
 
-    const active =
+    const id =
         getActiveUpgrade();
 
 
-    if (!active) {
-
+    if (!id) {
         return null;
     }
 
 
     const level =
-        getUpgradeLevel(
-            active
-        );
+        getUpgradeLevel(id);
 
 
-    if (
-        level <= 0
-    ) {
-
+    if (level <= 0) {
         return null;
     }
 
 
     const definition =
-        upgradeDefinitions[
-            active
-        ];
+        upgradeDefinitions[id];
 
 
     return {
 
-        id: active,
+        id: id,
 
         definition: definition,
 
@@ -515,7 +755,7 @@ function getActiveUpgradeDefinition() {
 
 
 /* =========================================
-   SCORE MULTIPLIER
+   UPGRADE EFFEKTE
 ========================================= */
 
 function getScoreMultiplier() {
@@ -529,19 +769,13 @@ function getScoreMultiplier() {
         upgrade.id !==
         "scoreBoost"
     ) {
-
         return 1;
     }
 
 
-    return upgrade.values
-        .multiplier;
+    return upgrade.values.multiplier;
 }
 
-
-/* =========================================
-   COIN MULTIPLIER
-========================================= */
 
 function getCoinMultiplier() {
 
@@ -554,19 +788,13 @@ function getCoinMultiplier() {
         upgrade.id !==
         "coinBoost"
     ) {
-
         return 1;
     }
 
 
-    return upgrade.values
-        .multiplier;
+    return upgrade.values.multiplier;
 }
 
-
-/* =========================================
-   EXTRA LEBEN
-========================================= */
 
 function getExtraLives() {
 
@@ -579,19 +807,13 @@ function getExtraLives() {
         upgrade.id !==
         "extraLife"
     ) {
-
         return 0;
     }
 
 
-    return upgrade.values
-        .lives;
+    return upgrade.values.lives;
 }
 
-
-/* =========================================
-   COIN MAGNET
-========================================= */
 
 function getCoinMagnetRadius() {
 
@@ -604,19 +826,13 @@ function getCoinMagnetRadius() {
         upgrade.id !==
         "coinMagnet"
     ) {
-
         return 0;
     }
 
 
-    return upgrade.values
-        .radius;
+    return upgrade.values.radius;
 }
 
-
-/* =========================================
-   START SPEED BONUS
-========================================= */
 
 function getStartSpeedBonus() {
 
@@ -629,105 +845,147 @@ function getStartSpeedBonus() {
         upgrade.id !==
         "speedStart"
     ) {
-
         return 0;
     }
 
 
-    return upgrade.values
-        .speedBonus;
+    return upgrade.values.speedBonus;
 }
 
 
 /* =========================================
-   UPGRADE MENÜ ERSTELLEN
+   SHOP RENDERN
 ========================================= */
 
-function createUpgradeMenu() {
+function renderShop() {
 
-    if (
+    const list =
         document.getElementById(
-            "upgradeMenu"
-        )
-    ) {
+            "skinList"
+        );
 
+
+    if (!list) {
         return;
     }
 
 
-    const menu =
-        document.createElement(
-            "div"
-        );
+    const owned =
+        loadOwnedSkins();
 
 
-    menu.id =
-        "upgradeMenu";
+    const equipped =
+        getEquippedSkin();
 
 
-    menu.innerHTML = `
+    list.innerHTML = "";
 
-        <div class="upgrade-header">
 
-            <h2>
-                UPGRADES
-            </h2>
+    for (
+        const id of Object.keys(
+            skins
+        )
+    ) {
+
+        const skin =
+            skins[id];
+
+
+        const isOwned =
+            owned.includes(id);
+
+
+        const isEquipped =
+            equipped === id;
+
+
+        const card =
+            document.createElement(
+                "div"
+            );
+
+
+        card.className =
+            "skin-card";
+
+
+        const color =
+            "#" +
+            skin.color
+                .toString(16)
+                .padStart(6, "0");
+
+
+        let buttonText;
+
+
+        if (isEquipped) {
+
+            buttonText =
+                "✓ AUSGERÜSTET";
+
+        } else if (isOwned) {
+
+            buttonText =
+                "AUSRÜSTEN";
+
+        } else {
+
+            buttonText =
+                `KAUFEN • ${skin.price} 🪙`;
+        }
+
+
+        card.innerHTML = `
 
             <div
-                id="upgradeCoinDisplay"
-                class="upgrade-coins"
-            >
-                🪙 0
+                class="skin-preview"
+                style="background:${color}"
+            ></div>
+
+            <div class="skin-name">
+                ${skin.name}
             </div>
 
-        </div>
+            <div class="skin-price">
+                ${
+                    skin.price === 0
+                        ? "Kostenlos"
+                        : skin.price + " 🪙"
+                }
+            </div>
 
-        <div
-            id="upgradeMessage"
-            class="upgrade-message"
-        ></div>
+            <button
+                class="skin-button ${
+                    isEquipped
+                        ? "equipped"
+                        : isOwned
+                            ? "owned"
+                            : ""
+                }"
+                data-skin="${id}"
+            >
+                ${buttonText}
+            </button>
 
-        <div
-            id="upgradeList"
-            class="upgrade-list"
-        ></div>
-
-    `;
-
-
-    /*
-     * Vor dem Hauptmenü einfügen.
-     */
-
-    const startScreen =
-        document.getElementById(
-            "startScreen"
-        );
+        `;
 
 
-    if (startScreen) {
-
-        startScreen.appendChild(
-            menu
-        );
-
-    } else {
-
-        document.body.appendChild(
-            menu
+        list.appendChild(
+            card
         );
     }
 
 
-    renderUpgradeMenu();
+    updateAllCoinDisplays();
 }
 
 
 /* =========================================
-   UPGRADE MENÜ RENDERN
+   UPGRADE RENDERN
 ========================================= */
 
-function renderUpgradeMenu() {
+function renderUpgrades() {
 
     const list =
         document.getElementById(
@@ -736,7 +994,6 @@ function renderUpgradeMenu() {
 
 
     if (!list) {
-
         return;
     }
 
@@ -770,36 +1027,18 @@ function renderUpgradeMenu() {
             definition.levels.length;
 
 
-        const isMax =
+        const maxed =
             level >= maxLevel;
 
 
-        const isActive =
+        const activeUpgrade =
             active === id;
 
 
-        let nextText;
+        let effect = "";
 
 
-        if (isMax) {
-
-            nextText =
-                "MAX LEVEL";
-
-        } else {
-
-            nextText =
-                `${definition.levels[level].cost} 🪙`;
-        }
-
-
-        let effectText =
-            "";
-
-
-        if (
-            level > 0
-        ) {
+        if (level > 0) {
 
             const current =
                 definition.levels[
@@ -811,7 +1050,7 @@ function renderUpgradeMenu() {
                 current.multiplier
             ) {
 
-                effectText =
+                effect =
                     `x${current.multiplier}`;
             }
 
@@ -820,8 +1059,8 @@ function renderUpgradeMenu() {
                 current.lives
             ) {
 
-                effectText =
-                    `${current.lives} Leben`;
+                effect =
+                    `${current.lives} ❤️`;
             }
 
 
@@ -829,8 +1068,8 @@ function renderUpgradeMenu() {
                 current.radius
             ) {
 
-                effectText =
-                    `${current.radius}m Radius`;
+                effect =
+                    `${current.radius}m`;
             }
 
 
@@ -838,7 +1077,7 @@ function renderUpgradeMenu() {
                 current.speedBonus
             ) {
 
-                effectText =
+                effect =
                     `+${current.speedBonus} Speed`;
             }
         }
@@ -873,8 +1112,8 @@ function renderUpgradeMenu() {
                 <div class="upgrade-level">
                     Level ${level}/${maxLevel}
                     ${
-                        effectText
-                            ? ` • ${effectText}`
+                        effect
+                            ? " • " + effect
                             : ""
                     }
                 </div>
@@ -884,7 +1123,7 @@ function renderUpgradeMenu() {
             <div class="upgrade-actions">
 
                 ${
-                    isMax
+                    maxed
 
                     ? `
                         <button
@@ -898,11 +1137,11 @@ function renderUpgradeMenu() {
                     : `
                         <button
                             class="upgrade-button buy"
-                            data-upgrade="${id}"
+                            data-upgrade-buy="${id}"
                         >
                             KAUFEN
                             <br>
-                            ${nextText}
+                            ${definition.levels[level].cost} 🪙
                         </button>
                     `
                 }
@@ -913,14 +1152,14 @@ function renderUpgradeMenu() {
                     ? `
                         <button
                             class="upgrade-button activate ${
-                                isActive
+                                activeUpgrade
                                     ? "selected"
                                     : ""
                             }"
-                            data-activate="${id}"
+                            data-upgrade-activate="${id}"
                         >
                             ${
-                                isActive
+                                activeUpgrade
                                     ? "✓ AKTIV"
                                     : "AKTIVIEREN"
                             }
@@ -940,15 +1179,15 @@ function renderUpgradeMenu() {
     }
 
 
-    updateCoinDisplays();
+    updateAllCoinDisplays();
 }
 
 
 /* =========================================
-   COIN DISPLAY
+   COIN DISPLAYS
 ========================================= */
 
-function updateCoinDisplays() {
+function updateAllCoinDisplays() {
 
     const coins =
         getCoins();
@@ -956,7 +1195,7 @@ function updateCoinDisplays() {
 
     const elements =
         document.querySelectorAll(
-            "#upgradeCoinDisplay, .coin-display"
+            "#menuCoins, #shopCoins, #upgradeCoins, #hudCoins"
         );
 
 
@@ -964,19 +1203,99 @@ function updateCoinDisplays() {
         element => {
 
             element.textContent =
-                `🪙 ${coins.toLocaleString(
-                    "de-DE"
-                )}`;
+                `🪙 ${coins.toLocaleString("de-DE")}`;
         }
     );
 }
 
 
 /* =========================================
-   MESSAGE
+   MENU UPGRADE
 ========================================= */
 
-let upgradeMessageTimeout;
+function updateMenuActiveUpgrade() {
+
+    const element =
+        document.getElementById(
+            "menuActiveUpgrade"
+        );
+
+
+    if (!element) {
+        return;
+    }
+
+
+    const upgrade =
+        getActiveUpgradeDefinition();
+
+
+    if (!upgrade) {
+
+        element.textContent =
+            "Kein Upgrade aktiv";
+
+        return;
+    }
+
+
+    element.textContent =
+        `${upgrade.definition.icon} ${upgrade.definition.name} Lv.${upgrade.level}`;
+}
+
+
+/* =========================================
+   SHOP MESSAGE
+========================================= */
+
+let shopMessageTimer;
+
+
+function showShopMessage(
+    message
+) {
+
+    const element =
+        document.getElementById(
+            "shopCoins"
+        );
+
+
+    if (!element) {
+        return;
+    }
+
+
+    const old =
+        element.textContent;
+
+
+    element.textContent =
+        message;
+
+
+    clearTimeout(
+        shopMessageTimer
+    );
+
+
+    shopMessageTimer =
+        setTimeout(
+            () => {
+
+                updateAllCoinDisplays();
+
+            },
+            1800
+        );
+}
+
+
+/* =========================================
+   UPGRADE MESSAGE
+========================================= */
+
+let upgradeMessageTimer;
 
 
 function showUpgradeMessage(
@@ -990,7 +1309,6 @@ function showUpgradeMessage(
 
 
     if (!element) {
-
         return;
     }
 
@@ -1000,11 +1318,11 @@ function showUpgradeMessage(
 
 
     clearTimeout(
-        upgradeMessageTimeout
+        upgradeMessageTimer
     );
 
 
-    upgradeMessageTimeout =
+    upgradeMessageTimer =
         setTimeout(
             () => {
 
@@ -1012,29 +1330,152 @@ function showUpgradeMessage(
                     "";
 
             },
-            2500
+            2000
         );
 }
 
 
 /* =========================================
-   BUTTON EVENTS
+   BUTTONS
+========================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        renderShop();
+
+        renderUpgrades();
+
+        updateAllCoinDisplays();
+
+        updateMenuActiveUpgrade();
+
+
+        const shopButton =
+            document.getElementById(
+                "shopButton"
+            );
+
+
+        const upgradeButton =
+            document.getElementById(
+                "upgradeButton"
+            );
+
+
+        const shopScreen =
+            document.getElementById(
+                "shopScreen"
+            );
+
+
+        const upgradeScreen =
+            document.getElementById(
+                "upgradeScreen"
+            );
+
+
+        const closeShop =
+            document.getElementById(
+                "closeShopButton"
+            );
+
+
+        const closeUpgrade =
+            document.getElementById(
+                "closeUpgradeButton"
+            );
+
+
+        if (shopButton) {
+
+            shopButton.onclick =
+                () => {
+
+                    shopScreen.classList.remove(
+                        "hidden"
+                    );
+
+                    renderShop();
+                };
+        }
+
+
+        if (upgradeButton) {
+
+            upgradeButton.onclick =
+                () => {
+
+                    upgradeScreen.classList.remove(
+                        "hidden"
+                    );
+
+                    renderUpgrades();
+                };
+        }
+
+
+        if (closeShop) {
+
+            closeShop.onclick =
+                () => {
+
+                    shopScreen.classList.add(
+                        "hidden"
+                    );
+                };
+        }
+
+
+        if (closeUpgrade) {
+
+            closeUpgrade.onclick =
+                () => {
+
+                    upgradeScreen.classList.add(
+                        "hidden"
+                    );
+                };
+        }
+    }
+);
+
+
+/* =========================================
+   DELEGATED SHOP / UPGRADE CLICKS
 ========================================= */
 
 document.addEventListener(
     "click",
     event => {
 
+        const skinButton =
+            event.target.closest(
+                "[data-skin]"
+            );
+
+
+        if (skinButton) {
+
+            buySkin(
+                skinButton.dataset.skin
+            );
+
+            return;
+        }
+
+
         const buyButton =
             event.target.closest(
-                "[data-upgrade]"
+                "[data-upgrade-buy]"
             );
 
 
         if (buyButton) {
 
             buyUpgrade(
-                buyButton.dataset.upgrade
+                buyButton.dataset.upgradeBuy
             );
 
             return;
@@ -1043,30 +1484,15 @@ document.addEventListener(
 
         const activateButton =
             event.target.closest(
-                "[data-activate]"
+                "[data-upgrade-activate]"
             );
 
 
         if (activateButton) {
 
             setActiveUpgrade(
-                activateButton.dataset.activate
+                activateButton.dataset.upgradeActivate
             );
         }
-    }
-);
-
-
-/* =========================================
-   START
-========================================= */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-        createUpgradeMenu();
-
-        updateCoinDisplays();
     }
 );
