@@ -3,7 +3,6 @@
    GAME CONTROLLER
 ========================================= */
 
-
 let gameRunning = false;
 
 let score = 0;
@@ -13,13 +12,9 @@ let playerLane = 1;
 let scoreTimer = 0;
 
 
-/*
-   Positionen der drei Spuren
-
-   0 = links
-   1 = mitte
-   2 = rechts
-*/
+/* =========================================
+   SPUREN
+========================================= */
 
 const lanePositions = [
     -2,
@@ -39,14 +34,11 @@ function startGame() {
     );
 
 
-    /*
-       Spiel zuerst stoppen,
-       damit sauber zurückgesetzt
-       werden kann.
-    */
+    /* =====================================
+       SPIEL ZURÜCKSETZEN
+    ===================================== */
 
     gameRunning = false;
-
 
     score = 0;
 
@@ -59,13 +51,13 @@ function startGame() {
        SPIELER ZURÜCKSETZEN
     ===================================== */
 
-    if (typeof player !== "undefined" && player) {
+    if (player) {
 
-        player.position.x = 0;
-
-        player.position.y = 0.9;
-
-        player.position.z = 3;
+        player.position.set(
+            0,
+            0.9,
+            3
+        );
 
 
         player.rotation.set(
@@ -90,7 +82,7 @@ function startGame() {
 
 
     /* =====================================
-       SCORE ZURÜCKSETZEN
+       SCORE
     ===================================== */
 
     const scoreElement =
@@ -169,7 +161,7 @@ function startGame() {
 
 
 /* =========================================
-   SCORE AKTUALISIEREN
+   SCORE
 ========================================= */
 
 function updateGame(delta) {
@@ -183,7 +175,7 @@ function updateGame(delta) {
 
 
     /*
-       Alle Sekunden einen Punkt.
+        Jede Sekunde ein Punkt.
     */
 
     if (scoreTimer >= 1) {
@@ -280,8 +272,10 @@ function scoreLoop(time) {
 
     const delta =
         Math.min(
-            (time - scoreLastTime) /
-                1000,
+            (
+                time -
+                scoreLastTime
+            ) / 1000,
             0.1
         );
 
@@ -305,81 +299,47 @@ requestAnimationFrame(
    BUTTONS
 ========================================= */
 
-function setupGameButtons() {
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
 
-    const startButton =
-        document.getElementById(
-            "startButton"
-        );
-
-
-    const restartButton =
-        document.getElementById(
-            "restartButton"
-        );
+        const startButton =
+            document.getElementById(
+                "startButton"
+            );
 
 
-    /* =====================================
-       START
-    ===================================== */
-
-    if (startButton) {
-
-        startButton.addEventListener(
-            "click",
-            function (event) {
-
-                event.preventDefault();
-
-                startGame();
-            }
-        );
-
-    } else {
-
-        console.error(
-            "GENGA: #startButton wurde nicht gefunden."
-        );
-    }
+        const restartButton =
+            document.getElementById(
+                "restartButton"
+            );
 
 
-    /* =====================================
-       RESTART
-    ===================================== */
+        if (startButton) {
 
-    if (restartButton) {
+            startButton.addEventListener(
+                "click",
+                function (event) {
 
-        restartButton.addEventListener(
-            "click",
-            function (event) {
+                    event.preventDefault();
 
-                event.preventDefault();
-
-                startGame();
-            }
-        );
-    }
-}
-
-
-/* =========================================
-   BUTTONS INITIALISIEREN
-========================================= */
-
-if (
-    document.readyState ===
-    "loading"
-) {
-
-    document.addEventListener(
-        "DOMContentLoaded",
-        setupGameButtons,
-        {
-            once: true
+                    startGame();
+                }
+            );
         }
-    );
 
-} else {
 
-    setupGameButtons();
-}
+        if (restartButton) {
+
+            restartButton.addEventListener(
+                "click",
+                function (event) {
+
+                    event.preventDefault();
+
+                    startGame();
+                }
+            );
+        }
+    }
+);
