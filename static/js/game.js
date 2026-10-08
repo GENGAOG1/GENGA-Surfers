@@ -3,12 +3,13 @@
    GAME CONTROLLER
 ========================================= */
 
-
 let gameRunning = false;
+
+let gamePaused = false;
 
 let score = 0;
 
-let playerLane = 1;
+let runCoins = 0;
 
 let scoreTimer = 0;
 
@@ -16,28 +17,30 @@ let remainingLives = 0;
 
 
 /* =========================================
-   START GAME
+   START
 ========================================= */
 
 function startGame() {
 
-    console.log(
-        "GENGA: Spiel startet..."
-    );
-
+    gamePaused = false;
 
     gameRunning = false;
 
     score = 0;
 
-    playerLane = 1;
+    runCoins = 0;
 
     scoreTimer = 0;
 
 
-    /*
-     * Extra Leben vom aktiven Upgrade.
-     */
+    if (
+        typeof playerLane !==
+        "undefined"
+    ) {
+
+        playerLane = 1;
+    }
+
 
     if (
         typeof getExtraLives ===
@@ -53,38 +56,23 @@ function startGame() {
     }
 
 
-    /* =====================================
-       SPIELER RESET
-    ===================================== */
+    /* Spieler */
 
-    if (player) {
+    if (typeof resetPlayer === "function") {
 
-        player.position.x = 0;
+        resetPlayer();
 
-        player.position.y = 0.9;
+    } else if (typeof player !== "undefined" && player) {
 
-        player.position.z = 3;
-
-        player.rotation.set(
+        player.position.set(
             0,
-            0,
-            0
+            0.9,
+            3
         );
     }
 
 
-    /*
-     * Game3D Reset
-     */
-
-    if (
-        typeof resetPlayer ===
-        "function"
-    ) {
-
-        resetPlayer();
-    }
-
+    /* Hindernisse */
 
     if (
         typeof resetObstacles ===
@@ -95,6 +83,8 @@ function startGame() {
     }
 
 
+    /* Münzen */
+
     if (
         typeof resetCoins ===
         "function"
@@ -104,9 +94,7 @@ function startGame() {
     }
 
 
-    /* =====================================
-       SCORE RESET
-    ===================================== */
+    /* Score */
 
     const scoreElement =
         document.getElementById(
@@ -121,69 +109,34 @@ function startGame() {
     }
 
 
-    const finalScoreElement =
-        document.getElementById(
-            "finalScore"
-        );
+    /* Screens */
+
+    hide(
+        "startScreen"
+    );
+
+    hide(
+        "gameOverScreen"
+    );
+
+    hide(
+        "pauseScreen"
+    );
 
 
-    if (finalScoreElement) {
-
-        finalScoreElement.textContent =
-            "0";
-    }
+    show(
+        "gameHUD"
+    );
 
 
-    /* =====================================
-       GAME OVER SCREEN
-    ===================================== */
+    updateHUD();
 
-    const gameOverScreen =
-        document.getElementById(
-            "gameOverScreen"
-        );
-
-
-    if (gameOverScreen) {
-
-        gameOverScreen.classList.add(
-            "hidden"
-        );
-    }
-
-
-    /* =====================================
-       START SCREEN
-    ===================================== */
-
-    const startScreen =
-        document.getElementById(
-            "startScreen"
-        );
-
-
-    if (startScreen) {
-
-        startScreen.classList.add(
-            "hidden"
-        );
-    }
-
-
-    /* =====================================
-       GAME START
-    ===================================== */
 
     gameRunning = true;
 
 
-    updateLifeDisplay();
-
-    updateActiveUpgradeDisplay();
-
-
     console.log(
-        "GENGA: Spiel läuft."
+        "GENGA SURFER START"
     );
 }
 
@@ -196,7 +149,10 @@ function updateGame(
     delta
 ) {
 
-    if (!gameRunning) {
+    if (
+        !gameRunning ||
+        gamePaused
+    ) {
 
         return;
     }
@@ -212,8 +168,7 @@ function updateGame(
         scoreTimer -= 1;
 
 
-        let multiplier =
-            1;
+        let multiplier = 1;
 
 
         if (
@@ -226,8 +181,7 @@ function updateGame(
         }
 
 
-        score +=
-            multiplier;
+        score += multiplier;
 
 
         const scoreElement =
@@ -241,25 +195,70 @@ function updateGame(
             scoreElement.textContent =
                 Math.floor(score);
         }
+
+
+        updateHUD();
     }
 }
 
 
 /* =========================================
-   GAME OVER / EXTRA LIFE
+   PAUSE
 ========================================= */
 
-function endGame() {
+function pauseGame() {
 
-    if (!gameRunning) {
+    if (
+        !gameRunning
+    ) {
 
         return;
     }
 
 
-    /*
-     * Extra Life benutzen.
-     */
+    gamePaused = true;
+
+
+    show(
+        "pauseScreen"
+    );
+}
+
+
+function resumeGame() {
+
+    if (
+        !gameRunning
+    ) {
+
+        return;
+    }
+
+
+    hide(
+        "pauseScreen"
+    );
+
+
+    gamePaused = false;
+}
+
+
+/* =========================================
+   GAME OVER
+========================================= */
+
+function endGame() {
+
+    if (
+        !gameRunning
+    ) {
+
+        return;
+    }
+
+
+    /* Extra Life */
 
     if (
         remainingLives > 0
@@ -268,89 +267,46 @@ function endGame() {
         remainingLives--;
 
 
-        /*
-         * Spiel kurz stoppen.
-         */
-
-        gameRunning = false;
+        updateHUD();
 
 
-        updateLifeDisplay();
+        if (
+            typeof clearNearbyObstacles ===
+            "function"
+        ) {
+
+            clearNearbyObstacles();
+        }
+
+
+        if (
+            typeof resetPlayer ===
+            "function"
+        ) {
+
+            resetPlayer();
+        }
 
 
         showLifeMessage();
 
 
-        /*
-         * Hindernisse entfernen,
-         * damit der Spieler nicht
-         * direkt wieder kollidiert.
-         */
+        gamePaused = true;
 
-        if (
-            typeof obstacleObjects !==
-            "undefined"
-        ) {
-
-            for (
-                const obstacle of
-                obstacleObjects
-            ) {
-
-                if (
-                    obstacle.position.z > -25
-                ) {
-
-                    scene.remove(
-                        obstacle
-                    );
-                }
-            }
-
-
-            obstacleObjects =
-                obstacleObjects.filter(
-                    obstacle =>
-                        obstacle.position.z <= -25
-                );
-        }
-
-
-        /*
-         * Spieler zurücksetzen.
-         */
-
-        if (player) {
-
-            player.position.x =
-                lanePositions[
-                    playerLane
-                ];
-
-            player.position.z =
-                3;
-        }
-
-
-        /*
-         * Nach kurzer Pause
-         * weiterlaufen.
-         */
 
         setTimeout(
             () => {
 
                 if (
-                    typeof gameRunning !==
-                    "undefined"
+                    gameRunning
                 ) {
 
-                    gameRunning =
-                        true;
+                    gamePaused =
+                        false;
                 }
 
             },
-            700
+            800
         );
 
 
@@ -358,50 +314,157 @@ function endGame() {
     }
 
 
-    /*
-     * Kein Leben mehr.
-     */
-
-    console.log(
-        "GENGA: GAME OVER"
-    );
-
+    /* Wirklich tot */
 
     gameRunning = false;
 
+    gamePaused = false;
 
-    /* =====================================
-       FINAL SCORE
-    ===================================== */
 
-    const finalScoreElement =
+    const finalScore =
         document.getElementById(
             "finalScore"
         );
 
 
-    if (finalScoreElement) {
+    if (finalScore) {
 
-        finalScoreElement.textContent =
+        finalScore.textContent =
             Math.floor(score);
     }
 
 
-    /* =====================================
-       GAME OVER SCREEN
-    ===================================== */
-
-    const gameOverScreen =
+    const finalCoins =
         document.getElementById(
-            "gameOverScreen"
+            "finalCoins"
         );
 
 
-    if (gameOverScreen) {
+    if (finalCoins) {
 
-        gameOverScreen.classList.remove(
-            "hidden"
+        finalCoins.textContent =
+            `🪙 +${runCoins}`;
+    }
+
+
+    hide(
+        "gameHUD"
+    );
+
+
+    show(
+        "gameOverScreen"
+    );
+
+
+    updateAllCoinDisplays();
+}
+
+
+/* =========================================
+   COINS
+========================================= */
+
+function collectCoin() {
+
+    let multiplier = 1;
+
+
+    if (
+        typeof getCoinMultiplier ===
+        "function"
+    ) {
+
+        multiplier =
+            getCoinMultiplier();
+    }
+
+
+    const amount =
+        Math.max(
+            1,
+            Math.floor(
+                multiplier
+            )
         );
+
+
+    runCoins += amount;
+
+
+    if (
+        typeof addCoins ===
+        "function"
+    ) {
+
+        addCoins(
+            amount
+        );
+    }
+
+
+    updateHUD();
+}
+
+
+/* =========================================
+   HUD
+========================================= */
+
+function updateHUD() {
+
+    const coins =
+        typeof getCoins ===
+        "function"
+            ? getCoins()
+            : 0;
+
+
+    const coinElement =
+        document.getElementById(
+            "hudCoins"
+        );
+
+
+    if (coinElement) {
+
+        coinElement.textContent =
+            `🪙 ${coins.toLocaleString("de-DE")}`;
+    }
+
+
+    const livesElement =
+        document.getElementById(
+            "hudLives"
+        );
+
+
+    if (livesElement) {
+
+        livesElement.textContent =
+            "❤️".repeat(
+                remainingLives
+            );
+    }
+
+
+    const multiplierElement =
+        document.getElementById(
+            "hudMultiplier"
+        );
+
+
+    if (multiplierElement) {
+
+        const multiplier =
+            typeof getScoreMultiplier ===
+            "function"
+                ? getScoreMultiplier()
+                : 1;
+
+
+        multiplierElement.textContent =
+            `x${multiplier}`;
     }
 }
 
@@ -412,97 +475,9 @@ function endGame() {
 
 function showLifeMessage() {
 
-    let message =
+    let element =
         document.getElementById(
             "lifeMessage"
-        );
-
-
-    if (!message) {
-
-        message =
-            document.createElement(
-                "div"
-            );
-
-
-        message.id =
-            "lifeMessage";
-
-
-        message.innerHTML =
-            "❤️ EXTRA LIFE!";
-
-
-        document.body.appendChild(
-            message
-        );
-    }
-
-
-    message.classList.add(
-        "show"
-    );
-
-
-    setTimeout(
-        () => {
-
-            message.classList.remove(
-                "show"
-            );
-
-        },
-        700
-    );
-}
-
-
-/* =========================================
-   LIFE DISPLAY
-========================================= */
-
-function updateLifeDisplay() {
-
-    let element =
-        document.getElementById(
-            "lives"
-        );
-
-
-    if (!element) {
-
-        return;
-    }
-
-
-    if (
-        remainingLives <= 0
-    ) {
-
-        element.textContent =
-            "";
-
-        return;
-    }
-
-
-    element.textContent =
-        "❤️".repeat(
-            remainingLives
-        );
-}
-
-
-/* =========================================
-   AKTIVES UPGRADE ANZEIGEN
-========================================= */
-
-function updateActiveUpgradeDisplay() {
-
-    let element =
-        document.getElementById(
-            "activeUpgradeDisplay"
         );
 
 
@@ -515,7 +490,11 @@ function updateActiveUpgradeDisplay() {
 
 
         element.id =
-            "activeUpgradeDisplay";
+            "lifeMessage";
+
+
+        element.textContent =
+            "❤️ EXTRA LIFE!";
 
 
         document.body.appendChild(
@@ -524,70 +503,110 @@ function updateActiveUpgradeDisplay() {
     }
 
 
-    if (
-        typeof getActiveUpgradeDefinition !==
-        "function"
-    ) {
-
-        return;
-    }
+    element.classList.add(
+        "show"
+    );
 
 
-    const upgrade =
-        getActiveUpgradeDefinition();
+    setTimeout(
+        () => {
 
+            element.classList.remove(
+                "show"
+            );
 
-    if (!upgrade) {
-
-        element.textContent =
-            "";
-
-        return;
-    }
-
-
-    element.textContent =
-        `${upgrade.definition.icon} ${upgrade.definition.name} Lv.${upgrade.level}`;
+        },
+        750
+    );
 }
 
 
 /* =========================================
-   SCORE LOOP
+   MENÜ
 ========================================= */
 
-let scoreLastTime =
-    performance.now();
+function returnToMainMenu() {
+
+    gameRunning = false;
+
+    gamePaused = false;
 
 
-function scoreLoop(time) {
+    hide(
+        "gameHUD"
+    );
 
-    requestAnimationFrame(
-        scoreLoop
+    hide(
+        "pauseScreen"
+    );
+
+    hide(
+        "gameOverScreen"
+    );
+
+    hide(
+        "shopScreen"
+    );
+
+    hide(
+        "upgradeScreen"
     );
 
 
-    const delta =
-        Math.min(
-            (time -
-                scoreLastTime) /
-                1000,
-            0.1
-        );
-
-
-    scoreLastTime =
-        time;
-
-
-    updateGame(
-        delta
+    show(
+        "startScreen"
     );
+
+
+    updateAllCoinDisplays();
+
+
+    if (
+        typeof updateMenuActiveUpgrade ===
+        "function"
+    ) {
+
+        updateMenuActiveUpgrade();
+    }
 }
 
 
-requestAnimationFrame(
-    scoreLoop
-);
+/* =========================================
+   HELPER
+========================================= */
+
+function show(id) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+
+    if (element) {
+
+        element.classList.remove(
+            "hidden"
+        );
+    }
+}
+
+
+function hide(id) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+
+    if (element) {
+
+        element.classList.add(
+            "hidden"
+        );
+    }
+}
 
 
 /* =========================================
@@ -610,21 +629,133 @@ document.addEventListener(
             );
 
 
+        const pauseButton =
+            document.getElementById(
+                "pauseButton"
+            );
+
+
+        const resumeButton =
+            document.getElementById(
+                "resumeButton"
+            );
+
+
+        const pauseMenuButton =
+            document.getElementById(
+                "pauseMenuButton"
+            );
+
+
+        const gameOverMenuButton =
+            document.getElementById(
+                "gameOverMenuButton"
+            );
+
+
         if (startButton) {
 
-            startButton.addEventListener(
-                "click",
-                startGame
-            );
+            startButton.onclick =
+                startGame;
         }
 
 
         if (restartButton) {
 
-            restartButton.addEventListener(
-                "click",
-                startGame
-            );
+            restartButton.onclick =
+                startGame;
+        }
+
+
+        if (pauseButton) {
+
+            pauseButton.onclick =
+                pauseGame;
+        }
+
+
+        if (resumeButton) {
+
+            resumeButton.onclick =
+                resumeGame;
+        }
+
+
+        if (pauseMenuButton) {
+
+            pauseMenuButton.onclick =
+                returnToMainMenu;
+        }
+
+
+        if (gameOverMenuButton) {
+
+            gameOverMenuButton.onclick =
+                returnToMainMenu;
+        }
+
+
+        updateHUD();
+    }
+);
+
+
+/* =========================================
+   SCORE LOOP
+========================================= */
+
+let lastScoreTime =
+    performance.now();
+
+
+function scoreLoop(
+    time
+) {
+
+    requestAnimationFrame(
+        scoreLoop
+    );
+
+
+    const delta =
+        Math.min(
+            (time -
+                lastScoreTime) /
+                1000,
+            0.1
+        );
+
+
+    lastScoreTime =
+        time;
+
+
+    updateGame(
+        delta
+    );
+}
+
+
+requestAnimationFrame(
+    scoreLoop
+);
+
+
+/* =========================================
+   PAGE VISIBILITY
+========================================= */
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if (
+            document.hidden &&
+            gameRunning &&
+            !gamePaused
+        ) {
+
+            pauseGame();
         }
     }
 );
