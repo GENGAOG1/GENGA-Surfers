@@ -12,6 +12,7 @@ let obstacleObjects = [];
 
 let lastTime = 0;
 
+
 /* =========================================
    EINSTELLUNGEN
 ========================================= */
@@ -34,10 +35,6 @@ const obstacleColors = [
     0xaf52de
 ];
 
-/*
-   Verhindert, dass zwei einzelne
-   Blöcke direkt hintereinander kommen.
-*/
 let lastRowWasOneBlock = false;
 
 
@@ -70,10 +67,6 @@ function getRandomColor() {
 ========================================= */
 
 function createScene() {
-
-    /*
-       Verhindert doppelte Initialisierung.
-    */
 
     if (renderer) {
         return;
@@ -119,11 +112,6 @@ function createScene() {
             300
         );
 
-
-    /*
-       Etwas weiter weg als vorher.
-       Die Kamera bleibt komplett statisch.
-    */
 
     camera.position.set(
         0,
@@ -441,15 +429,6 @@ function createObstacle(
 
 function spawnObstacleRow(z) {
 
-    /*
-       Einzelner Block:
-
-       Nur 15 % Wahrscheinlichkeit.
-
-       Und niemals direkt nach einem
-       anderen Einzelblock.
-    */
-
     let oneBlock = false;
 
 
@@ -554,11 +533,6 @@ function resetObstacles() {
         SPAWN_DISTANCE;
 
 
-    /*
-       Die erste Reihe wird absichtlich
-       als normale 2-Block-Reihe erzeugt.
-    */
-
     const firstSafeLane =
         randomInt(
             0,
@@ -591,10 +565,6 @@ function resetObstacles() {
     spawnZ -=
         SPAWN_INTERVAL;
 
-
-    /*
-       Restliche Reihen zufällig.
-    */
 
     for (
         let i = 1;
@@ -767,6 +737,7 @@ function checkCollision(
 ) {
 
     if (!player) {
+
         return false;
     }
 
@@ -799,6 +770,7 @@ function checkCollision(
 function updatePlayer() {
 
     if (!player) {
+
         return;
     }
 
@@ -859,10 +831,12 @@ function animate(currentTime) {
 
 
     /*
-       Nur das Spiel bewegt sich.
+       WICHTIG:
 
-       Die Kamera wird hier NICHT
-       verändert.
+       Wenn gameRunning false ist,
+       bewegt sich nichts.
+
+       Das gilt auch für Pause.
     */
 
     if (
@@ -946,6 +920,7 @@ function initGame3D() {
 
 
     if (renderer) {
+
         return;
     }
 
