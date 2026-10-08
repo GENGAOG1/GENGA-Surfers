@@ -1,927 +1,554 @@
-/* =========================================
-   GENGA SURFER
-   GAME CONTROLLER
-========================================= */
-
 let gameRunning = false;
-
-let score = 0;
-
-let playerLane = 1;
-
-let scoreTimer = 0;
-
 let gamePaused = false;
 
+let score = 0;
+let playerLane = 1;
 
-/* =========================================
-   SAVE
-========================================= */
-
-const SAVE_KEY =
-    "genga_surfer_saved_run";
+let scoreTimer = null;
 
 
-function saveGame() {
+/* =========================
+   SAVE KEYS
+========================= */
 
-    /*
-       Nur speichern, wenn wirklich ein
-       laufendes oder pausiertes Spiel existiert.
-    */
+const SAVE_KEY = "genga_surfer_saved_run";
+const HIGHSCORE_KEY = "genga_surfer_highscore";
+const COINS_KEY = "genga_surfer_coins";
 
-    if (
-        !gameRunning &&
-        !gamePaused
-    ) {
 
-        return;
+/* =========================
+   COINS / HIGHSCORE
+========================= */
+
+let totalCoins = Number(
+    localStorage.getItem(COINS_KEY) || 0
+);
+
+let highscore = Number(
+    localStorage.getItem(HIGHSCORE_KEY) || 0
+);
+
+
+/* =========================
+   DOM
+========================= */
+
+const scoreElement = document.getElementById("score");
+const coinsElement = document.getElementById("coins");
+const highscoreElement = document.getElementById("highscore");
+
+const startHighscoreElement =
+    document.getElementById("startHighscore");
+
+const startCoinsElement =
+    document.getElementById("startCoins");
+
+const finalScoreElement =
+    document.getElementById("finalScore");
+
+const finalCoinsElement =
+    document.getElementById("finalCoins");
+
+const newHighscoreText =
+    document.getElementById("newHighscoreText");
+
+
+/* =========================
+   DISPLAY
+========================= */
+
+function updateScoreDisplay() {
+
+    if (scoreElement) {
+        scoreElement.textContent = score;
     }
 
+    if (highscoreElement) {
+        highscoreElement.textContent = highscore;
+    }
 
-    const saveData = {
+    if (coinsElement) {
+        coinsElement.textContent = totalCoins;
+    }
 
-        score:
-            Math.floor(score),
+    if (startHighscoreElement) {
+        startHighscoreElement.textContent = highscore;
+    }
 
-        playerLane:
-            playerLane,
-
-        savedAt:
-            Date.now()
-    };
-
-
-    try {
-
-        localStorage.setItem(
-            SAVE_KEY,
-            JSON.stringify(saveData)
-        );
-
-        console.log(
-            "GENGA: Spiel gespeichert"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "GENGA: Speichern fehlgeschlagen",
-            error
-        );
+    if (startCoinsElement) {
+        startCoinsElement.textContent = totalCoins;
     }
 }
 
 
-/* =========================================
-   GESPEICHERTES SPIEL LADEN
-========================================= */
+/* =========================
+   HIGHSCORE
+========================= */
+
+function checkHighscore() {
+
+    if (score > highscore) {
+
+        highscore = score;
+
+        localStorage.setItem(
+            HIGHSCORE_KEY,
+            String(highscore)
+        );
+
+        return true;
+    }
+
+    return false;
+}
+
+
+/* =========================
+   COINS
+========================= */
+
+function addCoin() {
+
+    totalCoins += 1;
+
+    localStorage.setItem(
+        COINS_KEY,
+        String(totalCoins)
+    );
+
+    updateScoreDisplay();
+}
+
+
+/* =========================
+   SAVE CURRENT RUN
+========================= */
+
+function saveGame() {
+
+    if (!gameRunning && !gamePaused) {
+        return;
+    }
+
+    const saveData = {
+        score: score,
+        playerLane: playerLane,
+        savedAt: Date.now()
+    };
+
+    localStorage.setItem(
+        SAVE_KEY,
+        JSON.stringify(saveData)
+    );
+}
+
+
+/* =========================
+   LOAD SAVED RUN
+========================= */
 
 function loadSavedGame() {
 
+    const rawSave =
+        localStorage.getItem(SAVE_KEY);
+
+    if (!rawSave) {
+        return null;
+    }
+
     try {
 
-        const saved =
-            localStorage.getItem(
-                SAVE_KEY
-            );
-
-
-        if (!saved) {
-
-            return null;
-        }
-
-
-        const data =
-            JSON.parse(saved);
-
-
-        if (
-            typeof data.score !==
-            "number" ||
-
-            typeof data.playerLane !==
-            "number"
-        ) {
-
-            return null;
-        }
-
-
-        return data;
+        return JSON.parse(rawSave);
 
     } catch (error) {
 
         console.error(
-            "GENGA: Gespeichertes Spiel konnte nicht geladen werden.",
+            "Gespeichertes Spiel konnte nicht geladen werden:",
             error
         );
 
+        localStorage.removeItem(SAVE_KEY);
 
         return null;
     }
 }
 
 
-/* =========================================
-   GESPEICHERTES SPIEL LÖSCHEN
-========================================= */
+/* =========================
+   DELETE SAVE
+========================= */
 
 function deleteSavedGame() {
 
-    try {
-
-        localStorage.removeItem(
-            SAVE_KEY
-        );
-
-        console.log(
-            "GENGA: Gespeicherter Lauf gelöscht."
-        );
-
-    } catch (error) {
-
-        console.error(
-            "GENGA: Gespeicherter Lauf konnte nicht gelöscht werden.",
-            error
-        );
-    }
+    localStorage.removeItem(SAVE_KEY);
 }
 
 
-/* =========================================
-   SPIEL STARTEN
-========================================= */
+/* =========================
+   START NEW GAME
+========================= */
 
 function startGame() {
 
-    console.log(
-        "GENGA: Neues Spiel startet"
-    );
+    score = 0;
+    playerLane = 1;
 
-
-    /*
-       Alten gespeicherten Lauf bewusst
-       verwerfen.
-    */
+    gamePaused = false;
+    gameRunning = true;
 
     deleteSavedGame();
 
-
-    gameRunning = false;
-
-    gamePaused = false;
-
-    score = 0;
-
-    playerLane = 1;
-
-    scoreTimer = 0;
-
-
-    /* =====================================
-       SPIELER
-    ===================================== */
-
-    if (player) {
-
-        player.position.x = 0;
-
-        player.position.y = 0.9;
-
-        player.position.z = 3;
-
-        player.rotation.set(
-            0,
-            0,
-            0
-        );
+    if (typeof resetPlayer === "function") {
+        resetPlayer();
     }
 
-
-    /* =====================================
-       HINDERNISSE
-    ===================================== */
-
-    if (
-        typeof resetObstacles ===
-        "function"
-    ) {
-
+    if (typeof resetObstacles === "function") {
         resetObstacles();
     }
 
+    if (typeof resetCoins === "function") {
+        resetCoins();
+    }
 
-    /* =====================================
-       SCORE
-    ===================================== */
+    hideStartScreen();
+    hidePauseScreen();
+    hideGameOverScreen();
 
     updateScoreDisplay();
-
-
-    /* =====================================
-       GAME OVER VERSTECKEN
-    ===================================== */
-
-    const gameOverScreen =
-        document.getElementById(
-            "gameOverScreen"
-        );
-
-
-    if (gameOverScreen) {
-
-        gameOverScreen.classList.add(
-            "hidden"
-        );
-    }
-
-
-    /* =====================================
-       PAUSE VERSTECKEN
-    ===================================== */
-
-    hidePauseScreen();
-
-
-    /* =====================================
-       START SCREEN VERSTECKEN
-    ===================================== */
-
-    const startScreen =
-        document.getElementById(
-            "startScreen"
-        );
-
-
-    if (startScreen) {
-
-        startScreen.classList.add(
-            "hidden"
-        );
-    }
-
-
-    /*
-       Jetzt läuft das Spiel.
-    */
-
-    gameRunning = true;
-
-
     updatePauseButton();
-
-
-    console.log(
-        "GENGA: Spiel läuft"
-    );
 }
 
 
-/* =========================================
-   GESPEICHERTES SPIEL FORTSETZEN
-========================================= */
+/* =========================
+   CONTINUE
+========================= */
 
 function continueSavedGame() {
 
-    const saved =
-        loadSavedGame();
+    const savedGame = loadSavedGame();
 
-
-    if (!saved) {
-
+    if (!savedGame) {
         startGame();
-
         return;
     }
 
-
-    console.log(
-        "GENGA: Gespeicherten Lauf fortsetzen"
-    );
-
-
-    gameRunning = false;
-
-    gamePaused = false;
-
-
     score =
-        Math.max(
-            0,
-            Math.floor(
-                saved.score
-            )
-        );
-
+        Number(savedGame.score) || 0;
 
     playerLane =
-        Math.max(
-            0,
-            Math.min(
-                2,
-                Math.floor(
-                    saved.playerLane
-                )
-            )
-        );
-
-
-    scoreTimer = 0;
-
-
-    /* =====================================
-       SPIELER
-    ===================================== */
-
-    if (player) {
-
-        player.position.x =
-            lanePositions[
-                playerLane
-            ];
-
-        player.position.y = 0.9;
-
-        player.position.z = 3;
-
-        player.rotation.set(
-            0,
-            0,
-            0
-        );
-    }
-
-
-    /* =====================================
-       HINDERNISSE
-    ===================================== */
+        Number(savedGame.playerLane);
 
     if (
-        typeof resetObstacles ===
-        "function"
+        playerLane < 0 ||
+        playerLane > 2
     ) {
+        playerLane = 1;
+    }
 
+    gamePaused = false;
+    gameRunning = true;
+
+    if (typeof resetPlayer === "function") {
+        resetPlayer();
+    }
+
+    if (typeof resetObstacles === "function") {
         resetObstacles();
     }
 
+    if (typeof resetCoins === "function") {
+        resetCoins();
+    }
 
-    /* =====================================
-       SCORE
-    ===================================== */
+    hideStartScreen();
+    hidePauseScreen();
+    hideGameOverScreen();
 
     updateScoreDisplay();
-
-
-    /* =====================================
-       SCREENS
-    ===================================== */
-
-    const startScreen =
-        document.getElementById(
-            "startScreen"
-        );
-
-
-    if (startScreen) {
-
-        startScreen.classList.add(
-            "hidden"
-        );
-    }
-
-
-    const gameOverScreen =
-        document.getElementById(
-            "gameOverScreen"
-        );
-
-
-    if (gameOverScreen) {
-
-        gameOverScreen.classList.add(
-            "hidden"
-        );
-    }
-
-
-    hidePauseScreen();
-
-
-    /*
-       Spiel läuft wieder.
-    */
-
-    gameRunning = true;
-
-
     updatePauseButton();
 }
 
 
-/* =========================================
-   SCORE ANZEIGE
-========================================= */
-
-function updateScoreDisplay() {
-
-    const scoreElement =
-        document.getElementById(
-            "score"
-        );
-
-
-    if (scoreElement) {
-
-        scoreElement.textContent =
-            Math.floor(score);
-    }
-
-
-    const finalScoreElement =
-        document.getElementById(
-            "finalScore"
-        );
-
-
-    if (finalScoreElement) {
-
-        finalScoreElement.textContent =
-            Math.floor(score);
-    }
-}
-
-
-/* =========================================
+/* =========================
    PAUSE
-========================================= */
+========================= */
 
 function pauseGame() {
 
     if (!gameRunning) {
-
         return;
     }
 
-
-    console.log(
-        "GENGA: Spiel pausiert"
-    );
-
-
     gameRunning = false;
-
     gamePaused = true;
-
 
     saveGame();
 
-
     showPauseScreen();
-
     updatePauseButton();
 }
 
 
-/* =========================================
-   FORTSETZEN
-========================================= */
+/* =========================
+   RESUME
+========================= */
 
 function resumeGame() {
 
     if (!gamePaused) {
-
         return;
     }
 
-
-    console.log(
-        "GENGA: Spiel fortgesetzt"
-    );
-
-
     gamePaused = false;
-
     gameRunning = true;
 
-
     hidePauseScreen();
-
     updatePauseButton();
 }
 
 
-/* =========================================
-   PAUSE SCREEN
-========================================= */
-
-function showPauseScreen() {
-
-    const pauseScreen =
-        document.getElementById(
-            "pauseScreen"
-        );
-
-
-    if (pauseScreen) {
-
-        pauseScreen.classList.remove(
-            "hidden"
-        );
-    }
-}
-
-
-function hidePauseScreen() {
-
-    const pauseScreen =
-        document.getElementById(
-            "pauseScreen"
-        );
-
-
-    if (pauseScreen) {
-
-        pauseScreen.classList.add(
-            "hidden"
-        );
-    }
-}
-
-
-/* =========================================
+/* =========================
    PAUSE BUTTON
-========================================= */
+========================= */
 
 function updatePauseButton() {
 
-    const pauseButton =
-        document.getElementById(
-            "pauseButton"
-        );
+    const button =
+        document.getElementById("pauseButton");
 
-
-    if (!pauseButton) {
-
+    if (!button) {
         return;
     }
 
+    button.textContent =
+        gamePaused ? "▶" : "⏸";
 
-    if (gameRunning) {
-
-        pauseButton.textContent =
-            "⏸";
-
-        pauseButton.setAttribute(
-            "aria-label",
-            "Spiel pausieren"
-        );
-
-    } else {
-
-        pauseButton.textContent =
-            "▶";
-
-        pauseButton.setAttribute(
-            "aria-label",
-            "Spiel fortsetzen"
-        );
-    }
+    button.setAttribute(
+        "aria-label",
+        gamePaused
+            ? "Spiel fortsetzen"
+            : "Spiel pausieren"
+    );
 }
 
 
-/* =========================================
+/* =========================
    SCORE
-========================================= */
+========================= */
 
 function updateGame(delta) {
 
     if (!gameRunning) {
-
         return;
     }
 
-
     scoreTimer += delta;
 
+    if (scoreTimer >= 1) {
 
-    if (
-        scoreTimer >= 1
-    ) {
+        scoreTimer = 0;
 
         score += 1;
 
-        scoreTimer -= 1;
-
+        checkHighscore();
 
         updateScoreDisplay();
     }
 }
 
 
-/* =========================================
+/* =========================
    GAME OVER
-========================================= */
+========================= */
 
 function endGame() {
 
-    if (!gameRunning) {
-
+    if (!gameRunning && !gamePaused) {
         return;
     }
 
-
-    console.log(
-        "GENGA: GAME OVER"
-    );
-
-
     gameRunning = false;
-
     gamePaused = false;
 
+    clearInterval(scoreTimer);
 
-    /*
-       Ein abgeschlossener Lauf ist kein
-       fortsetzbarer Lauf mehr.
-    */
+    const wasNewHighscore =
+        checkHighscore();
 
     deleteSavedGame();
 
-
-    const finalScoreElement =
-        document.getElementById(
-            "finalScore"
-        );
-
-
     if (finalScoreElement) {
-
-        finalScoreElement.textContent =
-            Math.floor(score);
+        finalScoreElement.textContent = score;
     }
 
-
-    const gameOverScreen =
-        document.getElementById(
-            "gameOverScreen"
-        );
-
-
-    if (gameOverScreen) {
-
-        gameOverScreen.classList.remove(
-            "hidden"
-        );
+    if (finalCoinsElement) {
+        finalCoinsElement.textContent = totalCoins;
     }
 
+    if (newHighscoreText) {
 
+        if (wasNewHighscore) {
+            newHighscoreText.classList.remove("hidden");
+        } else {
+            newHighscoreText.classList.add("hidden");
+        }
+    }
+
+    hideStartScreen();
     hidePauseScreen();
+    showGameOverScreen();
 
+    updateScoreDisplay();
     updatePauseButton();
 }
 
 
-/* =========================================
-   SCORE LOOP
-========================================= */
+/* =========================
+   SCREEN FUNCTIONS
+========================= */
 
-let scoreLastTime =
-    performance.now();
+function showStartScreen() {
 
+    const screen =
+        document.getElementById("startScreen");
 
-function scoreLoop(time) {
-
-    requestAnimationFrame(
-        scoreLoop
-    );
-
-
-    const delta =
-        Math.min(
-            (
-                time -
-                scoreLastTime
-            ) / 1000,
-            0.1
-        );
-
-
-    scoreLastTime =
-        time;
-
-
-    updateGame(
-        delta
-    );
+    if (screen) {
+        screen.classList.remove("hidden");
+    }
 }
 
+function hideStartScreen() {
 
-requestAnimationFrame(
-    scoreLoop
-);
+    const screen =
+        document.getElementById("startScreen");
 
+    if (screen) {
+        screen.classList.add("hidden");
+    }
+}
 
-/* =========================================
-   SEITENWECHSEL / APP VERLASSEN
-========================================= */
+function showPauseScreen() {
 
-function saveBeforeLeaving() {
+    const screen =
+        document.getElementById("pauseScreen");
 
-    if (
-        gameRunning ||
-        gamePaused
-    ) {
+    if (screen) {
+        screen.classList.remove("hidden");
+    }
+}
 
-        saveGame();
+function hidePauseScreen() {
+
+    const screen =
+        document.getElementById("pauseScreen");
+
+    if (screen) {
+        screen.classList.add("hidden");
+    }
+}
+
+function showGameOverScreen() {
+
+    const screen =
+        document.getElementById("gameOverScreen");
+
+    if (screen) {
+        screen.classList.remove("hidden");
+    }
+}
+
+function hideGameOverScreen() {
+
+    const screen =
+        document.getElementById("gameOverScreen");
+
+    if (screen) {
+        screen.classList.add("hidden");
     }
 }
 
 
-/*
-   Wird ausgelöst, wenn die Seite verlassen
-   oder im Hintergrund angehalten wird.
-*/
-
-window.addEventListener(
-    "pagehide",
-    saveBeforeLeaving
-);
-
-
-document.addEventListener(
-    "visibilitychange",
-    function () {
-
-        if (
-            document.visibilityState ===
-            "hidden"
-        ) {
-
-            saveBeforeLeaving();
-        }
-    }
-);
-
-
-/* =========================================
-   STARTSCREEN
-========================================= */
+/* =========================
+   START SCREEN SETUP
+========================= */
 
 function setupStartScreen() {
 
-    const startButton =
-        document.getElementById(
-            "startButton"
-        );
-
-
-    const continueButton =
-        document.getElementById(
-            "continueButton"
-        );
-
-
-    const saved =
+    const savedGame =
         loadSavedGame();
 
+    const continueButton =
+        document.getElementById("continueButton");
 
-    /*
-       Es gibt einen gespeicherten Lauf.
-    */
+    if (!continueButton) {
+        return;
+    }
 
-    if (saved) {
+    if (savedGame) {
 
-        if (startButton) {
-
-            startButton.textContent =
-                "Neues Spiel";
-        }
-
-
-        if (continueButton) {
-
-            continueButton.classList.remove(
-                "hidden"
-            );
-
-            continueButton.textContent =
-                "Fortsetzen";
-        }
+        continueButton.classList.remove("hidden");
 
     } else {
 
-        if (startButton) {
-
-            startButton.textContent =
-                "Neues Spiel";
-        }
-
-
-        if (continueButton) {
-
-            continueButton.classList.add(
-                "hidden"
-            );
-        }
+        continueButton.classList.add("hidden");
     }
 }
 
 
-/* =========================================
+/* =========================
    BUTTONS
-========================================= */
+========================= */
 
 function setupGameButtons() {
 
     const startButton =
-        document.getElementById(
-            "startButton"
-        );
-
+        document.getElementById("startButton");
 
     const restartButton =
-        document.getElementById(
-            "restartButton"
-        );
-
+        document.getElementById("restartButton");
 
     const continueButton =
-        document.getElementById(
-            "continueButton"
-        );
-
+        document.getElementById("continueButton");
 
     const pauseButton =
-        document.getElementById(
-            "pauseButton"
-        );
-
+        document.getElementById("pauseButton");
 
     const resumeButton =
-        document.getElementById(
-            "resumeButton"
-        );
+        document.getElementById("resumeButton");
 
-
-    /* =====================================
-       NEUES SPIEL
-    ===================================== */
 
     if (startButton) {
 
-        startButton.onclick =
-            function (event) {
-
-                event.preventDefault();
-
-                startGame();
-            };
+        startButton.addEventListener(
+            "click",
+            startGame
+        );
     }
 
-
-    /* =====================================
-       RESTART
-    ===================================== */
 
     if (restartButton) {
 
-        restartButton.onclick =
-            function (event) {
-
-                event.preventDefault();
-
-                startGame();
-            };
+        restartButton.addEventListener(
+            "click",
+            startGame
+        );
     }
 
-
-    /* =====================================
-       FORTSETZEN
-    ===================================== */
 
     if (continueButton) {
 
-        continueButton.onclick =
-            function (event) {
-
-                event.preventDefault();
-
-                continueSavedGame();
-            };
+        continueButton.addEventListener(
+            "click",
+            continueSavedGame
+        );
     }
 
 
-    /* =====================================
-       PAUSE
-    ===================================== */
-
     if (pauseButton) {
 
-        pauseButton.onclick =
-            function (event) {
-
-                event.preventDefault();
+        pauseButton.addEventListener(
+            "click",
+            () => {
 
                 if (gameRunning) {
 
@@ -931,48 +558,99 @@ function setupGameButtons() {
 
                     resumeGame();
                 }
-            };
+            }
+        );
     }
 
-
-    /* =====================================
-       PAUSE SCREEN FORTSETZEN
-    ===================================== */
 
     if (resumeButton) {
 
-        resumeButton.onclick =
-            function (event) {
+        resumeButton.addEventListener(
+            "click",
+            resumeGame
+        );
+    }
+}
 
-                event.preventDefault();
 
-                resumeGame();
-            };
+/* =========================
+   SCORE LOOP
+========================= */
+
+let lastScoreTime =
+    performance.now();
+
+function scoreLoop(currentTime) {
+
+    const delta =
+        (currentTime - lastScoreTime) / 1000;
+
+    lastScoreTime = currentTime;
+
+    updateGame(delta);
+
+    requestAnimationFrame(scoreLoop);
+}
+
+
+/* =========================
+   SAVE WHEN LEAVING
+========================= */
+
+function saveBeforeLeaving() {
+
+    if (gameRunning) {
+
+        gameRunning = false;
+        gamePaused = true;
     }
 
-
-    setupStartScreen();
-
-    updatePauseButton();
+    if (gamePaused) {
+        saveGame();
+    }
 }
 
 
-/* =========================================
-   BUTTON INITIALISIERUNG
-========================================= */
+window.addEventListener(
+    "pagehide",
+    saveBeforeLeaving
+);
 
-if (
-    document.readyState ===
-    "loading"
-) {
 
-    document.addEventListener(
-        "DOMContentLoaded",
-        setupGameButtons,
-        { once: true }
-    );
+document.addEventListener(
+    "visibilitychange",
+    () => {
 
-} else {
+        if (document.hidden) {
 
-    setupGameButtons();
-}
+            saveBeforeLeaving();
+
+        } else {
+
+            if (gamePaused) {
+                showPauseScreen();
+                updatePauseButton();
+            }
+        }
+    }
+);
+
+
+/* =========================
+   INIT
+========================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        updateScoreDisplay();
+
+        setupStartScreen();
+        setupGameButtons();
+
+        updatePauseButton();
+
+        requestAnimationFrame(scoreLoop);
+    }
+);
