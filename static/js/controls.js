@@ -1,280 +1,169 @@
-/* =========================================
+/* =========================================================
    GENGA SURFER
-   TOUCH / SWIPE CONTROLS
-========================================= */
-
-let playerLane = 1;
+   CONTROLS
+========================================================= */
 
 let touchStartX = 0;
-
 let touchStartY = 0;
 
-let touchStartTime = 0;
+let touchActive = false;
 
 
-/* =========================================
-   LANE
-========================================= */
+/* =========================================================
+   LANE MOVEMENT
+========================================================= */
 
 function movePlayerLeft() {
+  if (
+    typeof gameRunning ===
+      "undefined" ||
+    !gameRunning ||
+    gamePaused
+  ) {
+    return;
+  }
 
-    if (
-        typeof gameRunning !==
-        "undefined" &&
-        !gameRunning
-    ) {
-        return;
-    }
-
-
-    if (
-        typeof gamePaused !==
-        "undefined" &&
-        gamePaused
-    ) {
-        return;
-    }
-
-
-    if (
-        playerLane > 0
-    ) {
-
-        playerLane--;
-    }
+  playerLane =
+    Math.max(
+      0,
+      playerLane - 1
+    );
 }
-
 
 function movePlayerRight() {
+  if (
+    typeof gameRunning ===
+      "undefined" ||
+    !gameRunning ||
+    gamePaused
+  ) {
+    return;
+  }
 
-    if (
-        typeof gameRunning !==
-        "undefined" &&
-        !gameRunning
-    ) {
-        return;
-    }
-
-
-    if (
-        typeof gamePaused !==
-        "undefined" &&
-        gamePaused
-    ) {
-        return;
-    }
-
-
-    if (
-        playerLane < 2
-    ) {
-
-        playerLane++;
-    }
+  playerLane =
+    Math.min(
+      2,
+      playerLane + 1
+    );
 }
 
 
-/* =========================================
-   TOUCH START
-========================================= */
-
-document.addEventListener(
-    "touchstart",
-    event => {
-
-        if (
-            !event.touches ||
-            !event.touches.length
-        ) {
-            return;
-        }
-
-
-        touchStartX =
-            event.touches[0].clientX;
-
-
-        touchStartY =
-            event.touches[0].clientY;
-
-
-        touchStartTime =
-            performance.now();
-    },
-    {
-        passive: true
-    }
-);
-
-
-/* =========================================
-   TOUCH END
-========================================= */
-
-document.addEventListener(
-    "touchend",
-    event => {
-
-        if (
-            typeof gameRunning !==
-            "undefined" &&
-            !gameRunning
-        ) {
-            return;
-        }
-
-
-        if (
-            typeof gamePaused !==
-            "undefined" &&
-            gamePaused
-        ) {
-            return;
-        }
-
-
-        if (
-            !event.changedTouches ||
-            !event.changedTouches.length
-        ) {
-            return;
-        }
-
-
-        const touch =
-            event.changedTouches[0];
-
-
-        const endX =
-            touch.clientX;
-
-
-        const endY =
-            touch.clientY;
-
-
-        const deltaX =
-            endX -
-            touchStartX;
-
-
-        const deltaY =
-            endY -
-            touchStartY;
-
-
-        const elapsed =
-            performance.now() -
-            touchStartTime;
-
-
-        /*
-         * Kein Wischen:
-         * ignorieren.
-         */
-
-        if (
-            elapsed > 700
-        ) {
-            return;
-        }
-
-
-        if (
-            Math.abs(deltaX) < 35
-        ) {
-            return;
-        }
-
-
-        /*
-         * Nur horizontale
-         * Bewegungen.
-         */
-
-        if (
-            Math.abs(deltaX) <
-            Math.abs(deltaY)
-        ) {
-            return;
-        }
-
-
-        if (
-            deltaX < 0
-        ) {
-
-            movePlayerLeft();
-
-        } else {
-
-            movePlayerRight();
-        }
-    },
-    {
-        passive: true
-    }
-);
-
-
-/* =========================================
+/* =========================================================
    KEYBOARD
-========================================= */
+========================================================= */
 
 document.addEventListener(
-    "keydown",
-    event => {
+  "keydown",
+  event => {
+    if (
+      event.key === "ArrowLeft" ||
+      event.key.toLowerCase() === "a"
+    ) {
+      event.preventDefault();
 
-        if (
-            event.key ===
-            "ArrowLeft"
-        ) {
-
-            movePlayerLeft();
-        }
-
-
-        if (
-            event.key ===
-            "ArrowRight"
-        ) {
-
-            movePlayerRight();
-        }
-
-
-        if (
-            event.key ===
-            " " &&
-            typeof gameRunning !==
-            "undefined" &&
-            gameRunning
-        ) {
-
-            if (
-                typeof gamePaused !==
-                "undefined" &&
-                gamePaused
-            ) {
-
-                if (
-                    typeof resumeGame ===
-                    "function"
-                ) {
-
-                    resumeGame();
-                }
-
-            } else {
-
-                if (
-                    typeof pauseGame ===
-                    "function"
-                ) {
-
-                    pauseGame();
-                }
-            }
-        }
+      movePlayerLeft();
     }
+
+    if (
+      event.key === "ArrowRight" ||
+      event.key.toLowerCase() === "d"
+    ) {
+      event.preventDefault();
+
+      movePlayerRight();
+    }
+
+    if (
+      event.key === "Escape" ||
+      event.key.toLowerCase() === "p"
+    ) {
+      if (
+        typeof togglePause ===
+        "function"
+      ) {
+        togglePause();
+      }
+    }
+  }
+);
+
+
+/* =========================================================
+   TOUCH / SWIPE
+========================================================= */
+
+document.addEventListener(
+  "touchstart",
+  event => {
+    if (
+      !event.touches ||
+      !event.touches.length
+    ) {
+      return;
+    }
+
+    touchActive = true;
+
+    touchStartX =
+      event.touches[0].clientX;
+
+    touchStartY =
+      event.touches[0].clientY;
+  },
+  {
+    passive: true
+  }
+);
+
+document.addEventListener(
+  "touchend",
+  event => {
+    if (
+      !touchActive ||
+      !event.changedTouches ||
+      !event.changedTouches.length
+    ) {
+      return;
+    }
+
+    touchActive = false;
+
+    const endX =
+      event.changedTouches[0].clientX;
+
+    const endY =
+      event.changedTouches[0].clientY;
+
+    const deltaX =
+      endX - touchStartX;
+
+    const deltaY =
+      endY - touchStartY;
+
+    /*
+      Nur deutliche horizontale Swipes.
+    */
+
+    if (
+      Math.abs(deltaX) < 35
+    ) {
+      return;
+    }
+
+    if (
+      Math.abs(deltaX) <
+      Math.abs(deltaY)
+    ) {
+      return;
+    }
+
+    if (deltaX < 0) {
+      movePlayerLeft();
+    } else {
+      movePlayerRight();
+    }
+  },
+  {
+    passive: true
+  }
 );
