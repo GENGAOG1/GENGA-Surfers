@@ -1,110 +1,112 @@
 /* =========================================
-   GENGA SURFER
-   3D GAME ENGINE
+   GENGA SURFER - 3D GAME
 ========================================= */
 
-let scene = null;
-let camera = null;
-let renderer = null;
-let player = null;
+let scene;
+let camera;
+let renderer;
+let player;
 
 let obstacleObjects = [];
 
-let lastTime = performance.now();
+const START_SPEED = 12;
+const MAX_SPEED = 24;
+const SPEED_INCREASE = 0.35;
 
-/* =========================================
-   GAME SETTINGS
-========================================= */
+const SPAWN_INTERVAL = 24;
+const SPAWN_DISTANCE = -110;
 
-const START_SPEED = 10;
-const MAX_SPEED = 28;
-
-/* Wie schnell die Geschwindigkeit steigt */
-const SPEED_INCREASE = 0.7;
-
-const SPAWN_INTERVAL = 22;
-const SPAWN_DISTANCE = -85;
-
-const lanes = [-2, 0, 2];
+const lanePositions = [-2, 0, 2];
 
 const obstacleColors = [
-    0xff3333,
-    0xff8800,
-    0xffff00,
-    0x33cc66,
-    0x3399ff,
-    0xaa44ff
+    0xff3b30,
+    0xff9500,
+    0xffcc00,
+    0x34c759,
+    0x007aff,
+    0xaf52de
 ];
 
-/* Aktuelle Geschwindigkeit */
-let currentSpeed = START_SPEED;
+let lastTime = 0;
 
-/* Zeit seit Spielstart */
-let gameTime = 0;
+/*
+    Verhindert zwei einzelne Block-Reihen
+    direkt hintereinander.
+*/
+let lastRowWasOneBlock = false;
+
 
 /* =========================================
-   SZENE ERSTELLEN
+   HILFSFUNKTIONEN
+========================================= */
+
+function randomInt(min, max) {
+    return Math.floor(
+        Math.random() * (max - min + 1)
+    ) + min;
+}
+
+
+function getRandomColor() {
+    return obstacleColors[
+        randomInt(0, obstacleColors.length - 1)
+    ];
+}
+
+
+/* =========================================
+   SZENE
 ========================================= */
 
 function createScene() {
-
-    const container =
-        document.getElementById("gameCanvas");
-
-    if (!container) {
-        console.error(
-            "GENGA: #gameCanvas nicht gefunden."
-        );
-        return;
-    }
 
     scene = new THREE.Scene();
 
     scene.background =
         new THREE.Color(0x07111f);
 
+
     /* =====================================
        KAMERA
     ===================================== */
 
-    const width =
-        container.clientWidth ||
-        window.innerWidth;
-
-    const height =
-        container.clientHeight ||
-        window.innerHeight;
-
     camera =
         new THREE.PerspectiveCamera(
-            68,
-            width / height,
+            65,
+            window.innerWidth /
+                window.innerHeight,
             0.1,
-            250
+            300
         );
 
+
     /*
-       Deutlich näher als vorher.
-       Dadurch wirken Hindernisse größer
-       und kommen früher ins Blickfeld.
+        Etwas weiter weg als vorher,
+        aber weiterhin nah genug für
+        den Subway-Surfer-Look.
     */
 
     camera.position.set(
         0,
-        4.2,
-        8
+        4.5,
+        9.5
     );
 
+
     /*
-       Kamera bleibt komplett statisch.
-       Kein Wackeln durch Kamera-Bewegung.
+        Kamera EINMAL ausrichten.
+
+        Nicht in animate()!
+        Dadurch kann die Kamera
+        nicht anfangen zu wackeln.
     */
 
     camera.lookAt(
         0,
-        0.8,
-        -30
+        0,
+        -25
     );
+
 
     /* =====================================
        RENDERER
@@ -113,8 +115,9 @@ function createScene() {
     renderer =
         new THREE.WebGLRenderer({
             antialias: true,
-            alpha: false
+            powerPreference: "high-performance"
         });
+
 
     renderer.setPixelRatio(
         Math.min(
@@ -123,14 +126,27 @@ function createScene() {
         )
     );
 
+
     renderer.setSize(
-        width,
-        height,
+        window.innerWidth,
+        window.innerHeight,
         false
     );
 
-    renderer.domElement.style.display =
-        "block";
+
+    /*
+        Canvas fest positionieren,
+        damit die Seite nicht mitscrollt.
+    */
+
+    renderer.domElement.style.position =
+        "fixed";
+
+    renderer.domElement.style.left =
+        "0";
+
+    renderer.domElement.style.top =
+        "0";
 
     renderer.domElement.style.width =
         "100%";
@@ -138,11 +154,25 @@ function createScene() {
     renderer.domElement.style.height =
         "100%";
 
-    container.innerHTML = "";
+    renderer.domElement.style.touchAction =
+        "none";
 
-    container.appendChild(
-        renderer.domElement
-    );
+
+    const container =
+        document.getElementById(
+            "gameCanvas"
+        );
+
+
+    if (container) {
+
+        container.innerHTML = "";
+
+        container.appendChild(
+            renderer.domElement
+        );
+    }
+
 
     /* =====================================
        LICHT
@@ -151,17 +181,18 @@ function createScene() {
     const ambientLight =
         new THREE.AmbientLight(
             0xffffff,
-            0.9
+            0.7
         );
 
     scene.add(
         ambientLight
     );
 
+
     const directionalLight =
         new THREE.DirectionalLight(
             0xffffff,
-            1.3
+            1
         );
 
     directionalLight.position.set(
@@ -174,8 +205,9 @@ function createScene() {
         directionalLight
     );
 
+
     /* =====================================
-       SPIELWELT
+       WELT
     ===================================== */
 
     createRoad();
@@ -184,17 +216,16 @@ function createScene() {
 
     resetObstacles();
 
-    /* =====================================
-       RESIZE
-    ===================================== */
 
     window.addEventListener(
         "resize",
         onWindowResize
     );
 
+
     animate();
 }
+
 
 /* =========================================
    STRASSE
@@ -203,16 +234,18 @@ function createScene() {
 function createRoad() {
 
     const roadGeometry =
-        new THREE.PlaneGeometry(
+        new THREE.BoxGeometry(
             8,
-            260
+            0.2,
+            300
         );
+
 
     const roadMaterial =
         new THREE.MeshStandardMaterial({
-            color: 0x30394b,
-            roughness: 0.95
+            color: 0x252525
         });
+
 
     const road =
         new THREE.Mesh(
@@ -220,41 +253,44 @@ function createRoad() {
             roadMaterial
         );
 
-    road.rotation.x =
-        -Math.PI / 2;
 
     road.position.set(
         0,
         0,
-        -90
+        -100
     );
+
 
     scene.add(
         road
     );
 
-    /* Fahrbahnlinien */
 
     createLaneLine(-1);
+
     createLaneLine(1);
 }
 
+
 /* =========================================
-   FAHRBAHNLINIE
+   SPUR-LINIEN
 ========================================= */
 
 function createLaneLine(x) {
 
     const geometry =
-        new THREE.PlaneGeometry(
-            0.07,
-            260
+        new THREE.BoxGeometry(
+            0.08,
+            0.03,
+            300
         );
+
 
     const material =
         new THREE.MeshBasicMaterial({
-            color: 0xffffff
+            color: 0x777777
         });
+
 
     const line =
         new THREE.Mesh(
@@ -262,19 +298,19 @@ function createLaneLine(x) {
             material
         );
 
-    line.rotation.x =
-        -Math.PI / 2;
 
     line.position.set(
         x,
-        0.025,
-        -90
+        0.12,
+        -100
     );
+
 
     scene.add(
         line
     );
 }
+
 
 /* =========================================
    SPIELER
@@ -284,16 +320,17 @@ function createPlayer() {
 
     const geometry =
         new THREE.BoxGeometry(
-            1.25,
+            1.2,
             1.8,
-            1.25
+            1.2
         );
+
 
     const material =
         new THREE.MeshStandardMaterial({
-            color: 0x00dfff,
-            roughness: 0.65
+            color: 0x008cff
         });
+
 
     player =
         new THREE.Mesh(
@@ -301,16 +338,19 @@ function createPlayer() {
             material
         );
 
+
     player.position.set(
         0,
         0.9,
         3
     );
 
+
     scene.add(
         player
     );
 }
+
 
 /* =========================================
    HINDERNIS ERSTELLEN
@@ -318,29 +358,23 @@ function createPlayer() {
 
 function createObstacle(
     lane,
-    z
+    z,
+    color
 ) {
 
     const geometry =
         new THREE.BoxGeometry(
-            1.5,
-            1.5,
-            1.5
+            1.35,
+            1.8,
+            1.35
         );
 
-    const color =
-        obstacleColors[
-            Math.floor(
-                Math.random() *
-                obstacleColors.length
-            )
-        ];
 
     const material =
         new THREE.MeshStandardMaterial({
-            color: color,
-            roughness: 0.7
+            color: color
         });
+
 
     const obstacle =
         new THREE.Mesh(
@@ -348,20 +382,24 @@ function createObstacle(
             material
         );
 
+
     obstacle.position.set(
-        lanes[lane],
-        0.75,
+        lanePositions[lane],
+        0.9,
         z
     );
+
 
     scene.add(
         obstacle
     );
 
+
     obstacleObjects.push(
         obstacle
     );
 }
+
 
 /* =========================================
    HINDERNIS-REIHE
@@ -369,39 +407,59 @@ function createObstacle(
 
 function spawnObstacleRow(z) {
 
-    const random =
-        Math.random();
-
     /*
-       50 %:
-       nur ein Hindernis
+        Einzelner Block nur selten.
+
+        15 % Wahrscheinlichkeit.
+
+        Wenn die letzte Reihe bereits
+        ein einzelner Block war, wird
+        automatisch eine normale Reihe
+        erzeugt.
     */
 
-    if (random < 0.5) {
+    let oneBlock = false;
 
-        const lane =
-            Math.floor(
-                Math.random() * 3
-            );
+
+    if (!lastRowWasOneBlock) {
+
+        oneBlock =
+            Math.random() < 0.15;
+    }
+
+
+    /* =====================================
+       EINZELNER BLOCK
+    ===================================== */
+
+    if (oneBlock) {
+
+        const blockLane =
+            randomInt(0, 2);
+
 
         createObstacle(
-            lane,
-            z
+            blockLane,
+            z,
+            getRandomColor()
         );
+
+
+        lastRowWasOneBlock =
+            true;
+
 
         return;
     }
 
-    /*
-       50 %:
-       zwei Hindernisse,
-       eine Spur bleibt frei
-    */
+
+    /* =====================================
+       NORMALE 2-BLOCK-REIHE
+    ===================================== */
 
     const safeLane =
-        Math.floor(
-            Math.random() * 3
-        );
+        randomInt(0, 2);
+
 
     for (
         let lane = 0;
@@ -410,16 +468,24 @@ function spawnObstacleRow(z) {
     ) {
 
         if (
-            lane !== safeLane
+            lane === safeLane
         ) {
-
-            createObstacle(
-                lane,
-                z
-            );
+            continue;
         }
+
+
+        createObstacle(
+            lane,
+            z,
+            getRandomColor()
+        );
     }
+
+
+    lastRowWasOneBlock =
+        false;
 }
+
 
 /* =========================================
    HINDERNISSE ZURÜCKSETZEN
@@ -428,82 +494,51 @@ function spawnObstacleRow(z) {
 function resetObstacles() {
 
     for (
-        const obstacle
-        of obstacleObjects
+        const obstacle of obstacleObjects
     ) {
 
-        if (
-            obstacle.parent
-        ) {
-
-            obstacle.parent.remove(
-                obstacle
-            );
-        }
+        scene.remove(
+            obstacle
+        );
     }
+
 
     obstacleObjects = [];
 
-    /*
-       Geschwindigkeit zurücksetzen
-    */
-
-    currentSpeed =
-        START_SPEED;
-
-    gameTime = 0;
 
     /*
-       Erste Hindernisse näher
-       beim Spieler verteilen.
+        Wichtig:
+        Nach einem Neustart darf nicht
+        automatisch mit einem einzelnen
+        Block begonnen werden.
     */
 
-    let z =
+    lastRowWasOneBlock = false;
+
+
+    let spawnZ =
         SPAWN_DISTANCE;
+
 
     for (
         let i = 0;
-        i < 9;
+        i < 7;
         i++
     ) {
 
-        spawnObstacleRow(z);
+        spawnObstacleRow(
+            spawnZ
+        );
 
-        z -= SPAWN_INTERVAL;
+
+        spawnZ -=
+            SPAWN_INTERVAL;
     }
 }
 
-/* =========================================
-   GESCHWINDIGKEIT
-========================================= */
-
-function updateSpeed(delta) {
-
-    gameTime += delta;
-
-    /*
-       Geschwindigkeit steigt langsam
-       und kontinuierlich.
-
-       Beispiel:
-
-       Start: 10
-       nach 10 Sek.: ~17
-       nach 20 Sek.: ~24
-       Maximum: 28
-    */
-
-    currentSpeed =
-        Math.min(
-            START_SPEED +
-            gameTime *
-            SPEED_INCREASE,
-            MAX_SPEED
-        );
-}
 
 /* =========================================
-   NEUE HINDERNISSE
+   NEUE REIHEN SPAWNEN
 ========================================= */
 
 function updateSpawning() {
@@ -514,12 +549,13 @@ function updateSpawning() {
         return;
     }
 
+
     let furthestZ =
         Infinity;
 
+
     for (
-        const obstacle
-        of obstacleObjects
+        const obstacle of obstacleObjects
     ) {
 
         if (
@@ -532,6 +568,7 @@ function updateSpawning() {
         }
     }
 
+
     if (
         furthestZ > -150
     ) {
@@ -543,15 +580,48 @@ function updateSpawning() {
     }
 }
 
+
+/* =========================================
+   AKTUELLE GESCHWINDIGKEIT
+========================================= */
+
+function getCurrentGameSpeed() {
+
+    /*
+        Geschwindigkeit steigt mit
+        der Punktzahl langsam an.
+    */
+
+    if (
+        typeof score ===
+        "undefined"
+    ) {
+
+        return START_SPEED;
+    }
+
+
+    return Math.min(
+        START_SPEED +
+        score * SPEED_INCREASE,
+        MAX_SPEED
+    );
+}
+
+
 /* =========================================
    HINDERNISSE BEWEGEN
 ========================================= */
 
 function updateObstacles(delta) {
 
+    const currentSpeed =
+        getCurrentGameSpeed();
+
+
     for (
         let i =
-        obstacleObjects.length - 1;
+            obstacleObjects.length - 1;
         i >= 0;
         i--
     ) {
@@ -559,14 +629,10 @@ function updateObstacles(delta) {
         const obstacle =
             obstacleObjects[i];
 
-        /*
-           Die Geschwindigkeit wird
-           automatisch größer.
-        */
 
         obstacle.position.z +=
-            currentSpeed *
-            delta;
+            currentSpeed * delta;
+
 
         /* =================================
            KOLLISION
@@ -580,27 +646,37 @@ function updateObstacles(delta) {
 
             if (
                 checkCollision(
-                    player,
                     obstacle
                 )
             ) {
 
-                endGame();
+                if (
+                    typeof endGame ===
+                    "function"
+                ) {
+
+                    endGame();
+                }
+
+
+                return;
             }
         }
 
+
         /* =================================
-           ALTE HINDERNISSE ENTFERNEN
+           ALTE BLÖCKE ENTFERNEN
         ================================= */
 
         if (
             obstacle.position.z >
-            16
+            10
         ) {
 
             scene.remove(
                 obstacle
             );
+
 
             obstacleObjects.splice(
                 i,
@@ -608,44 +684,42 @@ function updateObstacles(delta) {
             );
         }
     }
-
-    updateSpawning();
 }
+
 
 /* =========================================
    KOLLISION
 ========================================= */
 
 function checkCollision(
-    playerObject,
     obstacle
 ) {
 
-    if (
-        !playerObject ||
-        !obstacle
-    ) {
-
+    if (!player) {
         return false;
     }
 
+
     const xDistance =
         Math.abs(
-            playerObject.position.x -
+            player.position.x -
             obstacle.position.x
         );
 
+
     const zDistance =
         Math.abs(
-            playerObject.position.z -
+            player.position.z -
             obstacle.position.z
         );
+
 
     return (
         xDistance < 1.15 &&
         zDistance < 1.35
     );
 }
+
 
 /* =========================================
    SPIELER BEWEGEN
@@ -657,50 +731,77 @@ function updatePlayer() {
         return;
     }
 
-    if (
-        typeof playerLane ===
-        "undefined"
-    ) {
 
-        return;
-    }
+    const currentLane =
+        typeof playerLane !==
+        "undefined"
+            ? playerLane
+            : 1;
+
 
     const targetX =
-        lanes[playerLane];
+        lanePositions[currentLane];
+
 
     /*
-       Ruhige, weiche Bewegung
-       ohne Kamera-Wackeln.
+        Weiche Bewegung auf die Spur.
+
+        Die Kamera wird dabei NICHT
+        bewegt.
     */
 
     player.position.x +=
         (
             targetX -
             player.position.x
-        ) * 0.16;
+        ) * 0.2;
 }
+
 
 /* =========================================
    ANIMATION
 ========================================= */
 
-function animate(time) {
+function animate(
+    currentTime = 0
+) {
 
     requestAnimationFrame(
         animate
     );
 
+
+    /*
+        Erster Frame:
+        Delta auf 0 setzen,
+        damit kein großer Sprung
+        entsteht.
+    */
+
+    if (lastTime === 0) {
+
+        lastTime =
+            currentTime;
+    }
+
+
     const delta =
         Math.min(
             (
-                time -
+                currentTime -
                 lastTime
             ) / 1000,
             0.05
         );
 
+
     lastTime =
-        time;
+        currentTime;
+
+
+    /* =====================================
+       SPIEL-UPDATE
+    ===================================== */
 
     if (
         typeof gameRunning !==
@@ -708,21 +809,19 @@ function animate(time) {
         gameRunning
     ) {
 
-        updateSpeed(
-            delta
-        );
+        updatePlayer();
 
         updateObstacles(
             delta
         );
 
-        updatePlayer();
+        updateSpawning();
     }
 
-    /*
-       Kamera wird NICHT verändert.
-       Dadurch bleibt das Bild stabil.
-    */
+
+    /* =====================================
+       RENDER
+    ===================================== */
 
     if (
         renderer &&
@@ -737,6 +836,7 @@ function animate(time) {
     }
 }
 
+
 /* =========================================
    RESIZE
 ========================================= */
@@ -747,76 +847,47 @@ function onWindowResize() {
         !camera ||
         !renderer
     ) {
-
         return;
     }
 
-    const container =
-        document.getElementById(
-            "gameCanvas"
-        );
-
-    if (!container) {
-        return;
-    }
-
-    const width =
-        container.clientWidth ||
-        window.innerWidth;
-
-    const height =
-        container.clientHeight ||
-        window.innerHeight;
 
     camera.aspect =
-        width / height;
+        window.innerWidth /
+        window.innerHeight;
+
 
     camera.updateProjectionMatrix();
 
+
     renderer.setSize(
-        width,
-        height,
+        window.innerWidth,
+        window.innerHeight,
         false
     );
 }
 
+
 /* =========================================
-   INITIALISIERUNG
+   START
 ========================================= */
 
-function initGame3D() {
+window.addEventListener(
+    "DOMContentLoaded",
+    function () {
 
-    if (
-        typeof THREE ===
-        "undefined"
-    ) {
+        if (
+            typeof THREE ===
+            "undefined"
+        ) {
 
-        console.error(
-            "GENGA: Three.js wurde nicht geladen."
-        );
+            console.error(
+                "Three.js wurde nicht geladen."
+            );
 
-        return;
+            return;
+        }
+
+
+        createScene();
     }
-
-    if (renderer) {
-        return;
-    }
-
-    createScene();
-}
-
-if (
-    document.readyState ===
-    "loading"
-) {
-
-    document.addEventListener(
-        "DOMContentLoaded",
-        initGame3D,
-        { once: true }
-    );
-
-} else {
-
-    initGame3D();
-}
+);
