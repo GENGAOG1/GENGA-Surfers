@@ -2,6 +2,7 @@
 <html lang="de">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -15,157 +16,456 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/game.css') }}"
     >
+
 </head>
+
 
 <body>
 
-    <main id="game">
+<main id="game">
 
-        <div id="gameCanvas"></div>
+    <!-- =====================================
+         3D SPIEL
+    ====================================== -->
 
-        <!-- HUD -->
-        <div class="game-header">
+    <div id="gameCanvas"></div>
 
-            <div class="hud-box">
-                <span>Score</span>
-                <strong id="score">0</strong>
-            </div>
 
-            <div class="hud-box coin-hud">
-                <span>🪙</span>
-                <strong id="coins">0</strong>
-            </div>
+    <!-- =====================================
+         HUD
+    ====================================== -->
 
-            <div class="hud-box">
-                <span>Best</span>
-                <strong id="highscore">0</strong>
-            </div>
+    <div
+        id="gameHUD"
+        class="game-header hidden"
+    >
 
-            <button
-                id="pauseButton"
-                type="button"
-                aria-label="Spiel pausieren"
-            >
-                ⏸
-            </button>
+        <div class="hud-box">
+
+            <span>Score</span>
+
+            <strong id="score">
+                0
+            </strong>
 
         </div>
 
 
-        <!-- START -->
-        <div
-            id="startScreen"
-            class="game-screen"
+        <div class="hud-box">
+
+            <span>🪙</span>
+
+            <strong id="coins">
+                0
+            </strong>
+
+        </div>
+
+
+        <div class="hud-box">
+
+            <span>Best</span>
+
+            <strong id="highscore">
+                0
+            </strong>
+
+        </div>
+
+
+        <button
+            id="pauseButton"
+            type="button"
+            aria-label="Spiel pausieren"
         >
+            ⏸
+        </button>
 
-            <h1>GENGA SURFER</h1>
+    </div>
 
-            <p>Run. Dodge. Survive.</p>
 
-            <div class="start-stats">
 
-                <div>
-                    <span>Bestscore</span>
-                    <strong id="startHighscore">0</strong>
-                </div>
+    <!-- =====================================
+         HAUPTMENÜ
+    ====================================== -->
 
-                <div>
-                    <span>🪙 Münzen</span>
-                    <strong id="startCoins">0</strong>
-                </div>
+    <div
+        id="mainMenu"
+        class="game-screen"
+    >
+
+        <h1>
+            GENGA SURFER
+        </h1>
+
+
+        <p>
+            Run. Dodge. Survive.
+        </p>
+
+
+        <div class="menu-coins">
+
+            🪙
+
+            <span id="menuCoins">
+                0
+            </span>
+
+        </div>
+
+
+        <button
+            id="playButton"
+            type="button"
+        >
+            ▶ Spielen
+        </button>
+
+
+        <button
+            id="shopButton"
+            type="button"
+        >
+            🛒 Shop
+        </button>
+
+
+        <div class="best-score">
+
+            🏆 Bestscore:
+
+            <strong id="menuHighscore">
+                0
+            </strong>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================
+         SHOP
+    ====================================== -->
+
+    <div
+        id="shopScreen"
+        class="game-screen hidden"
+    >
+
+        <div class="shop-header">
+
+            <button
+                id="backToMenuButton"
+                class="back-button"
+                type="button"
+            >
+                ←
+            </button>
+
+
+            <h1>
+                SHOP
+            </h1>
+
+        </div>
+
+
+        <div class="shop-coins">
+
+            🪙
+
+            <span id="shopCoins">
+                0
+            </span>
+
+        </div>
+
+
+        <div class="shop-items">
+
+
+            <!-- BLAU -->
+
+            <div
+                class="shop-item"
+                data-skin="blue"
+            >
+
+                <div
+                    class="skin-preview blue-preview"
+                ></div>
+
+
+                <h2>
+                    Blau
+                </h2>
+
+
+                <p>
+                    Kostenlos
+                </p>
+
+
+                <button
+                    class="skin-button"
+                    data-skin="blue"
+                >
+                    Auswählen
+                </button>
 
             </div>
 
-            <button
-                id="continueButton"
-                type="button"
-                class="hidden"
-            >
-                Fortsetzen
-            </button>
 
-            <button
-                id="startButton"
-                type="button"
+
+            <!-- ROT -->
+
+            <div
+                class="shop-item"
+                data-skin="red"
             >
-                Neues Spiel
-            </button>
+
+                <div
+                    class="skin-preview red-preview"
+                ></div>
+
+
+                <h2>
+                    Rot
+                </h2>
+
+
+                <p>
+                    🪙 50
+                </p>
+
+
+                <button
+                    class="skin-button"
+                    data-skin="red"
+                    data-price="50"
+                >
+                    Kaufen
+                </button>
+
+            </div>
+
+
+
+            <!-- LILA -->
+
+            <div
+                class="shop-item"
+                data-skin="purple"
+            >
+
+                <div
+                    class="skin-preview purple-preview"
+                ></div>
+
+
+                <h2>
+                    Lila
+                </h2>
+
+
+                <p>
+                    🪙 100
+                </p>
+
+
+                <button
+                    class="skin-button"
+                    data-skin="purple"
+                    data-price="100"
+                >
+                    Kaufen
+                </button>
+
+            </div>
+
+
+
+            <!-- GRÜN -->
+
+            <div
+                class="shop-item"
+                data-skin="green"
+            >
+
+                <div
+                    class="skin-preview green-preview"
+                ></div>
+
+
+                <h2>
+                    Grün
+                </h2>
+
+
+                <p>
+                    🪙 200
+                </p>
+
+
+                <button
+                    class="skin-button"
+                    data-skin="green"
+                    data-price="200"
+                >
+                    Kaufen
+                </button>
+
+            </div>
 
         </div>
 
+    </div>
 
-        <!-- PAUSE -->
-        <div
-            id="pauseScreen"
-            class="game-screen hidden"
+
+
+    <!-- =====================================
+         PAUSE
+    ====================================== -->
+
+    <div
+        id="pauseScreen"
+        class="game-screen hidden"
+    >
+
+        <h1>
+            PAUSE
+        </h1>
+
+
+        <p>
+            Dein Spiel wurde gespeichert.
+        </p>
+
+
+        <button
+            id="resumeButton"
+            type="button"
         >
-
-            <h1>PAUSE</h1>
-
-            <p>Dein Spiel wurde gespeichert.</p>
-
-            <button
-                id="resumeButton"
-                type="button"
-            >
-                Fortsetzen
-            </button>
-
-        </div>
+            ▶ Fortsetzen
+        </button>
 
 
-        <!-- GAME OVER -->
-        <div
-            id="gameOverScreen"
-            class="game-screen hidden"
+        <button
+            id="pauseMenuButton"
+            type="button"
         >
+            🏠 Hauptmenü
+        </button>
 
-            <h1>GAME OVER</h1>
-
-            <p>
-                Score:
-                <span id="finalScore">0</span>
-            </p>
-
-            <p>
-                🪙 Münzen:
-                <span id="finalCoins">0</span>
-            </p>
-
-            <p id="newHighscoreText" class="new-highscore hidden">
-                🏆 NEUER HIGHSCORE!
-            </p>
-
-            <button
-                id="restartButton"
-                type="button"
-            >
-                Neues Spiel
-            </button>
-
-        </div>
-
-    </main>
+    </div>
 
 
-    <!-- THREE.JS -->
-    <script
-        src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"
-    ></script>
+
+    <!-- =====================================
+         GAME OVER
+    ====================================== -->
+
+    <div
+        id="gameOverScreen"
+        class="game-screen hidden"
+    >
+
+        <h1>
+            GAME OVER
+        </h1>
 
 
-    <!-- GAME -->
-    <script
-        src="{{ url_for('static', filename='js/game3d.js') }}"
-    ></script>
+        <p>
 
-    <script
-        src="{{ url_for('static', filename='js/game.js') }}"
-    ></script>
+            Score:
 
-    <script
-        src="{{ url_for('static', filename='js/controls.js') }}"
-    ></script>
+            <strong id="finalScore">
+                0
+            </strong>
+
+        </p>
+
+
+        <p>
+
+            🪙 Münzen:
+
+            <strong id="finalCoins">
+                0
+            </strong>
+
+        </p>
+
+
+        <p
+            id="newHighscoreText"
+            class="new-highscore hidden"
+        >
+            🏆 NEUER HIGHSCORE!
+        </p>
+
+
+        <button
+            id="gameOverMenuButton"
+            type="button"
+        >
+            🏠 Hauptmenü
+        </button>
+
+
+        <button
+            id="gameOverRestartButton"
+            type="button"
+        >
+            🔄 Nochmal spielen
+        </button>
+
+    </div>
+
+</main>
+
+
+
+<!-- =====================================
+     THREE.JS
+====================================== -->
+
+<script
+    src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"
+></script>
+
+
+
+<!-- =====================================
+     3D GAME
+====================================== -->
+
+<script
+    src="{{ url_for('static', filename='js/game3d.js') }}"
+></script>
+
+
+
+<!-- =====================================
+     GAME CONTROLLER
+====================================== -->
+
+<script
+    src="{{ url_for('static', filename='js/game.js') }}"
+></script>
+
+
+
+<!-- =====================================
+     CONTROLS
+====================================== -->
+
+<script
+    src="{{ url_for('static', filename='js/controls.js') }}"
+></script>
+
 
 </body>
 </html>
