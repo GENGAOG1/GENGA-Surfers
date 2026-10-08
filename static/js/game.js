@@ -4,44 +4,135 @@ let gamePaused = false;
 let score = 0;
 let playerLane = 1;
 
-let scoreTimer = null;
+let scoreTimer = 0;
 
 
-/* =========================
-   SAVE KEYS
-========================= */
+/* =====================================
+   STORAGE
+===================================== */
 
-const SAVE_KEY = "genga_surfer_saved_run";
-const HIGHSCORE_KEY = "genga_surfer_highscore";
-const COINS_KEY = "genga_surfer_coins";
+const SAVE_KEY =
+    "genga_surfer_saved_run";
 
+const HIGHSCORE_KEY =
+    "genga_surfer_highscore";
 
-/* =========================
-   COINS / HIGHSCORE
-========================= */
+const COINS_KEY =
+    "genga_surfer_coins";
 
-let totalCoins = Number(
-    localStorage.getItem(COINS_KEY) || 0
-);
+const OWNED_SKINS_KEY =
+    "genga_surfer_owned_skins";
 
-let highscore = Number(
-    localStorage.getItem(HIGHSCORE_KEY) || 0
-);
+const SELECTED_SKIN_KEY =
+    "genga_surfer_selected_skin";
 
 
-/* =========================
+/* =====================================
+   SKINS
+===================================== */
+
+const SKINS = {
+
+    blue: {
+        name: "Blau",
+        price: 0,
+        color: 0x007aff
+    },
+
+    red: {
+        name: "Rot",
+        price: 50,
+        color: 0xff3b30
+    },
+
+    purple: {
+        name: "Lila",
+        price: 100,
+        color: 0xaf52de
+    },
+
+    green: {
+        name: "Grün",
+        price: 200,
+        color: 0x34c759
+    }
+
+};
+
+
+let totalCoins =
+    Number(
+        localStorage.getItem(
+            COINS_KEY
+        ) || 0
+    );
+
+
+let highscore =
+    Number(
+        localStorage.getItem(
+            HIGHSCORE_KEY
+        ) || 0
+    );
+
+
+let ownedSkins;
+
+
+try {
+
+    ownedSkins =
+        JSON.parse(
+            localStorage.getItem(
+                OWNED_SKINS_KEY
+            )
+        ) || ["blue"];
+
+} catch {
+
+    ownedSkins = ["blue"];
+}
+
+
+if (!ownedSkins.includes("blue")) {
+
+    ownedSkins.push("blue");
+}
+
+
+let selectedSkin =
+    localStorage.getItem(
+        SELECTED_SKIN_KEY
+    ) || "blue";
+
+
+if (!SKINS[selectedSkin]) {
+
+    selectedSkin = "blue";
+}
+
+
+/* =====================================
    DOM
-========================= */
+===================================== */
 
-const scoreElement = document.getElementById("score");
-const coinsElement = document.getElementById("coins");
-const highscoreElement = document.getElementById("highscore");
+const scoreElement =
+    document.getElementById("score");
 
-const startHighscoreElement =
-    document.getElementById("startHighscore");
+const coinsElement =
+    document.getElementById("coins");
 
-const startCoinsElement =
-    document.getElementById("startCoins");
+const highscoreElement =
+    document.getElementById("highscore");
+
+const menuCoinsElement =
+    document.getElementById("menuCoins");
+
+const menuHighscoreElement =
+    document.getElementById("menuHighscore");
+
+const shopCoinsElement =
+    document.getElementById("shopCoins");
 
 const finalScoreElement =
     document.getElementById("finalScore");
@@ -50,46 +141,70 @@ const finalCoinsElement =
     document.getElementById("finalCoins");
 
 const newHighscoreText =
-    document.getElementById("newHighscoreText");
+    document.getElementById(
+        "newHighscoreText"
+    );
 
 
-/* =========================
+/* =====================================
    DISPLAY
-========================= */
+===================================== */
 
-function updateScoreDisplay() {
+function updateDisplays() {
 
     if (scoreElement) {
-        scoreElement.textContent = score;
+
+        scoreElement.textContent =
+            score;
     }
 
-    if (highscoreElement) {
-        highscoreElement.textContent = highscore;
-    }
 
     if (coinsElement) {
-        coinsElement.textContent = totalCoins;
+
+        coinsElement.textContent =
+            totalCoins;
     }
 
-    if (startHighscoreElement) {
-        startHighscoreElement.textContent = highscore;
+
+    if (highscoreElement) {
+
+        highscoreElement.textContent =
+            highscore;
     }
 
-    if (startCoinsElement) {
-        startCoinsElement.textContent = totalCoins;
+
+    if (menuCoinsElement) {
+
+        menuCoinsElement.textContent =
+            totalCoins;
+    }
+
+
+    if (menuHighscoreElement) {
+
+        menuHighscoreElement.textContent =
+            highscore;
+    }
+
+
+    if (shopCoinsElement) {
+
+        shopCoinsElement.textContent =
+            totalCoins;
     }
 }
 
 
-/* =========================
+/* =====================================
    HIGHSCORE
-========================= */
+===================================== */
 
 function checkHighscore() {
 
     if (score > highscore) {
 
-        highscore = score;
+        highscore =
+            score;
 
         localStorage.setItem(
             HIGHSCORE_KEY,
@@ -103,9 +218,9 @@ function checkHighscore() {
 }
 
 
-/* =========================
+/* =====================================
    COINS
-========================= */
+===================================== */
 
 function addCoin() {
 
@@ -116,25 +231,37 @@ function addCoin() {
         String(totalCoins)
     );
 
-    updateScoreDisplay();
+    updateDisplays();
 }
 
 
-/* =========================
-   SAVE CURRENT RUN
-========================= */
+/* =====================================
+   SAVE GAME
+===================================== */
 
 function saveGame() {
 
-    if (!gameRunning && !gamePaused) {
+    if (
+        !gameRunning &&
+        !gamePaused
+    ) {
+
         return;
     }
 
+
     const saveData = {
-        score: score,
-        playerLane: playerLane,
-        savedAt: Date.now()
+
+        score:
+            score,
+
+        playerLane:
+            playerLane,
+
+        savedAt:
+            Date.now()
     };
+
 
     localStorage.setItem(
         SAVE_KEY,
@@ -143,403 +270,912 @@ function saveGame() {
 }
 
 
-/* =========================
-   LOAD SAVED RUN
-========================= */
+/* =====================================
+   LOAD SAVE
+===================================== */
 
 function loadSavedGame() {
 
-    const rawSave =
-        localStorage.getItem(SAVE_KEY);
+    const raw =
+        localStorage.getItem(
+            SAVE_KEY
+        );
 
-    if (!rawSave) {
+
+    if (!raw) {
+
         return null;
     }
+
 
     try {
 
-        return JSON.parse(rawSave);
+        return JSON.parse(raw);
 
-    } catch (error) {
+    } catch {
 
-        console.error(
-            "Gespeichertes Spiel konnte nicht geladen werden:",
-            error
+        localStorage.removeItem(
+            SAVE_KEY
         );
-
-        localStorage.removeItem(SAVE_KEY);
 
         return null;
     }
 }
 
 
-/* =========================
+/* =====================================
    DELETE SAVE
-========================= */
+===================================== */
 
 function deleteSavedGame() {
 
-    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(
+        SAVE_KEY
+    );
 }
 
 
-/* =========================
+/* =====================================
    START NEW GAME
-========================= */
+===================================== */
 
 function startGame() {
 
     score = 0;
+
+    scoreTimer = 0;
+
     playerLane = 1;
 
-    gamePaused = false;
     gameRunning = true;
+
+    gamePaused = false;
+
 
     deleteSavedGame();
 
-    if (typeof resetPlayer === "function") {
+
+    if (
+        typeof resetPlayer ===
+        "function"
+    ) {
+
         resetPlayer();
     }
 
-    if (typeof resetObstacles === "function") {
+
+    if (
+        typeof resetObstacles ===
+        "function"
+    ) {
+
         resetObstacles();
     }
 
-    if (typeof resetCoins === "function") {
+
+    if (
+        typeof resetCoins ===
+        "function"
+    ) {
+
         resetCoins();
     }
 
-    hideStartScreen();
-    hidePauseScreen();
-    hideGameOverScreen();
 
-    updateScoreDisplay();
+    applySelectedSkin();
+
+
+    hideAllScreens();
+
+    showHUD();
+
+    updateDisplays();
+
     updatePauseButton();
 }
 
 
-/* =========================
-   CONTINUE
-========================= */
+/* =====================================
+   CONTINUE SAVED GAME
+===================================== */
 
 function continueSavedGame() {
 
-    const savedGame = loadSavedGame();
+    const saved =
+        loadSavedGame();
 
-    if (!savedGame) {
+
+    if (!saved) {
+
         startGame();
+
         return;
     }
 
+
     score =
-        Number(savedGame.score) || 0;
+        Number(saved.score) || 0;
+
 
     playerLane =
-        Number(savedGame.playerLane);
+        Number(saved.playerLane);
+
 
     if (
         playerLane < 0 ||
         playerLane > 2
     ) {
+
         playerLane = 1;
     }
 
-    gamePaused = false;
+
+    scoreTimer = 0;
+
     gameRunning = true;
 
-    if (typeof resetPlayer === "function") {
+    gamePaused = false;
+
+
+    if (
+        typeof resetPlayer ===
+        "function"
+    ) {
+
         resetPlayer();
     }
 
-    if (typeof resetObstacles === "function") {
+
+    if (
+        typeof resetObstacles ===
+        "function"
+    ) {
+
         resetObstacles();
     }
 
-    if (typeof resetCoins === "function") {
+
+    if (
+        typeof resetCoins ===
+        "function"
+    ) {
+
         resetCoins();
     }
 
-    hideStartScreen();
-    hidePauseScreen();
-    hideGameOverScreen();
 
-    updateScoreDisplay();
+    applySelectedSkin();
+
+
+    hideAllScreens();
+
+    showHUD();
+
+    updateDisplays();
+
     updatePauseButton();
 }
 
 
-/* =========================
+/* =====================================
    PAUSE
-========================= */
+===================================== */
 
 function pauseGame() {
 
     if (!gameRunning) {
+
         return;
     }
 
+
     gameRunning = false;
+
     gamePaused = true;
+
 
     saveGame();
 
-    showPauseScreen();
+
+    showScreen("pauseScreen");
+
     updatePauseButton();
 }
 
 
-/* =========================
+/* =====================================
    RESUME
-========================= */
+===================================== */
 
 function resumeGame() {
 
     if (!gamePaused) {
+
         return;
     }
 
-    gamePaused = false;
+
     gameRunning = true;
 
-    hidePauseScreen();
+    gamePaused = false;
+
+
+    hideScreen("pauseScreen");
+
     updatePauseButton();
 }
 
 
-/* =========================
-   PAUSE BUTTON
-========================= */
+/* =====================================
+   GAME OVER
+===================================== */
 
-function updatePauseButton() {
+function endGame() {
 
-    const button =
-        document.getElementById("pauseButton");
+    if (
+        !gameRunning &&
+        !gamePaused
+    ) {
 
-    if (!button) {
         return;
     }
 
-    button.textContent =
-        gamePaused ? "▶" : "⏸";
 
-    button.setAttribute(
-        "aria-label",
-        gamePaused
-            ? "Spiel fortsetzen"
-            : "Spiel pausieren"
+    gameRunning = false;
+
+    gamePaused = false;
+
+
+    const isNewHighscore =
+        checkHighscore();
+
+
+    deleteSavedGame();
+
+
+    if (finalScoreElement) {
+
+        finalScoreElement.textContent =
+            score;
+    }
+
+
+    if (finalCoinsElement) {
+
+        finalCoinsElement.textContent =
+            totalCoins;
+    }
+
+
+    if (newHighscoreText) {
+
+        if (isNewHighscore) {
+
+            newHighscoreText.classList.remove(
+                "hidden"
+            );
+
+        } else {
+
+            newHighscoreText.classList.add(
+                "hidden"
+            );
+        }
+    }
+
+
+    hideHUD();
+
+    hideAllScreens();
+
+    showScreen(
+        "gameOverScreen"
+    );
+
+
+    updateDisplays();
+}
+
+
+/* =====================================
+   MAIN MENU
+===================================== */
+
+function openMainMenu() {
+
+    gameRunning = false;
+
+    gamePaused = false;
+
+
+    deleteSavedGame();
+
+
+    hideHUD();
+
+    hideAllScreens();
+
+
+    showScreen(
+        "mainMenu"
+    );
+
+
+    updateDisplays();
+
+    updatePauseButton();
+}
+
+
+/* =====================================
+   SHOP
+===================================== */
+
+function openShop() {
+
+    gameRunning = false;
+
+    gamePaused = false;
+
+
+    hideHUD();
+
+    hideAllScreens();
+
+
+    showScreen(
+        "shopScreen"
+    );
+
+
+    updateDisplays();
+
+    updateShop();
+}
+
+
+function closeShop() {
+
+    hideAllScreens();
+
+
+    showScreen(
+        "mainMenu"
+    );
+
+
+    updateDisplays();
+}
+
+
+/* =====================================
+   BUY / SELECT SKIN
+===================================== */
+
+function buyOrSelectSkin(
+    skinId
+) {
+
+    const skin =
+        SKINS[skinId];
+
+
+    if (!skin) {
+
+        return;
+    }
+
+
+    /*
+     * Bereits gekauft:
+     * einfach auswählen.
+     */
+
+    if (
+        ownedSkins.includes(
+            skinId
+        )
+    ) {
+
+        selectedSkin =
+            skinId;
+
+
+        localStorage.setItem(
+            SELECTED_SKIN_KEY,
+            selectedSkin
+        );
+
+
+        applySelectedSkin();
+
+        updateShop();
+
+        return;
+    }
+
+
+    /*
+     * Nicht genug Münzen.
+     */
+
+    if (
+        totalCoins <
+        skin.price
+    ) {
+
+        alert(
+            "Du hast nicht genug Münzen."
+        );
+
+        return;
+    }
+
+
+    /*
+     * Kaufen.
+     */
+
+    totalCoins -=
+        skin.price;
+
+
+    ownedSkins.push(
+        skinId
+    );
+
+
+    selectedSkin =
+        skinId;
+
+
+    localStorage.setItem(
+        COINS_KEY,
+        String(totalCoins)
+    );
+
+
+    localStorage.setItem(
+        OWNED_SKINS_KEY,
+        JSON.stringify(
+            ownedSkins
+        )
+    );
+
+
+    localStorage.setItem(
+        SELECTED_SKIN_KEY,
+        selectedSkin
+    );
+
+
+    applySelectedSkin();
+
+    updateDisplays();
+
+    updateShop();
+}
+
+
+/* =====================================
+   UPDATE SHOP
+===================================== */
+
+function updateShop() {
+
+    const buttons =
+        document.querySelectorAll(
+            ".skin-button"
+        );
+
+
+    const items =
+        document.querySelectorAll(
+            ".shop-item"
+        );
+
+
+    items.forEach(
+        item => {
+
+            const skinId =
+                item.dataset.skin;
+
+
+            item.classList.toggle(
+                "selected",
+                skinId === selectedSkin
+            );
+        }
+    );
+
+
+    buttons.forEach(
+        button => {
+
+            const skinId =
+                button.dataset.skin;
+
+
+            const skin =
+                SKINS[skinId];
+
+
+            if (!skin) {
+
+                return;
+            }
+
+
+            if (
+                selectedSkin ===
+                skinId
+            ) {
+
+                button.textContent =
+                    "Ausgewählt";
+
+                return;
+            }
+
+
+            if (
+                ownedSkins.includes(
+                    skinId
+                )
+            ) {
+
+                button.textContent =
+                    "Auswählen";
+
+                return;
+            }
+
+
+            button.textContent =
+                `🪙 ${skin.price} Kaufen`;
+        }
     );
 }
 
 
-/* =========================
-   SCORE
-========================= */
+/* =====================================
+   APPLY SKIN
+===================================== */
 
-function updateGame(delta) {
+function applySelectedSkin() {
 
-    if (!gameRunning) {
+    if (!player) {
+
         return;
     }
 
-    scoreTimer += delta;
 
-    if (scoreTimer >= 1) {
+    const skin =
+        SKINS[selectedSkin];
 
-        scoreTimer = 0;
+
+    if (!skin) {
+
+        return;
+    }
+
+
+    if (
+        player.material
+    ) {
+
+        player.material.color.setHex(
+            skin.color
+        );
+    }
+}
+
+
+/* =====================================
+   SCREENS
+===================================== */
+
+function showScreen(
+    id
+) {
+
+    const screen =
+        document.getElementById(id);
+
+
+    if (screen) {
+
+        screen.classList.remove(
+            "hidden"
+        );
+    }
+}
+
+
+function hideScreen(
+    id
+) {
+
+    const screen =
+        document.getElementById(id);
+
+
+    if (screen) {
+
+        screen.classList.add(
+            "hidden"
+        );
+    }
+}
+
+
+function hideAllScreens() {
+
+    const screens = [
+        "mainMenu",
+        "shopScreen",
+        "pauseScreen",
+        "gameOverScreen"
+    ];
+
+
+    screens.forEach(
+        id => hideScreen(id)
+    );
+}
+
+
+/* =====================================
+   HUD
+===================================== */
+
+function showHUD() {
+
+    const hud =
+        document.getElementById(
+            "gameHUD"
+        );
+
+
+    if (hud) {
+
+        hud.classList.remove(
+            "hidden"
+        );
+    }
+}
+
+
+function hideHUD() {
+
+    const hud =
+        document.getElementById(
+            "gameHUD"
+        );
+
+
+    if (hud) {
+
+        hud.classList.add(
+            "hidden"
+        );
+    }
+}
+
+
+/* =====================================
+   PAUSE BUTTON
+===================================== */
+
+function updatePauseButton() {
+
+    const button =
+        document.getElementById(
+            "pauseButton"
+        );
+
+
+    if (!button) {
+
+        return;
+    }
+
+
+    button.textContent =
+        gamePaused
+            ? "▶"
+            : "⏸";
+}
+
+
+/* =====================================
+   SCORE
+===================================== */
+
+function updateGame(
+    delta
+) {
+
+    if (!gameRunning) {
+
+        return;
+    }
+
+
+    scoreTimer +=
+        delta;
+
+
+    if (
+        scoreTimer >= 1
+    ) {
+
+        scoreTimer -= 1;
 
         score += 1;
 
+
         checkHighscore();
 
-        updateScoreDisplay();
+        updateDisplays();
     }
 }
 
 
-/* =========================
-   GAME OVER
-========================= */
+/* =====================================
+   SCORE LOOP
+===================================== */
 
-function endGame() {
+let lastScoreTime =
+    performance.now();
 
-    if (!gameRunning && !gamePaused) {
-        return;
+
+function scoreLoop(
+    time
+) {
+
+    const delta =
+        Math.min(
+            (time - lastScoreTime) /
+                1000,
+            0.1
+        );
+
+
+    lastScoreTime =
+        time;
+
+
+    updateGame(
+        delta
+    );
+
+
+    requestAnimationFrame(
+        scoreLoop
+    );
+}
+
+
+/* =====================================
+   SAVE ON LEAVE
+===================================== */
+
+function saveBeforeLeaving() {
+
+    if (gameRunning) {
+
+        gameRunning = false;
+
+        gamePaused = true;
     }
 
-    gameRunning = false;
-    gamePaused = false;
 
-    clearInterval(scoreTimer);
+    if (gamePaused) {
 
-    const wasNewHighscore =
-        checkHighscore();
-
-    deleteSavedGame();
-
-    if (finalScoreElement) {
-        finalScoreElement.textContent = score;
+        saveGame();
     }
+}
 
-    if (finalCoinsElement) {
-        finalCoinsElement.textContent = totalCoins;
-    }
 
-    if (newHighscoreText) {
+window.addEventListener(
+    "pagehide",
+    saveBeforeLeaving
+);
 
-        if (wasNewHighscore) {
-            newHighscoreText.classList.remove("hidden");
-        } else {
-            newHighscoreText.classList.add("hidden");
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if (
+            document.hidden
+        ) {
+
+            saveBeforeLeaving();
         }
     }
-
-    hideStartScreen();
-    hidePauseScreen();
-    showGameOverScreen();
-
-    updateScoreDisplay();
-    updatePauseButton();
-}
+);
 
 
-/* =========================
-   SCREEN FUNCTIONS
-========================= */
-
-function showStartScreen() {
-
-    const screen =
-        document.getElementById("startScreen");
-
-    if (screen) {
-        screen.classList.remove("hidden");
-    }
-}
-
-function hideStartScreen() {
-
-    const screen =
-        document.getElementById("startScreen");
-
-    if (screen) {
-        screen.classList.add("hidden");
-    }
-}
-
-function showPauseScreen() {
-
-    const screen =
-        document.getElementById("pauseScreen");
-
-    if (screen) {
-        screen.classList.remove("hidden");
-    }
-}
-
-function hidePauseScreen() {
-
-    const screen =
-        document.getElementById("pauseScreen");
-
-    if (screen) {
-        screen.classList.add("hidden");
-    }
-}
-
-function showGameOverScreen() {
-
-    const screen =
-        document.getElementById("gameOverScreen");
-
-    if (screen) {
-        screen.classList.remove("hidden");
-    }
-}
-
-function hideGameOverScreen() {
-
-    const screen =
-        document.getElementById("gameOverScreen");
-
-    if (screen) {
-        screen.classList.add("hidden");
-    }
-}
-
-
-/* =========================
-   START SCREEN SETUP
-========================= */
-
-function setupStartScreen() {
-
-    const savedGame =
-        loadSavedGame();
-
-    const continueButton =
-        document.getElementById("continueButton");
-
-    if (!continueButton) {
-        return;
-    }
-
-    if (savedGame) {
-
-        continueButton.classList.remove("hidden");
-
-    } else {
-
-        continueButton.classList.add("hidden");
-    }
-}
-
-
-/* =========================
+/* =====================================
    BUTTONS
-========================= */
+===================================== */
 
-function setupGameButtons() {
+function setupButtons() {
 
-    const startButton =
-        document.getElementById("startButton");
+    const playButton =
+        document.getElementById(
+            "playButton"
+        );
 
-    const restartButton =
-        document.getElementById("restartButton");
 
-    const continueButton =
-        document.getElementById("continueButton");
+    const shopButton =
+        document.getElementById(
+            "shopButton"
+        );
+
+
+    const backButton =
+        document.getElementById(
+            "backToMenuButton"
+        );
+
 
     const pauseButton =
-        document.getElementById("pauseButton");
+        document.getElementById(
+            "pauseButton"
+        );
+
 
     const resumeButton =
-        document.getElementById("resumeButton");
+        document.getElementById(
+            "resumeButton"
+        );
 
 
-    if (startButton) {
+    const pauseMenuButton =
+        document.getElementById(
+            "pauseMenuButton"
+        );
 
-        startButton.addEventListener(
+
+    const gameOverMenuButton =
+        document.getElementById(
+            "gameOverMenuButton"
+        );
+
+
+    const gameOverRestartButton =
+        document.getElementById(
+            "gameOverRestartButton"
+        );
+
+
+    if (playButton) {
+
+        playButton.addEventListener(
             "click",
             startGame
         );
     }
 
 
-    if (restartButton) {
+    if (shopButton) {
 
-        restartButton.addEventListener(
+        shopButton.addEventListener(
             "click",
-            startGame
+            openShop
         );
     }
 
 
-    if (continueButton) {
+    if (backButton) {
 
-        continueButton.addEventListener(
+        backButton.addEventListener(
             "click",
-            continueSavedGame
+            closeShop
         );
     }
 
@@ -570,87 +1206,83 @@ function setupGameButtons() {
             resumeGame
         );
     }
-}
 
 
-/* =========================
-   SCORE LOOP
-========================= */
+    if (pauseMenuButton) {
 
-let lastScoreTime =
-    performance.now();
-
-function scoreLoop(currentTime) {
-
-    const delta =
-        (currentTime - lastScoreTime) / 1000;
-
-    lastScoreTime = currentTime;
-
-    updateGame(delta);
-
-    requestAnimationFrame(scoreLoop);
-}
-
-
-/* =========================
-   SAVE WHEN LEAVING
-========================= */
-
-function saveBeforeLeaving() {
-
-    if (gameRunning) {
-
-        gameRunning = false;
-        gamePaused = true;
+        pauseMenuButton.addEventListener(
+            "click",
+            openMainMenu
+        );
     }
 
-    if (gamePaused) {
-        saveGame();
+
+    if (gameOverMenuButton) {
+
+        gameOverMenuButton.addEventListener(
+            "click",
+            openMainMenu
+        );
     }
-}
 
 
-window.addEventListener(
-    "pagehide",
-    saveBeforeLeaving
-);
+    if (gameOverRestartButton) {
+
+        gameOverRestartButton.addEventListener(
+            "click",
+            startGame
+        );
+    }
 
 
-document.addEventListener(
-    "visibilitychange",
-    () => {
+    /*
+     * Shop Buttons
+     */
 
-        if (document.hidden) {
+    document.querySelectorAll(
+        ".skin-button"
+    ).forEach(
+        button => {
 
-            saveBeforeLeaving();
+            button.addEventListener(
+                "click",
+                () => {
 
-        } else {
-
-            if (gamePaused) {
-                showPauseScreen();
-                updatePauseButton();
-            }
+                    buyOrSelectSkin(
+                        button.dataset.skin
+                    );
+                }
+            );
         }
-    }
-);
+    );
+}
 
 
-/* =========================
-   INIT
-========================= */
+/* =====================================
+   INITIALISIERUNG
+===================================== */
 
 document.addEventListener(
     "DOMContentLoaded",
     () => {
 
-        updateScoreDisplay();
+        updateDisplays();
 
-        setupStartScreen();
-        setupGameButtons();
+        setupButtons();
 
-        updatePauseButton();
+        updateShop();
 
-        requestAnimationFrame(scoreLoop);
+        hideHUD();
+
+        hideAllScreens();
+
+        showScreen(
+            "mainMenu"
+        );
+
+
+        requestAnimationFrame(
+            scoreLoop
+        );
     }
 );
