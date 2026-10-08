@@ -43,12 +43,19 @@ body {
   height: 100%;
   overflow: hidden;
   background: #07111f;
+
+  /* WICHTIG:
+     Das 3D-Canvas darf keine
+     Menü-Klicks abfangen. */
+  pointer-events: none;
 }
 
 #gameContainer canvas {
   display: block;
   width: 100%;
   height: 100%;
+
+  pointer-events: none;
 }
 
 /* =========================
@@ -61,7 +68,7 @@ body {
   left: 0;
   right: 0;
 
-  z-index: 50;
+  z-index: 200;
 
   display: flex;
   align-items: center;
@@ -100,6 +107,9 @@ body {
 .pauseButton {
   pointer-events: auto;
 
+  position: relative;
+  z-index: 1000;
+
   width: 46px;
   height: 46px;
 
@@ -131,7 +141,7 @@ body {
   position: fixed;
   inset: 0;
 
-  z-index: 100;
+  z-index: 500;
 
   display: flex;
   align-items: center;
@@ -147,6 +157,10 @@ body {
     );
 
   backdrop-filter: blur(10px);
+
+  /* WICHTIG:
+     Die Menüs dürfen Klicks empfangen. */
+  pointer-events: auto;
 }
 
 .hidden {
@@ -158,6 +172,9 @@ body {
 ========================= */
 
 .panel {
+  position: relative;
+  z-index: 600;
+
   width: min(430px, 92vw);
 
   padding: 34px 25px;
@@ -230,6 +247,9 @@ body {
 
 .mainButton,
 .secondaryButton {
+  position: relative;
+  z-index: 1000;
+
   width: 100%;
 
   padding: 15px 20px;
@@ -248,6 +268,11 @@ body {
     transform 0.12s,
     filter 0.12s,
     background 0.12s;
+
+  pointer-events: auto;
+
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .mainButton {
@@ -311,6 +336,9 @@ body {
 ========================= */
 
 .shopPanel {
+  position: relative;
+  z-index: 600;
+
   width: min(850px, 94vw);
 
   max-height: 90vh;
@@ -332,6 +360,8 @@ body {
 
   box-shadow:
     0 30px 90px rgba(0,0,0,0.6);
+
+  pointer-events: auto;
 }
 
 .shopHeader {
@@ -357,6 +387,9 @@ body {
 }
 
 .closeButton {
+  position: relative;
+  z-index: 1000;
+
   width: 44px;
   height: 44px;
 
@@ -371,6 +404,8 @@ body {
   font-size: 20px;
 
   cursor: pointer;
+
+  pointer-events: auto;
 }
 
 .shopSection {
@@ -445,6 +480,9 @@ body {
 
 .shopItem button,
 .upgradeItem button {
+  position: relative;
+  z-index: 1000;
+
   width: 100%;
 
   padding: 10px;
@@ -462,6 +500,8 @@ body {
   font-weight: 900;
 
   cursor: pointer;
+
+  pointer-events: auto;
 }
 
 .shopItem button:disabled,
@@ -508,7 +548,7 @@ body {
   top: 82px;
   left: 50%;
 
-  z-index: 70;
+  z-index: 300;
 
   transform: translateX(-50%);
 
@@ -568,9 +608,17 @@ body {
 
 <body>
 
+<!-- =========================
+     3D SPIEL
+========================= -->
+
 <div id="gameContainer"></div>
 
-<!-- HUD -->
+
+<!-- =========================
+     HUD
+========================= -->
+
 <div id="hud">
 
   <div class="hudLeft">
@@ -588,6 +636,7 @@ body {
   <button
     id="pauseButton"
     class="pauseButton hidden"
+    type="button"
   >
     Ⅱ
   </button>
@@ -595,12 +644,20 @@ body {
 </div>
 
 
-<!-- START -->
-<div id="startScreen" class="screen">
+<!-- =========================
+     START
+========================= -->
+
+<div
+  id="startScreen"
+  class="screen"
+>
 
   <div class="panel">
 
-    <h1>GENGA<br>SURFER</h1>
+    <h1>
+      GENGA<br>SURFER
+    </h1>
 
     <p class="subtitle">
       Endless Runner
@@ -614,6 +671,7 @@ body {
     <button
       id="startButton"
       class="mainButton"
+      type="button"
     >
       SPIELEN
     </button>
@@ -621,6 +679,7 @@ body {
     <button
       id="resumeButton"
       class="secondaryButton hidden"
+      type="button"
     >
       FORTSETZEN
     </button>
@@ -628,6 +687,7 @@ body {
     <button
       id="openShopButton"
       class="secondaryButton"
+      type="button"
     >
       🛒 SHOP
     </button>
@@ -641,7 +701,10 @@ body {
 </div>
 
 
-<!-- PAUSE -->
+<!-- =========================
+     PAUSE
+========================= -->
+
 <div
   id="pauseScreen"
   class="screen hidden"
@@ -654,6 +717,7 @@ body {
     <button
       id="resumeGameButton"
       class="mainButton"
+      type="button"
     >
       WEITERSPIELEN
     </button>
@@ -661,6 +725,7 @@ body {
     <button
       id="pauseShopButton"
       class="secondaryButton"
+      type="button"
     >
       🛒 SHOP
     </button>
@@ -668,6 +733,7 @@ body {
     <button
       id="pauseMenuButton"
       class="secondaryButton"
+      type="button"
     >
       HAUPTMENÜ
     </button>
@@ -677,7 +743,10 @@ body {
 </div>
 
 
-<!-- GAME OVER -->
+<!-- =========================
+     GAME OVER
+========================= -->
+
 <div
   id="gameOverScreen"
   class="screen hidden"
@@ -700,6 +769,7 @@ body {
     <button
       id="restartButton"
       class="mainButton"
+      type="button"
     >
       NOCHMAL
     </button>
@@ -707,6 +777,7 @@ body {
     <button
       id="gameOverShopButton"
       class="secondaryButton"
+      type="button"
     >
       🛒 SHOP
     </button>
@@ -714,6 +785,7 @@ body {
     <button
       id="gameOverMenuButton"
       class="secondaryButton"
+      type="button"
     >
       HAUPTMENÜ
     </button>
@@ -723,7 +795,10 @@ body {
 </div>
 
 
-<!-- SHOP -->
+<!-- =========================
+     SHOP
+========================= -->
+
 <div
   id="shopScreen"
   class="screen hidden"
@@ -734,16 +809,19 @@ body {
     <div class="shopHeader">
 
       <div>
+
         <h2>SHOP</h2>
 
         <div class="shopCoins">
           🪙 <span id="shopCoins">0</span>
         </div>
+
       </div>
 
       <button
         id="closeShopButton"
         class="closeButton"
+        type="button"
       >
         ✕
       </button>
@@ -784,15 +862,24 @@ body {
 </div>
 
 
+<!-- =========================
+     POWERUP
+========================= -->
+
 <div
   id="powerupInfo"
   class="powerupInfo hidden"
 >
+
   <span id="powerupText"></span>
+
 </div>
 
 
-<!-- THREE.JS -->
+<!-- =========================
+     THREE.JS
+========================= -->
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
 <script src="upgrades.js"></script>
