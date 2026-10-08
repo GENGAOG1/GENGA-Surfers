@@ -1,10 +1,11 @@
 /* =========================================
    GENGA SURFER
-   MAIN STYLESHEET
+   COMPLETE STYLE
 ========================================= */
 
 * {
     box-sizing: border-box;
+
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -13,27 +14,20 @@ html,
 body {
     width: 100%;
     height: 100%;
+
     margin: 0;
     padding: 0;
 
     overflow: hidden;
 
+    background: #07111f;
+
+    color: white;
+
     font-family:
         Arial,
         Helvetica,
         sans-serif;
-
-    background: #07111f;
-    color: white;
-}
-
-
-/* =========================================
-   BODY
-========================================= */
-
-body {
-    position: relative;
 
     user-select: none;
     -webkit-user-select: none;
@@ -42,15 +36,19 @@ body {
 }
 
 
+button {
+    font-family: inherit;
+}
+
+
 /* =========================================
-   3D GAME CANVAS
+   3D GAME
 ========================================= */
 
 .game-canvas {
     position: fixed;
 
-    left: 0;
-    top: 0;
+    inset: 0;
 
     width: 100vw;
     height: 100vh;
@@ -76,10 +74,7 @@ body {
 .game-hud {
     position: fixed;
 
-    left: 0;
-    top: 0;
-
-    width: 100%;
+    inset: 0;
 
     z-index: 20;
 
@@ -87,66 +82,105 @@ body {
 }
 
 
-.score {
+.game-hud.hidden {
+    display: none;
+}
+
+
+.hud-left {
     position: absolute;
 
     top: 18px;
-    left: 50%;
+    left: 18px;
 
-    transform: translateX(-50%);
+    display: flex;
 
-    font-size: 30px;
-    font-weight: 900;
+    flex-direction: column;
 
-    text-shadow:
-        0 3px 10px rgba(0, 0, 0, 0.6);
+    gap: 5px;
 }
 
 
-.lives {
-    position: fixed;
-
-    top: 18px;
-    left: 20px;
-
-    font-size: 24px;
-
-    min-height: 30px;
-
-    text-shadow:
-        0 3px 8px rgba(0, 0, 0, 0.6);
-}
-
-
-.active-upgrade-display {
-    position: fixed;
-
-    top: 65px;
-    left: 50%;
-
-    transform: translateX(-50%);
-
-    padding: 7px 14px;
+.hud-coins,
+.hud-lives,
+.hud-multiplier {
+    padding: 6px 10px;
 
     border-radius: 12px;
 
     background:
-        rgba(0, 0, 0, 0.55);
+        rgba(0, 0, 0, 0.42);
 
     backdrop-filter: blur(5px);
 
-    font-size: 14px;
-    font-weight: bold;
-
-    white-space: nowrap;
+    font-weight: 800;
 
     text-shadow:
         0 2px 5px rgba(0, 0, 0, 0.5);
 }
 
 
+.hud-lives {
+    font-size: 20px;
+}
+
+
+.score {
+    position: absolute;
+
+    top: 17px;
+    left: 50%;
+
+    transform:
+        translateX(-50%);
+
+    font-size: 32px;
+
+    font-weight: 900;
+
+    text-shadow:
+        0 3px 10px
+        rgba(0, 0, 0, 0.7);
+}
+
+
+.hud-right {
+    position: absolute;
+
+    top: 15px;
+    right: 15px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+}
+
+
+.pause-button {
+    width: 46px;
+    height: 46px;
+
+    border: none;
+
+    border-radius: 14px;
+
+    background:
+        rgba(0, 0, 0, 0.55);
+
+    color: white;
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    pointer-events: auto;
+}
+
+
 /* =========================================
-   OVERLAYS
+   OVERLAY
 ========================================= */
 
 .overlay {
@@ -159,14 +193,16 @@ body {
     display: flex;
 
     justify-content: center;
+
     align-items: center;
 
     padding: 20px;
 
     background:
-        rgba(3, 10, 20, 0.72);
+        rgba(3, 10, 20, 0.74);
 
-    backdrop-filter: blur(4px);
+    backdrop-filter:
+        blur(5px);
 
     overflow-y: auto;
 }
@@ -181,17 +217,17 @@ body {
    MAIN MENU
 ========================================= */
 
-.menu {
-    width: min(900px, 94vw);
+.main-menu {
+    width: min(500px, 94vw);
 
-    max-height: 94vh;
+    padding: 32px;
 
-    padding: 30px;
+    border-radius: 28px;
 
-    border-radius: 25px;
+    text-align: center;
 
     background:
-        rgba(7, 17, 31, 0.96);
+        rgba(7, 17, 31, 0.97);
 
     border:
         1px solid
@@ -199,233 +235,309 @@ body {
 
     box-shadow:
         0 25px 80px
-        rgba(0, 0, 0, 0.5);
-
-    text-align: center;
-
-    overflow-y: auto;
+        rgba(0, 0, 0, 0.55);
 }
 
 
-.menu h1 {
-    margin: 0 0 8px 0;
-
-    font-size: clamp(
-        32px,
-        7vw,
-        58px
-    );
+.game-title {
+    font-size:
+        clamp(35px, 9vw, 60px);
 
     font-weight: 900;
 
     letter-spacing: 2px;
-
-    text-shadow:
-        0 5px 20px
-        rgba(0, 0, 0, 0.5);
 }
 
 
-.menu h2 {
-    margin: 0;
+.game-subtitle {
+    margin-top: 5px;
+
+    opacity: 0.65;
+
+    font-size: 13px;
+
+    letter-spacing: 2px;
+}
+
+
+.menu-coins {
+    margin: 22px 0;
+
+    font-size: 26px;
+
+    font-weight: 900;
 }
 
 
 /* =========================================
-   COINS
+   BUTTONS
 ========================================= */
 
-.coin-display {
-    margin: 12px 0 20px;
+.main-button,
+.menu-button,
+.secondary-button {
+    width: 100%;
 
-    font-size: 22px;
+    min-height: 52px;
 
-    font-weight: 800;
+    margin-top: 10px;
+
+    border-radius: 15px;
+
+    font-size: 17px;
+
+    font-weight: 900;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.12s,
+        filter 0.12s,
+        background 0.12s;
 }
 
-
-/* =========================================
-   MAIN BUTTON
-========================================= */
 
 .main-button {
-    width: min(320px, 90%);
-
-    min-height: 58px;
-
     border: none;
-
-    border-radius: 16px;
 
     background:
         linear-gradient(
             135deg,
             #1683ff,
-            #0066cc
+            #005fcc
         );
 
     color: white;
 
-    font-size: 20px;
-
-    font-weight: 900;
-
-    letter-spacing: 1px;
-
-    cursor: pointer;
-
     box-shadow:
         0 8px 25px
-        rgba(0, 102, 204, 0.35);
-
-    transition:
-        transform 0.15s,
-        filter 0.15s;
+        rgba(0, 102, 204, 0.3);
 }
 
 
-.main-button:hover {
-    filter: brightness(1.1);
-
-    transform:
-        translateY(-2px);
-}
-
-
-.main-button:active {
-    transform:
-        translateY(1px)
-        scale(0.98);
-}
-
-
-/* =========================================
-   SECONDARY BUTTON
-========================================= */
-
-.secondary-button {
-    width: min(320px, 90%);
-
-    min-height: 48px;
-
-    margin-top: 12px;
-
+.menu-button {
     border:
         1px solid
-        rgba(255, 255, 255, 0.15);
+        rgba(255, 255, 255, 0.12);
 
-    border-radius: 14px;
+    background:
+        rgba(255, 255, 255, 0.07);
+
+    color: white;
+}
+
+
+.secondary-button {
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.14);
 
     background:
         rgba(255, 255, 255, 0.08);
 
     color: white;
-
-    font-size: 16px;
-
-    font-weight: 700;
-
-    cursor: pointer;
-
-    transition:
-        background 0.15s,
-        transform 0.15s;
 }
 
 
+.main-button:hover,
+.menu-button:hover,
 .secondary-button:hover {
-    background:
-        rgba(255, 255, 255, 0.14);
+    filter: brightness(1.1);
+
+    transform:
+        translateY(-1px);
 }
 
 
+.main-button:active,
+.menu-button:active,
 .secondary-button:active {
     transform:
         scale(0.98);
 }
 
 
-/* =========================================
-   GAME OVER
-========================================= */
+.menu-active-upgrade {
+    margin-top: 18px;
 
-.final-score {
-    margin: 10px 0 25px;
+    padding: 9px;
 
-    font-size: 52px;
+    border-radius: 12px;
 
-    font-weight: 900;
+    background:
+        rgba(52, 199, 89, 0.12);
+
+    color:
+        rgba(255, 255, 255, 0.8);
+
+    font-size: 13px;
 }
 
 
 /* =========================================
-   UPGRADE MENU
+   PANELS
 ========================================= */
 
-.upgrade-menu {
-    width: 100%;
+.panel {
+    width: min(800px, 94vw);
 
-    margin-top: 25px;
+    max-height: 90vh;
 
-    padding: 20px;
+    padding: 25px;
 
-    border-radius: 20px;
+    border-radius: 25px;
 
     background:
-        rgba(5, 15, 30, 0.92);
+        rgba(7, 17, 31, 0.98);
 
     border:
         1px solid
         rgba(255, 255, 255, 0.12);
 
-    text-align: left;
+    box-shadow:
+        0 25px 80px
+        rgba(0, 0, 0, 0.55);
+
+    overflow-y: auto;
 }
 
 
-.upgrade-header {
+.panel-header {
     display: flex;
-
-    align-items: center;
 
     justify-content: space-between;
 
+    align-items: center;
+
     gap: 15px;
-
-    margin-bottom: 15px;
 }
 
 
-.upgrade-header h2 {
-    font-size: 24px;
+.panel-header h2 {
+    margin: 0;
 
-    letter-spacing: 1px;
+    font-size: 28px;
 }
 
 
-.upgrade-coins {
+.panel-coins {
     font-size: 20px;
 
-    font-weight: bold;
+    font-weight: 900;
 
     white-space: nowrap;
 }
 
 
-.upgrade-message {
-    min-height: 24px;
+.panel-subtitle {
+    margin-top: 8px;
 
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 
-    text-align: center;
-
-    font-weight: bold;
+    opacity: 0.65;
 
     font-size: 14px;
 }
 
 
 /* =========================================
-   UPGRADE LIST
+   SHOP
+========================================= */
+
+.shop-list {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+
+    gap: 12px;
+}
+
+
+.skin-card {
+    padding: 15px;
+
+    border-radius: 18px;
+
+    background:
+        rgba(255, 255, 255, 0.06);
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.1);
+
+    text-align: center;
+}
+
+
+.skin-preview {
+    width: 55px;
+    height: 55px;
+
+    margin:
+        0 auto 10px;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 5px 20px
+        rgba(0, 0, 0, 0.35);
+}
+
+
+.skin-name {
+    font-size: 17px;
+
+    font-weight: 900;
+}
+
+
+.skin-price {
+    margin-top: 5px;
+
+    opacity: 0.75;
+
+    font-size: 13px;
+}
+
+
+.skin-button {
+    width: 100%;
+
+    margin-top: 12px;
+
+    padding: 10px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #1683ff;
+
+    color: white;
+
+    font-weight: 900;
+
+    cursor: pointer;
+}
+
+
+.skin-button.owned {
+    background:
+        rgba(255, 255, 255, 0.1);
+}
+
+
+.skin-button.equipped {
+    background: #34c759;
+}
+
+
+/* =========================================
+   UPGRADES
 ========================================= */
 
 .upgrade-list {
@@ -434,12 +546,10 @@ body {
     flex-direction: column;
 
     gap: 12px;
+
+    margin-bottom: 15px;
 }
 
-
-/* =========================================
-   UPGRADE CARD
-========================================= */
 
 .upgrade-card {
     display: flex;
@@ -450,48 +560,27 @@ body {
 
     padding: 15px;
 
-    border-radius: 15px;
+    border-radius: 16px;
 
     background:
         rgba(255, 255, 255, 0.06);
 
     border:
         1px solid
-        rgba(255, 255, 255, 0.08);
-
-    transition:
-        background 0.15s,
-        transform 0.15s;
-}
-
-
-.upgrade-card:hover {
-    background:
         rgba(255, 255, 255, 0.09);
-
-    transform:
-        translateY(-1px);
 }
 
-
-/* =========================================
-   UPGRADE ICON
-========================================= */
 
 .upgrade-icon {
-    flex-shrink: 0;
-
     width: 50px;
+
+    flex-shrink: 0;
 
     text-align: center;
 
-    font-size: 35px;
+    font-size: 34px;
 }
 
-
-/* =========================================
-   UPGRADE INFORMATION
-========================================= */
 
 .upgrade-info {
     flex: 1;
@@ -501,226 +590,177 @@ body {
 
 
 .upgrade-name {
-    font-size: 19px;
-
     font-weight: 900;
+
+    font-size: 18px;
 }
 
 
 .upgrade-description {
     margin-top: 4px;
 
-    color:
-        rgba(255, 255, 255, 0.7);
+    opacity: 0.65;
 
-    font-size: 14px;
-
-    line-height: 1.35;
+    font-size: 13px;
 }
 
 
 .upgrade-level {
-    margin-top: 7px;
+    margin-top: 6px;
 
     font-size: 13px;
-
-    color:
-        rgba(255, 255, 255, 0.9);
 }
 
-
-/* =========================================
-   UPGRADE ACTIONS
-========================================= */
 
 .upgrade-actions {
     display: flex;
 
     flex-direction: column;
 
-    gap: 7px;
-
-    flex-shrink: 0;
+    gap: 6px;
 }
 
 
 .upgrade-button {
-    min-width: 120px;
+    min-width: 115px;
 
-    padding: 9px 14px;
+    padding: 9px;
 
     border: none;
 
     border-radius: 10px;
 
-    font-size: 12px;
+    font-size: 11px;
 
     font-weight: 900;
 
     cursor: pointer;
-
-    transition:
-        transform 0.12s,
-        filter 0.12s,
-        opacity 0.12s;
 }
 
-
-.upgrade-button:hover {
-    filter: brightness(1.1);
-
-    transform:
-        translateY(-1px);
-}
-
-
-.upgrade-button:active {
-    transform:
-        scale(0.97);
-}
-
-
-/* =========================================
-   BUY BUTTON
-========================================= */
 
 .upgrade-button.buy {
-    background:
-        #ffcc00;
+    background: #ffcc00;
 
-    color:
-        #111;
+    color: #111;
 }
 
 
-/* =========================================
-   ACTIVATE BUTTON
-========================================= */
-
 .upgrade-button.activate {
-    background:
-        #1683ff;
+    background: #1683ff;
 
-    color:
-        white;
+    color: white;
 }
 
 
 .upgrade-button.activate.selected {
-    background:
-        #34c759;
-
-    color:
-        white;
+    background: #34c759;
 }
 
-
-/* =========================================
-   MAX LEVEL
-========================================= */
 
 .upgrade-button.max {
     background:
-        rgba(255, 255, 255, 0.1);
+        rgba(255, 255, 255, 0.08);
 
     color:
-        rgba(255, 255, 255, 0.5);
+        rgba(255, 255, 255, 0.45);
 
-    cursor:
-        default;
+    cursor: default;
 }
 
 
-.upgrade-button.max:hover {
-    filter: none;
+.upgrade-message {
+    min-height: 22px;
 
-    transform: none;
+    margin-bottom: 10px;
+
+    text-align: center;
+
+    font-weight: 800;
 }
 
 
 /* =========================================
-   EXTRA LIFE MESSAGE
+   PAUSE
 ========================================= */
 
-#lifeMessage {
-    position: fixed;
+.pause-panel {
+    width: min(400px, 90vw);
 
-    left: 50%;
-    top: 40%;
+    padding: 30px;
 
-    z-index: 100;
-
-    transform:
-        translate(-50%, -50%)
-        scale(0.8);
-
-    padding:
-        20px 30px;
-
-    border-radius: 20px;
+    border-radius: 25px;
 
     background:
-        rgba(0, 0, 0, 0.88);
+        rgba(7, 17, 31, 0.98);
 
     border:
         1px solid
-        rgba(255, 255, 255, 0.15);
+        rgba(255, 255, 255, 0.12);
 
-    font-size: 28px;
-
-    font-weight: 900;
-
-    white-space: nowrap;
-
-    opacity: 0;
-
-    pointer-events: none;
-
-    transition:
-        opacity 0.2s,
-        transform 0.2s;
+    text-align: center;
 }
 
 
-#lifeMessage.show {
-    opacity: 1;
+.pause-panel h2 {
+    margin-top: 0;
 
-    transform:
-        translate(-50%, -50%)
-        scale(1);
+    margin-bottom: 25px;
+
+    font-size: 34px;
 }
 
 
 /* =========================================
-   SCROLLBARS
+   GAME OVER
 ========================================= */
 
-.menu::-webkit-scrollbar,
-.upgrade-menu::-webkit-scrollbar {
-    width: 7px;
+.game-over-panel {
+    width: min(420px, 92vw);
+
+    padding: 30px;
+
+    border-radius: 25px;
+
+    background:
+        rgba(7, 17, 31, 0.98);
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.12);
+
+    text-align: center;
 }
 
 
-.menu::-webkit-scrollbar-track,
-.upgrade-menu::-webkit-scrollbar-track {
-    background:
-        transparent;
+.game-over-title {
+    font-size: 38px;
+
+    font-weight: 900;
 }
 
 
-.menu::-webkit-scrollbar-thumb,
-.upgrade-menu::-webkit-scrollbar-thumb {
-    background:
-        rgba(255, 255, 255, 0.2);
+.game-over-score-label {
+    margin-top: 20px;
 
-    border-radius: 10px;
+    opacity: 0.6;
 }
 
 
-.menu::-webkit-scrollbar-thumb:hover,
-.upgrade-menu::-webkit-scrollbar-thumb:hover {
-    background:
-        rgba(255, 255, 255, 0.3);
+.final-score {
+    margin: 5px 0;
+
+    font-size: 58px;
+
+    font-weight: 900;
+}
+
+
+.final-coins {
+    margin-bottom: 20px;
+
+    font-size: 20px;
+
+    font-weight: 800;
 }
 
 
@@ -730,155 +770,33 @@ body {
 
 @media (max-width: 600px) {
 
-    .overlay {
-        align-items: flex-start;
-
-        padding:
-            15px;
-
-        padding-top: 25px;
+    .main-menu {
+        padding: 23px;
     }
 
 
-    .menu {
-        width: 100%;
-
-        max-height: 96vh;
-
-        padding: 20px;
-
-        border-radius: 20px;
+    .shop-list {
+        grid-template-columns: 1fr;
     }
 
 
-    .menu h1 {
-        font-size: 34px;
-    }
+    .panel {
+        padding: 18px;
 
-
-    .upgrade-menu {
-        padding: 12px;
-
-        margin-top: 20px;
-    }
-
-
-    .upgrade-header h2 {
-        font-size: 20px;
-    }
-
-
-    .upgrade-coins {
-        font-size: 16px;
+        max-height: 94vh;
     }
 
 
     .upgrade-card {
         align-items: flex-start;
 
-        gap: 10px;
-
-        padding: 12px;
-    }
-
-
-    .upgrade-icon {
-        width: 35px;
-
-        font-size: 27px;
-    }
-
-
-    .upgrade-name {
-        font-size: 16px;
-    }
-
-
-    .upgrade-description {
-        font-size: 12px;
-    }
-
-
-    .upgrade-level {
-        font-size: 12px;
-    }
-
-
-    .upgrade-actions {
-        gap: 5px;
-    }
-
-
-    .upgrade-button {
-        min-width: 88px;
-
-        padding: 8px 6px;
-
-        font-size: 10px;
-    }
-
-
-    .coin-display {
-        font-size: 19px;
-    }
-
-
-    .score {
-        top: 15px;
-
-        font-size: 26px;
-    }
-
-
-    .lives {
-        top: 15px;
-
-        left: 15px;
-
-        font-size: 21px;
-    }
-
-
-    .active-upgrade-display {
-        top: 55px;
-
-        font-size: 12px;
-    }
-
-
-    #lifeMessage {
-        font-size: 22px;
-
-        padding:
-            16px 22px;
-    }
-}
-
-
-/* =========================================
-   VERY SMALL SCREENS
-========================================= */
-
-@media (max-width: 400px) {
-
-    .menu {
-        padding: 15px;
-    }
-
-
-    .menu h1 {
-        font-size: 29px;
-    }
-
-
-    .upgrade-card {
         flex-wrap: wrap;
     }
 
 
     .upgrade-info {
         min-width:
-            calc(100% - 50px);
+            calc(100% - 70px);
     }
 
 
@@ -891,23 +809,40 @@ body {
 
     .upgrade-button {
         flex: 1;
+
+        min-width: 0;
+    }
+
+
+    .score {
+        font-size: 27px;
+    }
+
+
+    .hud-coins,
+    .hud-multiplier {
+        font-size: 13px;
     }
 }
 
 
 /* =========================================
-   REDUCE MOTION
+   SMALL MOBILE
 ========================================= */
 
-@media (prefers-reduced-motion: reduce) {
+@media (max-width: 400px) {
 
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
+    .game-title {
+        font-size: 31px;
+    }
 
-        animation-iteration-count: 1 !important;
 
-        transition-duration: 0.01ms !important;
+    .main-menu {
+        padding: 18px;
+    }
+
+
+    .panel-header h2 {
+        font-size: 23px;
     }
 }
