@@ -1,30 +1,39 @@
+/* =========================================
+   GENGA SURFER
+   GAME 3D
+========================================= */
+
+
 let scene;
 let camera;
 let renderer;
-
 let player;
+
+
+/* =========================================
+   OBJEKTE
+========================================= */
 
 let obstacleObjects = [];
 let coinObjects = [];
 
-let lastTime = performance.now();
 
+/* =========================================
+   GAME SETTINGS
+========================================= */
 
-/* =========================
-   SETTINGS
-========================= */
-
-const START_SPEED = 12;
-const MAX_SPEED = 24;
-
-const SPEED_INCREASE = 0.35;
+const BASE_GAME_SPEED = 12;
+const MAX_GAME_SPEED = 28;
 
 const SPAWN_INTERVAL = 24;
-const SPAWN_DISTANCE = -105;
+const SPAWN_DISTANCE = -110;
 
-const COIN_SPAWN_DISTANCE = 18;
+const lanePositions = [
+    -2,
+    0,
+    2
+];
 
-const lanePositions = [-2, 0, 2];
 
 const obstacleColors = [
     0xff3b30,
@@ -35,95 +44,155 @@ const obstacleColors = [
     0xaf52de
 ];
 
-let lastRowWasOneBlock = false;
 
-let nextCoinZ = -20;
+/* =========================================
+   TIME
+========================================= */
+
+let lastTime = 0;
+
+let gameDistance = 0;
 
 
-/* =========================
-   INIT
-========================= */
+/* =========================================
+   SPAWN STATE
+========================================= */
 
-function initGame3D() {
+let lastSafeLane = -1;
 
-    if (typeof THREE === "undefined") {
+let lastWasSingleBlock = false;
 
-        console.error(
-            "Three.js wurde nicht geladen."
-        );
+let nextSpawnZ = SPAWN_DISTANCE;
 
-        return;
-    }
 
-    if (renderer) {
-        return;
-    }
+/* =========================================
+   HILFSFUNKTIONEN
+========================================= */
 
-    createScene();
+function randomInt(min, max) {
 
-    requestAnimationFrame(animate);
+    return Math.floor(
+        Math.random() *
+        (max - min + 1)
+    ) + min;
 }
 
 
-/* =========================
-   CREATE SCENE
-========================= */
+function getRandomColor() {
 
-function createScene() {
+    return obstacleColors[
+        randomInt(
+            0,
+            obstacleColors.length - 1
+        )
+    ];
+}
 
-    const canvasContainer =
-        document.getElementById("gameCanvas");
 
-    if (!canvasContainer) {
-        return;
+function shuffleArray(array) {
+
+    for (
+        let i = array.length - 1;
+        i > 0;
+        i--
+    ) {
+
+        const j =
+            Math.floor(
+                Math.random() *
+                (i + 1)
+            );
+
+        [
+            array[i],
+            array[j]
+        ] =
+        [
+            array[j],
+            array[i]
+        ];
     }
 
+    return array;
+}
 
-    /* =========================
-       SCENE
-    ========================= */
+
+/* =========================================
+   AKTUELLE GESCHWINDIGKEIT
+========================================= */
+
+function getGameSpeed() {
+
+    /*
+     * Geschwindigkeit steigt langsam
+     * mit der zurückgelegten Strecke.
+     */
+
+    const speedIncrease =
+        Math.min(
+            gameDistance * 0.015,
+            MAX_GAME_SPEED -
+            BASE_GAME_SPEED
+        );
+
+    return BASE_GAME_SPEED +
+        speedIncrease;
+}
+
+
+/* =========================================
+   SZENE ERSTELLEN
+========================================= */
+
+function createScene() {
 
     scene =
         new THREE.Scene();
 
+
     scene.background =
-        new THREE.Color(0x07152d);
+        new THREE.Color(
+            0x07111f
+        );
 
 
-    /* =========================
-       CAMERA
-    ========================= */
+    /*
+     * Kamera
+     */
 
     camera =
         new THREE.PerspectiveCamera(
             65,
-            window.innerWidth / window.innerHeight,
+            window.innerWidth /
+                window.innerHeight,
             0.1,
             300
         );
 
+
     camera.position.set(
         0,
-        4.8,
-        10.5
+        5.8,
+        11
     );
+
 
     camera.lookAt(
         0,
         0.8,
-        -25
+        -22
     );
 
 
-    /* =========================
-       RENDERER
-    ========================= */
+    /*
+     * Renderer
+     */
 
     renderer =
         new THREE.WebGLRenderer({
-            antialias: true,
-            powerPreference: "high-performance"
+            antialias: true
         });
+
 
     renderer.setPixelRatio(
         Math.min(
@@ -132,33 +201,43 @@ function createScene() {
         )
     );
 
+
     renderer.setSize(
         window.innerWidth,
         window.innerHeight
     );
 
-    renderer.domElement.style.width = "100%";
-    renderer.domElement.style.height = "100%";
 
-    renderer.domElement.style.touchAction =
-        "none";
-
-    canvasContainer.appendChild(
-        renderer.domElement
-    );
+    const container =
+        document.getElementById(
+            "gameCanvas"
+        );
 
 
-    /* =========================
-       LIGHT
-    ========================= */
+    if (container) {
+
+        container.innerHTML = "";
+
+        container.appendChild(
+            renderer.domElement
+        );
+    }
+
+
+    /* =====================================
+       LICHT
+    ===================================== */
 
     const ambientLight =
         new THREE.AmbientLight(
             0xffffff,
-            0.8
+            0.75
         );
 
-    scene.add(ambientLight);
+
+    scene.add(
+        ambientLight
+    );
 
 
     const directionalLight =
@@ -167,29 +246,71 @@ function createScene() {
             1
         );
 
+
     directionalLight.position.set(
         5,
         10,
         5
     );
 
-    scene.add(directionalLight);
+
+    scene.add(
+        directionalLight
+    );
 
 
-    /* =========================
-       ROAD
-    ========================= */
+    /* =====================================
+       OBJEKTE
+    ===================================== */
+
+    createRoad();
+
+    createPlayer();
+
+    resetObstacles();
+
+    resetCoins();
+
+
+    /*
+     * Resize
+     */
+
+    window.addEventListener(
+        "resize",
+        onWindowResize
+    );
+
+
+    /*
+     * Animation starten
+     */
+
+    requestAnimationFrame(
+        animate
+    );
+}
+
+
+/* =========================================
+   STRASSE
+========================================= */
+
+function createRoad() {
 
     const roadGeometry =
-        new THREE.PlaneGeometry(
+        new THREE.BoxGeometry(
             8,
+            0.2,
             300
         );
 
+
     const roadMaterial =
         new THREE.MeshStandardMaterial({
-            color: 0x151f35
+            color: 0x252525
         });
+
 
     const road =
         new THREE.Mesh(
@@ -197,73 +318,91 @@ function createScene() {
             roadMaterial
         );
 
-    road.rotation.x =
-        -Math.PI / 2;
 
     road.position.set(
         0,
         0,
-        -130
+        -100
     );
 
-    scene.add(road);
+
+    scene.add(
+        road
+    );
 
 
-    /* =========================
-       LANE LINES
-    ========================= */
+    createLaneLine(-1);
 
-    const lineMaterial =
-        new THREE.MeshStandardMaterial({
-            color: 0xffffff
-        });
+    createLaneLine(1);
+}
 
-    [-1, 1].forEach(x => {
 
-        const lineGeometry =
-            new THREE.BoxGeometry(
-                0.06,
-                0.02,
-                300
-            );
+/* =========================================
+   SPUR-LINIEN
+========================================= */
 
-        const line =
-            new THREE.Mesh(
-                lineGeometry,
-                lineMaterial
-            );
+function createLaneLine(x) {
 
-        line.position.set(
-            x,
-            0.02,
-            -130
+    const geometry =
+        new THREE.BoxGeometry(
+            0.08,
+            0.03,
+            300
         );
 
-        scene.add(line);
-    });
+
+    const material =
+        new THREE.MeshBasicMaterial({
+            color: 0x777777
+        });
 
 
-    /* =========================
-       PLAYER
-    ========================= */
+    const line =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
 
-    const playerGeometry =
+
+    line.position.set(
+        x,
+        0.12,
+        -100
+    );
+
+
+    scene.add(
+        line
+    );
+}
+
+
+/* =========================================
+   SPIELER
+========================================= */
+
+function createPlayer() {
+
+    const geometry =
         new THREE.BoxGeometry(
             1.2,
             1.8,
             1.2
         );
 
-    const playerMaterial =
+
+    const material =
         new THREE.MeshStandardMaterial({
             color: 0x007aff
         });
 
+
     player =
         new THREE.Mesh(
-            playerGeometry,
-            playerMaterial
+            geometry,
+            material
         );
+
 
     player.position.set(
         0,
@@ -271,612 +410,356 @@ function createScene() {
         3
     );
 
-    scene.add(player);
 
-
-    /* =========================
-       INITIAL OBJECTS
-    ========================= */
-
-    resetObstacles();
-    resetCoins();
-
-
-    window.addEventListener(
-        "resize",
-        onWindowResize
+    scene.add(
+        player
     );
+
+
+    /*
+     * Ausgewählten Skin anwenden.
+     */
+
+    if (
+        typeof applySelectedSkin ===
+        "function"
+    ) {
+
+        applySelectedSkin();
+    }
 }
 
 
-/* =========================
-   RESET PLAYER
-========================= */
+/* =========================================
+   SPIELER ZURÜCKSETZEN
+========================================= */
 
 function resetPlayer() {
 
     if (!player) {
+
         return;
     }
 
-    player.position.x =
-        lanePositions[playerLane];
 
-    player.position.y = 0.9;
-    player.position.z = 3;
-}
-
-
-/* =========================
-   OBSTACLES
-========================= */
-
-function spawnObstacleRow(z) {
-
-    let lanesToBlock = [];
-
-    /*
-     * 15% Chance auf nur einen Block.
-     *
-     * Zwei einzelne Block-Reihen
-     * direkt hintereinander werden
-     * verhindert.
-     */
-
-    const createOneBlock =
-        !lastRowWasOneBlock &&
-        Math.random() < 0.15;
-
-
-    if (createOneBlock) {
-
-        const blockedLane =
-            Math.floor(
-                Math.random() * 3
-            );
-
-        lanesToBlock.push(
-            blockedLane
-        );
-
-        lastRowWasOneBlock = true;
-
-    } else {
-
-        /*
-         * Bei zwei Blöcken bleibt
-         * immer genau eine Spur frei.
-         */
-
-        const safeLane =
-            Math.floor(
-                Math.random() * 3
-            );
-
-        for (
-            let lane = 0;
-            lane < 3;
-            lane++
-        ) {
-
-            if (lane !== safeLane) {
-
-                lanesToBlock.push(
-                    lane
-                );
-            }
-        }
-
-        lastRowWasOneBlock = false;
-    }
-
-
-    /* =========================
-       CREATE BLOCKS
-    ========================= */
-
-    lanesToBlock.forEach(
-        lane => {
-
-            const geometry =
-                new THREE.BoxGeometry(
-                    1.35,
-                    1.8,
-                    1.35
-                );
-
-            const material =
-                new THREE.MeshStandardMaterial({
-                    color:
-                        obstacleColors[
-                            Math.floor(
-                                Math.random() *
-                                obstacleColors.length
-                            )
-                        ]
-                });
-
-            const obstacle =
-                new THREE.Mesh(
-                    geometry,
-                    material
-                );
-
-            obstacle.position.set(
-                lanePositions[lane],
-                0.9,
-                z
-            );
-
-            scene.add(obstacle);
-
-            obstacleObjects.push(
-                obstacle
-            );
-        }
-    );
-}
-
-
-/* =========================
-   RESET OBSTACLES
-========================= */
-
-function resetObstacles() {
-
-    obstacleObjects.forEach(
-        obstacle => {
-
-            if (obstacle.parent) {
-
-                obstacle.parent.remove(
-                    obstacle
-                );
-            }
-
-            obstacle.geometry.dispose();
-            obstacle.material.dispose();
-        }
+    player.position.set(
+        0,
+        0.9,
+        3
     );
 
-    obstacleObjects = [];
 
-    lastRowWasOneBlock = false;
-
-
-    /*
-     * Erste Reihe
-     */
-
-    spawnObstacleRow(-35);
+    player.rotation.set(
+        0,
+        0,
+        0
+    );
 
 
-    /*
-     * Weitere Reihen
-     */
-
-    for (
-        let i = 1;
-        i < 7;
-        i++
+    if (
+        typeof playerLane !==
+        "undefined"
     ) {
 
-        spawnObstacleRow(
-            -35 -
-            i * SPAWN_INTERVAL
-        );
+        player.position.x =
+            lanePositions[
+                playerLane
+            ];
+    }
+
+
+    if (
+        typeof applySelectedSkin ===
+        "function"
+    ) {
+
+        applySelectedSkin();
     }
 }
 
 
-/* =========================
-   COINS
-========================= */
+/* =========================================
+   HINDERNIS ERSTELLEN
+========================================= */
 
-function createCoin(lane, z) {
+function createObstacle(
+    lane,
+    z,
+    color
+) {
 
     const geometry =
-        new THREE.CylinderGeometry(
-            0.38,
-            0.38,
-            0.12,
-            24
+        new THREE.BoxGeometry(
+            1.35,
+            1.8,
+            1.35
         );
+
 
     const material =
         new THREE.MeshStandardMaterial({
-            color: 0xffd700,
-            metalness: 0.7,
-            roughness: 0.25
+            color: color
         });
 
-    const coin =
+
+    const obstacle =
         new THREE.Mesh(
             geometry,
             material
         );
 
-    /*
-     * Münze aufrecht drehen.
-     */
 
-    coin.rotation.z =
-        Math.PI / 2;
-
-    coin.position.set(
+    obstacle.position.set(
         lanePositions[lane],
-        1.15,
+        0.9,
         z
     );
 
-    scene.add(coin);
 
-    coinObjects.push(
-        coin
+    scene.add(
+        obstacle
+    );
+
+
+    obstacleObjects.push(
+        obstacle
     );
 }
 
 
-/* =========================
-   RESET COINS
-========================= */
+/* =========================================
+   HINDERNIS-REIHE
+========================================= */
 
-function resetCoins() {
-
-    /*
-     * Alte Münzen entfernen.
-     */
-
-    coinObjects.forEach(
-        coin => {
-
-            if (coin.parent) {
-
-                coin.parent.remove(
-                    coin
-                );
-            }
-
-            coin.geometry.dispose();
-            coin.material.dispose();
-        }
-    );
-
-    coinObjects = [];
-
+function spawnObstacleRow(z) {
 
     /*
-     * Startposition für
-     * weitere Münzen.
+     * Meistens zwei Blöcke.
+     *
+     * Manchmal nur ein Block.
+     *
+     * Einzelne Blöcke dürfen nicht
+     * ständig hintereinander kommen.
      */
 
-    nextCoinZ = -20;
+    let spawnSingle =
+        Math.random() < 0.28;
 
 
-    /*
-     * Erste Münzen erzeugen.
-     */
-
-    for (
-        let i = 0;
-        i < 10;
-        i++
+    if (
+        lastWasSingleBlock
     ) {
 
-        const lane =
-            Math.floor(
-                Math.random() * 3
-            );
-
-        createCoin(
-            lane,
-            -20 -
-            i * COIN_SPAWN_DISTANCE
-        );
+        spawnSingle = false;
     }
 
 
     /*
-     * Position der nächsten Münze.
+     * Bei einer Einzelreihe:
+     * zufällige Spur.
      */
 
-    nextCoinZ =
-        -20 -
-        10 * COIN_SPAWN_DISTANCE;
-}
+    if (spawnSingle) {
 
-
-/* =========================
-   SPAWN COINS
-========================= */
-
-function updateCoinSpawning() {
-
-    /*
-     * Wir halten immer Münzen
-     * weit vor dem Spieler bereit.
-     */
-
-    while (
-        nextCoinZ > -180
-    ) {
-
-        const lane =
-            Math.floor(
-                Math.random() * 3
+        const blockLane =
+            randomInt(
+                0,
+                2
             );
 
-        createCoin(
-            lane,
-            nextCoinZ
+
+        createObstacle(
+            blockLane,
+            z,
+            getRandomColor()
         );
 
-        nextCoinZ -=
-            COIN_SPAWN_DISTANCE;
+
+        lastWasSingleBlock =
+            true;
+
+
+        lastSafeLane = -1;
+
+
+        return;
     }
 
 
     /*
-     * Position der am weitesten
-     * entfernten Münze suchen.
+     * Zwei Blöcke.
+     *
+     * Eine Spur bleibt frei.
      */
 
-    let furthestCoinZ = 0;
 
-    coinObjects.forEach(
-        coin => {
-
-            if (
-                coin.position.z <
-                furthestCoinZ
-            ) {
-
-                furthestCoinZ =
-                    coin.position.z;
-            }
-        }
-    );
+    let safeLane =
+        randomInt(
+            0,
+            2
+        );
 
 
     /*
-     * Wenn die Münzen näher kommen,
-     * den Spawn-Bereich wieder
-     * nach hinten verschieben.
+     * Nicht immer dieselbe Spur
+     * frei lassen.
      */
 
     if (
-        furthestCoinZ > -120
+        safeLane ===
+        lastSafeLane
     ) {
 
-        nextCoinZ =
-            furthestCoinZ -
-            COIN_SPAWN_DISTANCE;
-    }
-}
+        const alternatives = [
+            0,
+            1,
+            2
+        ].filter(
+            lane =>
+                lane !==
+                lastSafeLane
+        );
 
 
-/* =========================
-   GAME SPEED
-========================= */
-
-function getCurrentGameSpeed() {
-
-    return Math.min(
-        START_SPEED +
-        score * SPEED_INCREASE,
-        MAX_SPEED
-    );
-}
-
-
-/* =========================
-   UPDATE OBSTACLES
-========================= */
-
-function updateObstacles(delta) {
-
-    const speed =
-        getCurrentGameSpeed();
-
-
-    /*
-     * Hindernisse bewegen.
-     */
-
-    obstacleObjects.forEach(
-        obstacle => {
-
-            obstacle.position.z +=
-                speed * delta;
-        }
-    );
-
-
-    /*
-     * Kollisionen + alte
-     * Hindernisse entfernen.
-     */
-
-    for (
-        let i = obstacleObjects.length - 1;
-        i >= 0;
-        i--
-    ) {
-
-        const obstacle =
-            obstacleObjects[i];
-
-
-        if (
-            checkCollision(
-                obstacle
-            )
-        ) {
-
-            endGame();
-
-            return;
-        }
-
-
-        if (
-            obstacle.position.z > 12
-        ) {
-
-            scene.remove(
-                obstacle
-            );
-
-            obstacle.geometry.dispose();
-            obstacle.material.dispose();
-
-            obstacleObjects.splice(
-                i,
-                1
-            );
-        }
+        safeLane =
+            alternatives[
+                randomInt(
+                    0,
+                    alternatives.length - 1
+                )
+            ];
     }
 
 
-    updateSpawning();
-}
-
-
-/* =========================
-   UPDATE COINS
-========================= */
-
-function updateCoins(delta) {
-
-    const speed =
-        getCurrentGameSpeed();
-
-
     /*
-     * Münzen bewegen.
-     */
-
-    coinObjects.forEach(
-        coin => {
-
-            coin.position.z +=
-                speed * delta;
-
-
-            /*
-             * Dreh-Animation.
-             */
-
-            coin.rotation.y +=
-                delta * 5;
-        }
-    );
-
-
-    /*
-     * Münzen prüfen.
+     * Blöcke erzeugen.
      */
 
     for (
-        let i = coinObjects.length - 1;
-        i >= 0;
-        i--
+        let lane = 0;
+        lane < 3;
+        lane++
     ) {
 
-        const coin =
-            coinObjects[i];
-
-
-        /*
-         * Münze eingesammelt?
-         */
-
         if (
-            checkCoinCollision(
-                coin
-            )
+            lane === safeLane
         ) {
-
-            addCoin();
-
-
-            scene.remove(
-                coin
-            );
-
-            coin.geometry.dispose();
-            coin.material.dispose();
-
-
-            coinObjects.splice(
-                i,
-                1
-            );
 
             continue;
         }
 
 
-        /*
-         * Münze hinter dem Spieler.
-         */
+        createObstacle(
+            lane,
+            z,
+            getRandomColor()
+        );
+    }
+
+
+    lastSafeLane =
+        safeLane;
+
+
+    lastWasSingleBlock =
+        false;
+}
+
+
+/* =========================================
+   HINDERNISSE ZURÜCKSETZEN
+========================================= */
+
+function resetObstacles() {
+
+    for (
+        const obstacle of
+        obstacleObjects
+    ) {
+
+        scene.remove(
+            obstacle
+        );
+    }
+
+
+    obstacleObjects = [];
+
+
+    gameDistance = 0;
+
+
+    lastSafeLane = -1;
+
+    lastWasSingleBlock = false;
+
+
+    nextSpawnZ =
+        SPAWN_DISTANCE;
+
+
+    /*
+     * Reihen nach hinten verteilen.
+     */
+
+    for (
+        let i = 0;
+        i < 8;
+        i++
+    ) {
+
+        spawnObstacleRow(
+            nextSpawnZ
+        );
+
+
+        nextSpawnZ -=
+            SPAWN_INTERVAL;
+    }
+}
+
+
+/* =========================================
+   NEUE HINDERNISSE
+========================================= */
+
+function updateSpawning() {
+
+    if (
+        obstacleObjects.length === 0
+    ) {
+
+        return;
+    }
+
+
+    /*
+     * Der hinterste Block.
+     */
+
+    let furthestZ =
+        Infinity;
+
+
+    for (
+        const obstacle of
+        obstacleObjects
+    ) {
 
         if (
-            coin.position.z > 12
+            obstacle.position.z <
+            furthestZ
         ) {
 
-            scene.remove(
-                coin
-            );
-
-            coin.geometry.dispose();
-            coin.material.dispose();
-
-
-            coinObjects.splice(
-                i,
-                1
-            );
+            furthestZ =
+                obstacle.position.z;
         }
     }
 
 
     /*
-     * Neue Münzen erzeugen.
-     */
-
-    updateCoinSpawning();
-}
-
-
-/* =========================
-   SPAWN OBSTACLES
-========================= */
-
-function updateSpawning() {
-
-    let furthestZ = 0;
-
-
-    obstacleObjects.forEach(
-        obstacle => {
-
-            if (
-                obstacle.position.z <
-                furthestZ
-            ) {
-
-                furthestZ =
-                    obstacle.position.z;
-            }
-        }
-    );
-
-
-    /*
      * Neue Reihe erzeugen,
-     * sobald die letzte Reihe
-     * zu nah kommt.
+     * sobald genug Platz entstanden ist.
      */
 
     if (
@@ -892,15 +775,115 @@ function updateSpawning() {
 }
 
 
-/* =========================
-   OBSTACLE COLLISION
-========================= */
+/* =========================================
+   HINDERNISSE BEWEGEN
+========================================= */
+
+function updateObstacles(
+    delta
+) {
+
+    const speed =
+        getGameSpeed();
+
+
+    for (
+        let i =
+            obstacleObjects.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const obstacle =
+            obstacleObjects[i];
+
+
+        obstacle.position.z +=
+            speed *
+            delta;
+
+
+        /*
+         * Kollision nur während
+         * des laufenden Spiels.
+         */
+
+        if (
+            typeof gameRunning !==
+            "undefined" &&
+            gameRunning
+        ) {
+
+            if (
+                checkCollision(
+                    obstacle
+                )
+            ) {
+
+                if (
+                    typeof endGame ===
+                    "function"
+                ) {
+
+                    endGame();
+                }
+
+
+                return;
+            }
+        }
+
+
+        /*
+         * Strecke erhöhen.
+         */
+
+        if (
+            obstacle.position.z >
+            -5
+        ) {
+
+            /*
+             * Wird nicht hier gezählt,
+             * damit jeder Block nicht
+             * mehrfach Strecke erzeugt.
+             */
+        }
+
+
+        /*
+         * Alte Blöcke entfernen.
+         */
+
+        if (
+            obstacle.position.z >
+            12
+        ) {
+
+            scene.remove(
+                obstacle
+            );
+
+
+            obstacleObjects.splice(
+                i,
+                1
+            );
+        }
+    }
+}
+
+
+/* =========================================
+   KOLLISION
+========================================= */
 
 function checkCollision(
     obstacle
 ) {
 
     if (!player) {
+
         return false;
     }
 
@@ -926,15 +909,345 @@ function checkCollision(
 }
 
 
-/* =========================
-   COIN COLLISION
-========================= */
+/* =========================================
+   SPIELER BEWEGEN
+========================================= */
+
+function updatePlayer() {
+
+    if (!player) {
+
+        return;
+    }
+
+
+    const currentLane =
+        typeof playerLane !==
+        "undefined"
+            ? playerLane
+            : 1;
+
+
+    const targetX =
+        lanePositions[
+            currentLane
+        ];
+
+
+    /*
+     * Sanft zur Spur bewegen.
+     */
+
+    player.position.x +=
+        (
+            targetX -
+            player.position.x
+        ) * 0.18;
+}
+
+
+/* =========================================
+   MÜNZE ERSTELLEN
+========================================= */
+
+function createCoin(
+    lane,
+    z
+) {
+
+    const geometry =
+        new THREE.CylinderGeometry(
+            0.45,
+            0.45,
+            0.14,
+            24
+        );
+
+
+    const material =
+        new THREE.MeshStandardMaterial({
+            color: 0xffcc00,
+            metalness: 0.7,
+            roughness: 0.25
+        });
+
+
+    const coin =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+
+    coin.rotation.z =
+        Math.PI / 2;
+
+
+    coin.position.set(
+        lanePositions[lane],
+        1.2,
+        z
+    );
+
+
+    scene.add(
+        coin
+    );
+
+
+    coinObjects.push(
+        coin
+    );
+}
+
+
+/* =========================================
+   MÜNZEN ZURÜCKSETZEN
+========================================= */
+
+function resetCoins() {
+
+    for (
+        const coin of
+        coinObjects
+    ) {
+
+        scene.remove(
+            coin
+        );
+    }
+
+
+    coinObjects = [];
+
+
+    /*
+     * Viele Münzen über die Strecke
+     * verteilen.
+     */
+
+    let z =
+        SPAWN_DISTANCE - 8;
+
+
+    for (
+        let i = 0;
+        i < 35;
+        i++
+    ) {
+
+        /*
+         * Nicht jedes Mal Münzen.
+         */
+
+        if (
+            Math.random() < 0.82
+        ) {
+
+            const lane =
+                randomInt(
+                    0,
+                    2
+                );
+
+
+            createCoin(
+                lane,
+                z
+            );
+        }
+
+
+        z -=
+            randomInt(
+                7,
+                11
+            );
+    }
+}
+
+
+/* =========================================
+   MÜNZEN BEWEGEN
+========================================= */
+
+function updateCoins(
+    delta
+) {
+
+    const speed =
+        getGameSpeed();
+
+
+    for (
+        let i =
+            coinObjects.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const coin =
+            coinObjects[i];
+
+
+        coin.position.z +=
+            speed *
+            delta;
+
+
+        /*
+         * Münze drehen.
+         */
+
+        coin.rotation.y +=
+            delta * 5;
+
+
+        /*
+         * Kollision mit Spieler.
+         */
+
+        if (
+            typeof gameRunning !==
+            "undefined" &&
+            gameRunning
+        ) {
+
+            if (
+                checkCoinCollision(
+                    coin
+                )
+            ) {
+
+                if (
+                    typeof addCoin ===
+                    "function"
+                ) {
+
+                    addCoin();
+                }
+
+
+                scene.remove(
+                    coin
+                );
+
+
+                coinObjects.splice(
+                    i,
+                    1
+                );
+
+
+                continue;
+            }
+        }
+
+
+        /*
+         * Alte Münzen entfernen.
+         */
+
+        if (
+            coin.position.z >
+            12
+        ) {
+
+            scene.remove(
+                coin
+            );
+
+
+            coinObjects.splice(
+                i,
+                1
+            );
+        }
+    }
+}
+
+
+/* =========================================
+   MÜNZEN NACHSPAWNEN
+========================================= */
+
+function updateCoinSpawning() {
+
+    /*
+     * Wenn zu wenige Münzen auf
+     * der Strecke sind, neue erzeugen.
+     */
+
+    if (
+        coinObjects.length >= 12
+    ) {
+
+        return;
+    }
+
+
+    let furthestZ =
+        Infinity;
+
+
+    for (
+        const coin of
+        coinObjects
+    ) {
+
+        if (
+            coin.position.z <
+            furthestZ
+        ) {
+
+            furthestZ =
+                coin.position.z;
+        }
+    }
+
+
+    /*
+     * Falls keine Münzen mehr
+     * vorhanden sind.
+     */
+
+    if (
+        furthestZ === Infinity
+    ) {
+
+        furthestZ =
+            -80;
+    }
+
+
+    /*
+     * Neue Münze.
+     */
+
+    const lane =
+        randomInt(
+            0,
+            2
+        );
+
+
+    createCoin(
+        lane,
+        furthestZ - 12
+    );
+}
+
+
+/* =========================================
+   MÜNZEN-KOLLISION
+========================================= */
 
 function checkCoinCollision(
     coin
 ) {
 
     if (!player) {
+
         return false;
     }
 
@@ -960,64 +1273,37 @@ function checkCoinCollision(
 }
 
 
-/* =========================
-   PLAYER
-========================= */
+/* =========================================
+   GESAMTSTRECKE
+========================================= */
 
-function updatePlayer() {
+function updateDistance(
+    delta
+) {
 
-    if (!player) {
+    if (
+        typeof gameRunning ===
+        "undefined" ||
+        !gameRunning
+    ) {
+
         return;
     }
 
 
-    const targetX =
-        lanePositions[playerLane];
-
-
-    /*
-     * Weiche Bewegung
-     * zwischen den Spuren.
-     */
-
-    player.position.x +=
-        (
-            targetX -
-            player.position.x
-        ) * 0.18;
+    gameDistance +=
+        getGameSpeed() *
+        delta;
 }
 
 
-/* =========================
-   RESIZE
-========================= */
-
-function onWindowResize() {
-
-    if (!camera || !renderer) {
-        return;
-    }
-
-
-    camera.aspect =
-        window.innerWidth /
-        window.innerHeight;
-
-    camera.updateProjectionMatrix();
-
-
-    renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
-    );
-}
-
-
-/* =========================
+/* =========================================
    ANIMATION
-========================= */
+========================================= */
 
-function animate(currentTime) {
+function animate(
+    currentTime = 0
+) {
 
     requestAnimationFrame(
         animate
@@ -1026,16 +1312,19 @@ function animate(currentTime) {
 
     const delta =
         Math.min(
-            (currentTime - lastTime) / 1000,
+            (currentTime - lastTime) /
+                1000,
             0.05
         );
 
-    lastTime = currentTime;
+
+    lastTime =
+        currentTime;
 
 
     /*
-     * Während der Pause
-     * bewegt sich nichts.
+     * Nur bewegen, wenn das
+     * Spiel tatsächlich läuft.
      */
 
     if (
@@ -1046,15 +1335,26 @@ function animate(currentTime) {
 
         updatePlayer();
 
-        updateObstacles(delta);
+        updateObstacles(
+            delta
+        );
 
-        updateCoins(delta);
+        updateCoins(
+            delta
+        );
+
+        updateSpawning();
+
+        updateCoinSpawning();
+
+        updateDistance(
+            delta
+        );
     }
 
 
     /*
-     * Immer rendern, auch während
-     * der Pause.
+     * Immer rendern.
      */
 
     if (
@@ -1071,21 +1371,57 @@ function animate(currentTime) {
 }
 
 
-/* =========================
-   START
-========================= */
+/* =========================================
+   RESIZE
+========================================= */
 
-if (
-    document.readyState ===
-    "loading"
-) {
+function onWindowResize() {
 
-    document.addEventListener(
-        "DOMContentLoaded",
-        initGame3D
+    if (
+        !camera ||
+        !renderer
+    ) {
+
+        return;
+    }
+
+
+    camera.aspect =
+        window.innerWidth /
+        window.innerHeight;
+
+
+    camera.updateProjectionMatrix();
+
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
     );
-
-} else {
-
-    initGame3D();
 }
+
+
+/* =========================================
+   START
+========================================= */
+
+window.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        if (
+            typeof THREE ===
+            "undefined"
+        ) {
+
+            console.error(
+                "Three.js wurde nicht geladen."
+            );
+
+            return;
+        }
+
+
+        createScene();
+    }
+);
