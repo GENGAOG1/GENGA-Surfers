@@ -23,15 +23,16 @@ const obstacleColors = [
 let lastTime = 0;
 
 
-/* =========================
+/* =========================================
    HILFSFUNKTIONEN
-========================= */
+========================================= */
 
 function randomInt(min, max) {
     return Math.floor(
         Math.random() * (max - min + 1)
     ) + min;
 }
+
 
 function getRandomColor() {
     return obstacleColors[
@@ -40,9 +41,9 @@ function getRandomColor() {
 }
 
 
-/* =========================
+/* =========================================
    SZENE ERSTELLEN
-========================= */
+========================================= */
 
 function createScene() {
 
@@ -55,17 +56,18 @@ function createScene() {
     camera =
         new THREE.PerspectiveCamera(
             65,
-            window.innerWidth /
-                window.innerHeight,
+            window.innerWidth / window.innerHeight,
             0.1,
             300
         );
+
 
     camera.position.set(
         0,
         5,
         9
     );
+
 
     camera.lookAt(
         0,
@@ -79,12 +81,14 @@ function createScene() {
             antialias: true
         });
 
+
     renderer.setPixelRatio(
         Math.min(
             window.devicePixelRatio,
             2
         )
     );
+
 
     renderer.setSize(
         window.innerWidth,
@@ -93,27 +97,34 @@ function createScene() {
 
 
     const container =
-        document.getElementById(
-            "gameCanvas"
+        document.getElementById("gameCanvas");
+
+
+    if (!container) {
+        console.error(
+            "gameCanvas wurde nicht gefunden."
         );
-
-    if (container) {
-
-        container.innerHTML = "";
-
-        container.appendChild(
-            renderer.domElement
-        );
+        return;
     }
 
 
-    /* Licht */
+    container.innerHTML = "";
+
+    container.appendChild(
+        renderer.domElement
+    );
+
+
+    /* =====================================
+       LICHT
+    ===================================== */
 
     const ambientLight =
         new THREE.AmbientLight(
             0xffffff,
             0.7
         );
+
 
     scene.add(
         ambientLight
@@ -126,16 +137,22 @@ function createScene() {
             1
         );
 
+
     directionalLight.position.set(
         5,
         10,
         5
     );
 
+
     scene.add(
         directionalLight
     );
 
+
+    /* =====================================
+       OBJEKTE
+    ===================================== */
 
     createRoad();
 
@@ -144,19 +161,27 @@ function createScene() {
     resetObstacles();
 
 
+    /* =====================================
+       RESIZE
+    ===================================== */
+
     window.addEventListener(
         "resize",
         onWindowResize
     );
 
 
+    /* =====================================
+       ANIMATION
+    ===================================== */
+
     animate();
 }
 
 
-/* =========================
+/* =========================================
    STRASSE
-========================= */
+========================================= */
 
 function createRoad() {
 
@@ -167,10 +192,12 @@ function createRoad() {
             300
         );
 
+
     const roadMaterial =
         new THREE.MeshStandardMaterial({
             color: 0x252525
         });
+
 
     const road =
         new THREE.Mesh(
@@ -178,11 +205,13 @@ function createRoad() {
             roadMaterial
         );
 
+
     road.position.set(
         0,
         0,
         -100
     );
+
 
     scene.add(
         road
@@ -195,9 +224,9 @@ function createRoad() {
 }
 
 
-/* =========================
+/* =========================================
    SPUR-LINIEN
-========================= */
+========================================= */
 
 function createLaneLine(x) {
 
@@ -208,10 +237,12 @@ function createLaneLine(x) {
             300
         );
 
+
     const material =
         new THREE.MeshBasicMaterial({
             color: 0x777777
         });
+
 
     const line =
         new THREE.Mesh(
@@ -219,11 +250,13 @@ function createLaneLine(x) {
             material
         );
 
+
     line.position.set(
         x,
         0.12,
         -100
     );
+
 
     scene.add(
         line
@@ -231,9 +264,9 @@ function createLaneLine(x) {
 }
 
 
-/* =========================
+/* =========================================
    SPIELER
-========================= */
+========================================= */
 
 function createPlayer() {
 
@@ -244,10 +277,12 @@ function createPlayer() {
             1.2
         );
 
+
     const material =
         new THREE.MeshStandardMaterial({
             color: 0x008cff
         });
+
 
     player =
         new THREE.Mesh(
@@ -255,11 +290,13 @@ function createPlayer() {
             material
         );
 
+
     player.position.set(
         0,
         0.9,
         3
     );
+
 
     scene.add(
         player
@@ -267,9 +304,9 @@ function createPlayer() {
 }
 
 
-/* =========================
+/* =========================================
    HINDERNIS ERSTELLEN
-========================= */
+========================================= */
 
 function createObstacle(
     lane,
@@ -284,10 +321,12 @@ function createObstacle(
             1.35
         );
 
+
     const material =
         new THREE.MeshStandardMaterial({
             color: color
         });
+
 
     const obstacle =
         new THREE.Mesh(
@@ -295,15 +334,18 @@ function createObstacle(
             material
         );
 
+
     obstacle.position.set(
         lanePositions[lane],
         0.9,
         z
     );
 
+
     scene.add(
         obstacle
     );
+
 
     obstacleObjects.push(
         obstacle
@@ -311,15 +353,15 @@ function createObstacle(
 }
 
 
-/* =========================
+/* =========================================
    HINDERNIS-REIHE
-========================= */
+========================================= */
 
 function spawnObstacleRow(z) {
 
     /*
-        50 %:
-        Nur 1 Block
+       50 % Wahrscheinlichkeit:
+       Nur EIN Block
     */
 
     const oneBlock =
@@ -331,23 +373,27 @@ function spawnObstacleRow(z) {
         const blockLane =
             randomInt(0, 2);
 
+
         createObstacle(
             blockLane,
             z,
             getRandomColor()
         );
 
+
         return;
     }
 
 
     /*
-        50 %:
-        2 Blöcke
+       50 % Wahrscheinlichkeit:
+       ZWEI Blöcke
 
-        Eine Spur bleibt frei.
-        Die freie Spur darf
-        wiederholt werden.
+       Eine Spur bleibt frei.
+
+       Die freie Spur darf auch
+       in der nächsten Reihe
+       wieder dieselbe sein.
     */
 
     const safeLane =
@@ -360,11 +406,10 @@ function spawnObstacleRow(z) {
         lane++
     ) {
 
-        if (
-            lane === safeLane
-        ) {
+        if (lane === safeLane) {
             continue;
         }
+
 
         createObstacle(
             lane,
@@ -375,9 +420,9 @@ function spawnObstacleRow(z) {
 }
 
 
-/* =========================
+/* =========================================
    HINDERNISSE ZURÜCKSETZEN
-========================= */
+========================================= */
 
 function resetObstacles() {
 
@@ -390,17 +435,17 @@ function resetObstacles() {
         );
     }
 
+
     obstacleObjects = [];
 
-
-    /*
-        Reihen weit nach hinten
-        verteilen.
-    */
 
     let spawnZ =
         SPAWN_DISTANCE;
 
+
+    /*
+       7 Reihen am Anfang
+    */
 
     for (
         let i = 0;
@@ -412,15 +457,16 @@ function resetObstacles() {
             spawnZ
         );
 
+
         spawnZ -=
             SPAWN_INTERVAL;
     }
 }
 
 
-/* =========================
-   NEUE REIHEN
-========================= */
+/* =========================================
+   NEUE REIHEN SPAWNEN
+========================================= */
 
 function updateSpawning() {
 
@@ -462,9 +508,9 @@ function updateSpawning() {
 }
 
 
-/* =========================
+/* =========================================
    HINDERNISSE BEWEGEN
-========================= */
+========================================= */
 
 function updateObstacles(delta) {
 
@@ -484,8 +530,8 @@ function updateObstacles(delta) {
 
 
         /*
-            Nur während des Spiels
-            Kollision prüfen.
+           Kollision nur prüfen,
+           wenn das Spiel läuft.
         */
 
         if (
@@ -508,13 +554,14 @@ function updateObstacles(delta) {
                     endGame();
                 }
 
+
                 return;
             }
         }
 
 
         /*
-            Alte Blöcke entfernen.
+           Alte Hindernisse löschen.
         */
 
         if (
@@ -526,6 +573,7 @@ function updateObstacles(delta) {
                 obstacle
             );
 
+
             obstacleObjects.splice(
                 i,
                 1
@@ -535,9 +583,9 @@ function updateObstacles(delta) {
 }
 
 
-/* =========================
+/* =========================================
    KOLLISION
-========================= */
+========================================= */
 
 function checkCollision(
     obstacle
@@ -569,9 +617,9 @@ function checkCollision(
 }
 
 
-/* =========================
+/* =========================================
    SPIELER BEWEGEN
-========================= */
+========================================= */
 
 function updatePlayer() {
 
@@ -579,11 +627,6 @@ function updatePlayer() {
         return;
     }
 
-
-    /*
-        playerLane kommt
-        aus game.js / controls.js.
-    */
 
     const currentLane =
         typeof playerLane !==
@@ -604,9 +647,9 @@ function updatePlayer() {
 }
 
 
-/* =========================
+/* =========================================
    ANIMATION
-========================= */
+========================================= */
 
 function animate(
     currentTime = 0
@@ -630,8 +673,8 @@ function animate(
 
 
     /*
-        3D-Bewegung nur,
-        wenn das Spiel läuft.
+       Nur während des Spiels
+       bewegen sich die Objekte.
     */
 
     if (
@@ -664,9 +707,9 @@ function animate(
 }
 
 
-/* =========================
+/* =========================================
    RESIZE
-========================= */
+========================================= */
 
 function onWindowResize() {
 
@@ -693,37 +736,52 @@ function onWindowResize() {
 }
 
 
-/* =========================
-   START DER 3D-SZENE
-========================= */
+/* =========================================
+   3D-SPIEL INITIALISIEREN
+========================================= */
 
-/*
-    Wichtig:
-    Die 3D-Szene wird erst nach
-    dem Laden der Seite gestartet.
+function initGame3D() {
 
-    Der Spielen-Button bleibt
-    vollständig unter der Kontrolle
-    von game.js.
-*/
+    if (
+        typeof THREE ===
+        "undefined"
+    ) {
 
-window.addEventListener(
-    "DOMContentLoaded",
-    function () {
+        console.error(
+            "Three.js wurde nicht geladen."
+        );
 
-        if (
-            typeof THREE ===
-            "undefined"
-        ) {
-
-            console.error(
-                "Three.js wurde nicht geladen."
-            );
-
-            return;
-        }
-
-
-        createScene();
+        return;
     }
-);
+
+
+    /*
+       Verhindert doppelte Initialisierung.
+    */
+
+    if (renderer) {
+        return;
+    }
+
+
+    createScene();
+}
+
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initGame3D,
+        {
+            once: true
+        }
+    );
+
+} else {
+
+    initGame3D();
+}
