@@ -1,13 +1,17 @@
 /* =========================================
-   GENGA SURFER - GAME CSS
+   GENGA SURFER
+   GAME CSS
 ========================================= */
 
 html,
 body {
+
     margin: 0;
+
     padding: 0;
 
     width: 100%;
+
     height: 100%;
 
     overflow: hidden;
@@ -23,6 +27,7 @@ body {
 ========================================= */
 
 body {
+
     background: #07111f;
 
     overflow: hidden;
@@ -32,16 +37,19 @@ body {
 
 
 /* =========================================
-   SPIEL
+   GAME
 ========================================= */
 
 #game {
+
     position: fixed;
 
     top: 0;
+
     left: 0;
 
     width: 100%;
+
     height: 100%;
 
     height: 100svh;
@@ -57,19 +65,23 @@ body {
 
 
 /* =========================================
-   THREE.JS CONTAINER
+   THREE.JS
 ========================================= */
 
 #gameCanvas {
+
     position: fixed;
 
     top: 0;
+
     left: 0;
 
     right: 0;
+
     bottom: 0;
 
     width: 100%;
+
     height: 100%;
 
     overflow: hidden;
@@ -83,7 +95,7 @@ body {
 
 
 /* =========================================
-   THREE.JS CANVAS
+   CANVAS
 ========================================= */
 
 #gameCanvas canvas {
@@ -91,14 +103,17 @@ body {
     position: fixed;
 
     top: 0;
+
     left: 0;
 
     display: block;
 
     width: 100% !important;
+
     height: 100% !important;
 
     margin: 0;
+
     padding: 0;
 
     touch-action: none;
@@ -120,7 +135,9 @@ body {
     position: fixed;
 
     top: 0;
+
     left: 0;
+
     right: 0;
 
     z-index: 20;
@@ -133,9 +150,7 @@ body {
 
     box-sizing: border-box;
 
-    padding:
-        14px
-        20px;
+    padding: 14px 20px;
 
     color: white;
 
@@ -148,7 +163,54 @@ body {
 
 
 /* =========================================
-   START / GAME OVER SCREEN
+   PAUSE BUTTON
+========================================= */
+
+#pauseButton {
+
+    pointer-events: auto;
+
+    width: 46px;
+
+    height: 46px;
+
+    padding: 0;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background:
+        rgba(
+            0,
+            0,
+            0,
+            0.55
+        );
+
+    color: white;
+
+    font-size: 22px;
+
+    font-weight: 700;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    cursor: pointer;
+
+    touch-action: manipulation;
+
+    -webkit-tap-highlight-color:
+        transparent;
+}
+
+
+/* =========================================
+   START / GAME OVER / PAUSE
 ========================================= */
 
 .game-screen {
@@ -156,8 +218,11 @@ body {
     position: fixed;
 
     top: 0;
+
     left: 0;
+
     right: 0;
+
     bottom: 0;
 
     z-index: 30;
@@ -174,6 +239,8 @@ body {
 
     box-sizing: border-box;
 
+    padding: 24px;
+
     color: white;
 
     background:
@@ -188,13 +255,18 @@ body {
 }
 
 
+/* =========================================
+   HIDDEN
+========================================= */
+
 .game-screen.hidden {
+
     display: none;
 }
 
 
 /* =========================================
-   BUTTON
+   BUTTONS
 ========================================= */
 
 .game-screen button {
@@ -203,9 +275,9 @@ body {
 
     min-height: 50px;
 
-    padding:
-        12px
-        24px;
+    margin-top: 10px;
+
+    padding: 12px 24px;
 
     border: none;
 
@@ -239,5 +311,13 @@ body {
             16px;
 
         font-size: 18px;
+    }
+
+
+    #pauseButton {
+
+        width: 44px;
+
+        height: 44px;
     }
 }
