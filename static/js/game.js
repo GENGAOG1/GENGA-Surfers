@@ -13,30 +13,20 @@ let scoreTimer = 0;
 
 
 /* =========================================
-   SPUREN
-========================================= */
-
-const lanePositions = [
-    -2,
-    0,
-    2
-];
-
-
-/* =========================================
    SPIEL STARTEN
 ========================================= */
 
 function startGame() {
 
     console.log(
-        "GENGA: Spiel startet..."
+        "GENGA: Spiel startet"
     );
 
 
-    /* =====================================
-       SPIEL ZURÜCKSETZEN
-    ===================================== */
+    /*
+       Erst alles stoppen,
+       dann sauber zurücksetzen.
+    */
 
     gameRunning = false;
 
@@ -48,17 +38,16 @@ function startGame() {
 
 
     /* =====================================
-       SPIELER ZURÜCKSETZEN
+       SPIELER
     ===================================== */
 
     if (player) {
 
-        player.position.set(
-            0,
-            0.9,
-            3
-        );
+        player.position.x = 0;
 
+        player.position.y = 0.9;
+
+        player.position.z = 3;
 
         player.rotation.set(
             0,
@@ -69,7 +58,7 @@ function startGame() {
 
 
     /* =====================================
-       HINDERNISSE ZURÜCKSETZEN
+       HINDERNISSE
     ===================================== */
 
     if (
@@ -112,7 +101,7 @@ function startGame() {
 
 
     /* =====================================
-       GAME OVER AUSBLENDEN
+       GAME OVER VERSTECKEN
     ===================================== */
 
     const gameOverScreen =
@@ -130,7 +119,7 @@ function startGame() {
 
 
     /* =====================================
-       START SCREEN AUSBLENDEN
+       START SCREEN VERSTECKEN
     ===================================== */
 
     const startScreen =
@@ -147,15 +136,15 @@ function startGame() {
     }
 
 
-    /* =====================================
-       SPIEL STARTEN
-    ===================================== */
+    /*
+       Erst jetzt läuft das Spiel.
+    */
 
     gameRunning = true;
 
 
     console.log(
-        "GENGA: Spiel läuft."
+        "GENGA: Spiel läuft"
     );
 }
 
@@ -167,6 +156,7 @@ function startGame() {
 function updateGame(delta) {
 
     if (!gameRunning) {
+
         return;
     }
 
@@ -174,11 +164,9 @@ function updateGame(delta) {
     scoreTimer += delta;
 
 
-    /*
-        Jede Sekunde ein Punkt.
-    */
-
-    if (scoreTimer >= 1) {
+    if (
+        scoreTimer >= 1
+    ) {
 
         score += 1;
 
@@ -207,6 +195,7 @@ function updateGame(delta) {
 function endGame() {
 
     if (!gameRunning) {
+
         return;
     }
 
@@ -218,10 +207,6 @@ function endGame() {
 
     gameRunning = false;
 
-
-    /* =====================================
-       FINAL SCORE
-    ===================================== */
 
     const finalScoreElement =
         document.getElementById(
@@ -235,10 +220,6 @@ function endGame() {
             Math.floor(score);
     }
 
-
-    /* =====================================
-       GAME OVER SCREEN
-    ===================================== */
 
     const gameOverScreen =
         document.getElementById(
@@ -299,47 +280,61 @@ requestAnimationFrame(
    BUTTONS
 ========================================= */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
+function setupGameButtons() {
 
-        const startButton =
-            document.getElementById(
-                "startButton"
-            );
+    const startButton =
+        document.getElementById(
+            "startButton"
+        );
 
 
-        const restartButton =
-            document.getElementById(
-                "restartButton"
-            );
+    const restartButton =
+        document.getElementById(
+            "restartButton"
+        );
 
 
-        if (startButton) {
+    if (startButton) {
 
-            startButton.addEventListener(
-                "click",
-                function (event) {
+        startButton.onclick =
+            function (event) {
 
-                    event.preventDefault();
+                event.preventDefault();
 
-                    startGame();
-                }
-            );
-        }
-
-
-        if (restartButton) {
-
-            restartButton.addEventListener(
-                "click",
-                function (event) {
-
-                    event.preventDefault();
-
-                    startGame();
-                }
-            );
-        }
+                startGame();
+            };
     }
-);
+
+
+    if (restartButton) {
+
+        restartButton.onclick =
+            function (event) {
+
+                event.preventDefault();
+
+                startGame();
+            };
+    }
+}
+
+
+/* =========================================
+   BUTTON INITIALISIERUNG
+========================================= */
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        setupGameButtons,
+        { once: true }
+    );
+
+} else {
+
+    setupGameButtons();
+}
