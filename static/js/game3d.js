@@ -12,9 +12,18 @@ let obstacleObjects = [];
 
 let lastTime = performance.now();
 
-const GAME_SPEED = 12;
-const SPAWN_INTERVAL = 24;
-const SPAWN_DISTANCE = -110;
+/* =========================================
+   GAME SETTINGS
+========================================= */
+
+const START_SPEED = 10;
+const MAX_SPEED = 28;
+
+/* Wie schnell die Geschwindigkeit steigt */
+const SPEED_INCREASE = 0.7;
+
+const SPAWN_INTERVAL = 22;
+const SPAWN_DISTANCE = -85;
 
 const lanes = [-2, 0, 2];
 
@@ -27,65 +36,91 @@ const obstacleColors = [
     0xaa44ff
 ];
 
+/* Aktuelle Geschwindigkeit */
+let currentSpeed = START_SPEED;
+
+/* Zeit seit Spielstart */
+let gameTime = 0;
+
 /* =========================================
    SZENE ERSTELLEN
 ========================================= */
 
 function createScene() {
-    const container = document.getElementById("gameCanvas");
+
+    const container =
+        document.getElementById("gameCanvas");
 
     if (!container) {
-        console.error("GENGA: #gameCanvas nicht gefunden.");
+        console.error(
+            "GENGA: #gameCanvas nicht gefunden."
+        );
         return;
     }
 
-    console.log("GENGA: Erstelle 3D-Szene...");
-
-    /* -------------------------
-       SCENE
-    ------------------------- */
-
     scene = new THREE.Scene();
 
-    scene.background = new THREE.Color(0x07111f);
+    scene.background =
+        new THREE.Color(0x07111f);
 
-    /* -------------------------
-       CAMERA
-    ------------------------- */
+    /* =====================================
+       KAMERA
+    ===================================== */
 
-    const width = container.clientWidth || window.innerWidth;
-    const height = container.clientHeight || window.innerHeight;
+    const width =
+        container.clientWidth ||
+        window.innerWidth;
 
-    camera = new THREE.PerspectiveCamera(
-        70,
-        width / height,
-        0.1,
-        300
-    );
+    const height =
+        container.clientHeight ||
+        window.innerHeight;
+
+    camera =
+        new THREE.PerspectiveCamera(
+            68,
+            width / height,
+            0.1,
+            250
+        );
+
+    /*
+       Deutlich näher als vorher.
+       Dadurch wirken Hindernisse größer
+       und kommen früher ins Blickfeld.
+    */
 
     camera.position.set(
         0,
-        6,
-        12
+        4.2,
+        8
     );
+
+    /*
+       Kamera bleibt komplett statisch.
+       Kein Wackeln durch Kamera-Bewegung.
+    */
 
     camera.lookAt(
         0,
-        1,
+        0.8,
         -30
     );
 
-    /* -------------------------
+    /* =====================================
        RENDERER
-    ------------------------- */
+    ===================================== */
 
-    renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: false
-    });
+    renderer =
+        new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: false
+        });
 
     renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio || 1, 2)
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        )
     );
 
     renderer.setSize(
@@ -94,30 +129,40 @@ function createScene() {
         false
     );
 
-    renderer.domElement.style.display = "block";
-    renderer.domElement.style.width = "100%";
-    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.display =
+        "block";
+
+    renderer.domElement.style.width =
+        "100%";
+
+    renderer.domElement.style.height =
+        "100%";
 
     container.innerHTML = "";
-    container.appendChild(renderer.domElement);
 
-    console.log("GENGA: Renderer erstellt.");
+    container.appendChild(
+        renderer.domElement
+    );
 
-    /* -------------------------
+    /* =====================================
        LICHT
-    ------------------------- */
+    ===================================== */
 
-    const ambientLight = new THREE.AmbientLight(
-        0xffffff,
-        0.8
+    const ambientLight =
+        new THREE.AmbientLight(
+            0xffffff,
+            0.9
+        );
+
+    scene.add(
+        ambientLight
     );
 
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(
-        0xffffff,
-        1.2
-    );
+    const directionalLight =
+        new THREE.DirectionalLight(
+            0xffffff,
+            1.3
+        );
 
     directionalLight.position.set(
         5,
@@ -125,36 +170,28 @@ function createScene() {
         5
     );
 
-    scene.add(directionalLight);
+    scene.add(
+        directionalLight
+    );
 
-    /* -------------------------
-       ROAD
-    ------------------------- */
+    /* =====================================
+       SPIELWELT
+    ===================================== */
 
     createRoad();
 
-    /* -------------------------
-       PLAYER
-    ------------------------- */
-
     createPlayer();
-
-    /* -------------------------
-       OBSTACLES
-    ------------------------- */
 
     resetObstacles();
 
-    /* -------------------------
+    /* =====================================
        RESIZE
-    ------------------------- */
+    ===================================== */
 
     window.addEventListener(
         "resize",
         onWindowResize
     );
-
-    console.log("GENGA: 3D-Szene fertig.");
 
     animate();
 }
@@ -165,68 +202,78 @@ function createScene() {
 
 function createRoad() {
 
-    const roadGeometry = new THREE.PlaneGeometry(
-        8,
-        300
-    );
+    const roadGeometry =
+        new THREE.PlaneGeometry(
+            8,
+            260
+        );
 
-    const roadMaterial = new THREE.MeshStandardMaterial({
-        color: 0x202733,
-        roughness: 0.9
-    });
+    const roadMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0x30394b,
+            roughness: 0.95
+        });
 
-    const road = new THREE.Mesh(
-        roadGeometry,
-        roadMaterial
-    );
+    const road =
+        new THREE.Mesh(
+            roadGeometry,
+            roadMaterial
+        );
 
-    road.rotation.x = -Math.PI / 2;
+    road.rotation.x =
+        -Math.PI / 2;
 
     road.position.set(
         0,
         0,
-        -80
+        -90
     );
 
-    scene.add(road);
+    scene.add(
+        road
+    );
 
-    /* -------------------------
-       FAHRBAHN-LINIEN
-    ------------------------- */
+    /* Fahrbahnlinien */
 
     createLaneLine(-1);
     createLaneLine(1);
 }
 
 /* =========================================
-   FAHRBAHN-LINIE
+   FAHRBAHNLINIE
 ========================================= */
 
 function createLaneLine(x) {
 
-    const geometry = new THREE.PlaneGeometry(
-        0.08,
-        300
-    );
+    const geometry =
+        new THREE.PlaneGeometry(
+            0.07,
+            260
+        );
 
-    const material = new THREE.MeshBasicMaterial({
-        color: 0xffffff
-    });
+    const material =
+        new THREE.MeshBasicMaterial({
+            color: 0xffffff
+        });
 
-    const line = new THREE.Mesh(
-        geometry,
-        material
-    );
+    const line =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
 
-    line.rotation.x = -Math.PI / 2;
+    line.rotation.x =
+        -Math.PI / 2;
 
     line.position.set(
         x,
-        0.02,
-        -80
+        0.025,
+        -90
     );
 
-    scene.add(line);
+    scene.add(
+        line
+    );
 }
 
 /* =========================================
@@ -235,20 +282,24 @@ function createLaneLine(x) {
 
 function createPlayer() {
 
-    const geometry = new THREE.BoxGeometry(
-        1.3,
-        1.8,
-        1.3
-    );
+    const geometry =
+        new THREE.BoxGeometry(
+            1.25,
+            1.8,
+            1.25
+        );
 
-    const material = new THREE.MeshStandardMaterial({
-        color: 0x00ccff
-    });
+    const material =
+        new THREE.MeshStandardMaterial({
+            color: 0x00dfff,
+            roughness: 0.65
+        });
 
-    player = new THREE.Mesh(
-        geometry,
-        material
-    );
+    player =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
 
     player.position.set(
         0,
@@ -256,13 +307,13 @@ function createPlayer() {
         3
     );
 
-    scene.add(player);
-
-    console.log("GENGA: Spieler erstellt.");
+    scene.add(
+        player
+    );
 }
 
 /* =========================================
-   HINDERNIS
+   HINDERNIS ERSTELLEN
 ========================================= */
 
 function createObstacle(
@@ -270,11 +321,12 @@ function createObstacle(
     z
 ) {
 
-    const geometry = new THREE.BoxGeometry(
-        1.5,
-        1.5,
-        1.5
-    );
+    const geometry =
+        new THREE.BoxGeometry(
+            1.5,
+            1.5,
+            1.5
+        );
 
     const color =
         obstacleColors[
@@ -286,7 +338,8 @@ function createObstacle(
 
     const material =
         new THREE.MeshStandardMaterial({
-            color: color
+            color: color,
+            roughness: 0.7
         });
 
     const obstacle =
@@ -301,7 +354,9 @@ function createObstacle(
         z
     );
 
-    scene.add(obstacle);
+    scene.add(
+        obstacle
+    );
 
     obstacleObjects.push(
         obstacle
@@ -317,9 +372,10 @@ function spawnObstacleRow(z) {
     const random =
         Math.random();
 
-    /* -------------------------
-       EIN HINDERNIS
-    ------------------------- */
+    /*
+       50 %:
+       nur ein Hindernis
+    */
 
     if (random < 0.5) {
 
@@ -336,9 +392,11 @@ function spawnObstacleRow(z) {
         return;
     }
 
-    /* -------------------------
-       ZWEI HINDERNISSE
-    ------------------------- */
+    /*
+       50 %:
+       zwei Hindernisse,
+       eine Spur bleibt frei
+    */
 
     const safeLane =
         Math.floor(
@@ -386,11 +444,26 @@ function resetObstacles() {
 
     obstacleObjects = [];
 
-    let z = SPAWN_DISTANCE;
+    /*
+       Geschwindigkeit zurücksetzen
+    */
+
+    currentSpeed =
+        START_SPEED;
+
+    gameTime = 0;
+
+    /*
+       Erste Hindernisse näher
+       beim Spieler verteilen.
+    */
+
+    let z =
+        SPAWN_DISTANCE;
 
     for (
         let i = 0;
-        i < 8;
+        i < 9;
         i++
     ) {
 
@@ -398,10 +471,35 @@ function resetObstacles() {
 
         z -= SPAWN_INTERVAL;
     }
+}
 
-    console.log(
-        "GENGA: Hindernisse zurückgesetzt."
-    );
+/* =========================================
+   GESCHWINDIGKEIT
+========================================= */
+
+function updateSpeed(delta) {
+
+    gameTime += delta;
+
+    /*
+       Geschwindigkeit steigt langsam
+       und kontinuierlich.
+
+       Beispiel:
+
+       Start: 10
+       nach 10 Sek.: ~17
+       nach 20 Sek.: ~24
+       Maximum: 28
+    */
+
+    currentSpeed =
+        Math.min(
+            START_SPEED +
+            gameTime *
+            SPEED_INCREASE,
+            MAX_SPEED
+        );
 }
 
 /* =========================================
@@ -416,7 +514,8 @@ function updateSpawning() {
         return;
     }
 
-    let furthestZ = Infinity;
+    let furthestZ =
+        Infinity;
 
     for (
         const obstacle
@@ -438,7 +537,8 @@ function updateSpawning() {
     ) {
 
         spawnObstacleRow(
-            furthestZ - SPAWN_INTERVAL
+            furthestZ -
+            SPAWN_INTERVAL
         );
     }
 }
@@ -459,12 +559,18 @@ function updateObstacles(delta) {
         const obstacle =
             obstacleObjects[i];
 
-        obstacle.position.z +=
-            GAME_SPEED * delta;
+        /*
+           Die Geschwindigkeit wird
+           automatisch größer.
+        */
 
-        /* -------------------------
+        obstacle.position.z +=
+            currentSpeed *
+            delta;
+
+        /* =================================
            KOLLISION
-        ------------------------- */
+        ================================= */
 
         if (
             typeof gameRunning !==
@@ -483,13 +589,13 @@ function updateObstacles(delta) {
             }
         }
 
-        /* -------------------------
-           ALTE HINDERNISSE LÖSCHEN
-        ------------------------- */
+        /* =================================
+           ALTE HINDERNISSE ENTFERNEN
+        ================================= */
 
         if (
             obstacle.position.z >
-            15
+            16
         ) {
 
             scene.remove(
@@ -519,6 +625,7 @@ function checkCollision(
         !playerObject ||
         !obstacle
     ) {
+
         return false;
     }
 
@@ -554,17 +661,23 @@ function updatePlayer() {
         typeof playerLane ===
         "undefined"
     ) {
+
         return;
     }
 
     const targetX =
         lanes[playerLane];
 
+    /*
+       Ruhige, weiche Bewegung
+       ohne Kamera-Wackeln.
+    */
+
     player.position.x +=
         (
             targetX -
             player.position.x
-        ) * 0.18;
+        ) * 0.16;
 }
 
 /* =========================================
@@ -577,15 +690,17 @@ function animate(time) {
         animate
     );
 
-    const delta = Math.min(
-        (
-            time -
-            lastTime
-        ) / 1000,
-        0.05
-    );
+    const delta =
+        Math.min(
+            (
+                time -
+                lastTime
+            ) / 1000,
+            0.05
+        );
 
-    lastTime = time;
+    lastTime =
+        time;
 
     if (
         typeof gameRunning !==
@@ -593,12 +708,21 @@ function animate(time) {
         gameRunning
     ) {
 
+        updateSpeed(
+            delta
+        );
+
         updateObstacles(
             delta
         );
 
         updatePlayer();
     }
+
+    /*
+       Kamera wird NICHT verändert.
+       Dadurch bleibt das Bild stabil.
+    */
 
     if (
         renderer &&
@@ -623,6 +747,7 @@ function onWindowResize() {
         !camera ||
         !renderer
     ) {
+
         return;
     }
 
@@ -656,7 +781,7 @@ function onWindowResize() {
 }
 
 /* =========================================
-   START
+   INITIALISIERUNG
 ========================================= */
 
 function initGame3D() {
@@ -667,7 +792,7 @@ function initGame3D() {
     ) {
 
         console.error(
-            "GENGA: Three.js wurde NICHT geladen."
+            "GENGA: Three.js wurde nicht geladen."
         );
 
         return;
