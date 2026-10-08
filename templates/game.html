@@ -2,7 +2,6 @@
 <html lang="de">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -16,46 +15,31 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/game.css') }}"
     >
-
 </head>
-
 
 <body>
 
-
     <main id="game">
-
-
-        <!-- =====================================
-             3D SPIEL
-        ====================================== -->
 
         <div id="gameCanvas"></div>
 
-
-
-        <!-- =====================================
-             GAME HEADER
-        ====================================== -->
-
+        <!-- HUD -->
         <div class="game-header">
 
-
-            <!-- SCORE -->
-
-            <div class="score">
-
-                Score:
-
-                <span id="score">
-                    0
-                </span>
-
+            <div class="hud-box">
+                <span>Score</span>
+                <strong id="score">0</strong>
             </div>
 
+            <div class="hud-box coin-hud">
+                <span>🪙</span>
+                <strong id="coins">0</strong>
+            </div>
 
-
-            <!-- PAUSE BUTTON -->
+            <div class="hud-box">
+                <span>Best</span>
+                <strong id="highscore">0</strong>
+            </div>
 
             <button
                 id="pauseButton"
@@ -65,34 +49,32 @@
                 ⏸
             </button>
 
-
         </div>
 
 
-
-        <!-- =====================================
-             START SCREEN
-        ====================================== -->
-
+        <!-- START -->
         <div
             id="startScreen"
             class="game-screen"
         >
 
-            <h1>
-                GENGA SURFER
-            </h1>
+            <h1>GENGA SURFER</h1>
 
+            <p>Run. Dodge. Survive.</p>
 
-            <p>
-                Run. Dodge. Survive.
-            </p>
+            <div class="start-stats">
 
+                <div>
+                    <span>Bestscore</span>
+                    <strong id="startHighscore">0</strong>
+                </div>
 
-            <!--
-                Dieser Button wird nur angezeigt,
-                wenn ein gespeicherter Lauf existiert.
-            -->
+                <div>
+                    <span>🪙 Münzen</span>
+                    <strong id="startCoins">0</strong>
+                </div>
+
+            </div>
 
             <button
                 id="continueButton"
@@ -102,11 +84,6 @@
                 Fortsetzen
             </button>
 
-
-            <!--
-                Startet einen komplett neuen Lauf.
-            -->
-
             <button
                 id="startButton"
                 type="button"
@@ -114,29 +91,18 @@
                 Neues Spiel
             </button>
 
-
         </div>
 
 
-
-        <!-- =====================================
-             PAUSE SCREEN
-        ====================================== -->
-
+        <!-- PAUSE -->
         <div
             id="pauseScreen"
             class="game-screen hidden"
         >
 
-            <h1>
-                PAUSE
-            </h1>
+            <h1>PAUSE</h1>
 
-
-            <p>
-                Dein Spiel wurde gespeichert.
-            </p>
-
+            <p>Dein Spiel wurde gespeichert.</p>
 
             <button
                 id="resumeButton"
@@ -145,35 +111,30 @@
                 Fortsetzen
             </button>
 
-
         </div>
 
 
-
-        <!-- =====================================
-             GAME OVER SCREEN
-        ====================================== -->
-
+        <!-- GAME OVER -->
         <div
             id="gameOverScreen"
             class="game-screen hidden"
         >
 
-            <h1>
-                GAME OVER
-            </h1>
-
+            <h1>GAME OVER</h1>
 
             <p>
-
                 Score:
-
-                <span id="finalScore">
-                    0
-                </span>
-
+                <span id="finalScore">0</span>
             </p>
 
+            <p>
+                🪙 Münzen:
+                <span id="finalCoins">0</span>
+            </p>
+
+            <p id="newHighscoreText" class="new-highscore hidden">
+                🏆 NEUER HIGHSCORE!
+            </p>
 
             <button
                 id="restartButton"
@@ -182,53 +143,29 @@
                 Neues Spiel
             </button>
 
-
         </div>
-
 
     </main>
 
 
-
-    <!-- =====================================
-         THREE.JS
-    ====================================== -->
-
+    <!-- THREE.JS -->
     <script
         src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"
     ></script>
 
 
-
-    <!-- =====================================
-         GAME 3D
-    ====================================== -->
-
+    <!-- GAME -->
     <script
         src="{{ url_for('static', filename='js/game3d.js') }}"
     ></script>
-
-
-
-    <!-- =====================================
-         GAME CONTROLLER
-    ====================================== -->
 
     <script
         src="{{ url_for('static', filename='js/game.js') }}"
     ></script>
 
-
-
-    <!-- =====================================
-         CONTROLS / SWIPE
-    ====================================== -->
-
     <script
         src="{{ url_for('static', filename='js/controls.js') }}"
     ></script>
 
-
 </body>
-
 </html>
