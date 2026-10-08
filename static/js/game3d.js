@@ -5,63 +5,44 @@
 
 
 let scene = null;
-
 let camera = null;
-
 let renderer = null;
 
 let player = null;
 
-
 let obstacleObjects = [];
-
 
 let threeReady = false;
 
-
-let lastTime =
-    performance.now();
+let lastTime = performance.now();
 
 
 /* =========================================
    EINSTELLUNGEN
 ========================================= */
 
-
-/*
-   Geschwindigkeit der Blöcke
-*/
-
 const GAME_SPEED = 12;
 
-
-/*
-   Abstand zwischen Reihen
-*/
-
 const SPAWN_INTERVAL = 24;
-
-
-/*
-   Erste Spawn-Position
-*/
 
 const SPAWN_DISTANCE = -110;
 
 
 /*
-   Nächste Spawn-Position
+   Position der nächsten Reihe
 */
 
-let nextSpawnZ =
-    SPAWN_DISTANCE;
+let nextSpawnZ = SPAWN_DISTANCE;
 
 
 /*
-   Letzte freie Spur.
+   Die zuletzt freie Spur.
 
-   Dadurch vermeiden wir,
-   dass ständig dasselbe Muster kommt.
+   0 = links
+   1 = mitte
+   2 = rechts
+
+   -1 = noch keine
 */
 
 let lastSafeLane = -1;
@@ -150,6 +131,7 @@ function init3D() {
 
     camera =
         new THREE.PerspectiveCamera(
+
             65,
 
             container.clientWidth /
@@ -158,20 +140,25 @@ function init3D() {
             0.1,
 
             500
+
         );
 
 
     camera.position.set(
+
         0,
         4,
         8
+
     );
 
 
     camera.lookAt(
+
         0,
         1,
         -20
+
     );
 
 
@@ -283,7 +270,7 @@ function init3D() {
 
 
     /*
-       Hindernisse vorbereiten
+       Erste Hindernisse erzeugen
     */
 
     resetObstacles();
@@ -343,7 +330,7 @@ function createRoad() {
 
 
     /*
-       Zwei Linien teilen
+       Die beiden Linien teilen
        die drei Spuren.
     */
 
@@ -570,7 +557,7 @@ function randomInt(
 
 
 /* =========================================
-   SPURN MISCHEN
+   ARRAY MISCHEN
 ========================================= */
 
 function shuffleArray(array) {
@@ -618,205 +605,120 @@ function shuffleArray(array) {
 
 
 /* =========================================
+   FREIE SPUR BESTIMMEN
+========================================= */
+
+function getRandomSafeLane() {
+
+    /*
+       Alle drei Spuren
+    */
+
+    const possibleLanes = [
+
+        0,
+        1,
+        2
+
+    ];
+
+
+    /*
+       Die zuletzt freie Spur
+       entfernen.
+
+       Dadurch kann sie nicht
+       direkt wieder frei sein.
+    */
+
+    const allowedLanes =
+        possibleLanes.filter(
+
+            lane =>
+                lane !==
+                lastSafeLane
+
+        );
+
+
+    /*
+       Eine der verbleibenden
+       Spuren zufällig auswählen.
+    */
+
+    return allowedLanes[
+
+        randomInt(
+
+            0,
+
+            allowedLanes.length - 1
+
+        )
+
+    ];
+}
+
+
+/* =========================================
    NEUE HINDERNIS-REIHE
 ========================================= */
 
 function spawnObstacleRow(z) {
 
     /*
-       Drei mögliche Spuren
+       Eine neue freie Spur bestimmen.
+
+       WICHTIG:
+
+       Sie darf NICHT dieselbe sein
+       wie bei der vorherigen Reihe.
     */
 
-    const shuffledLanes =
-        shuffleArray([
-
-            0,
-            1,
-            2
-
-        ]);
+    const safeLane =
+        getRandomSafeLane();
 
 
     /*
-       55 % Wahrscheinlichkeit
-       für einen Block.
+       Diese Spur merken.
 
-       45 % für zwei Blöcke.
-
-       NIEMALS drei!
+       Bei der nächsten Reihe
+       darf sie nicht wieder frei sein.
     */
 
-    let blockCount;
-
-
-    if (
-        Math.random() < 0.55
-    ) {
-
-        blockCount = 1;
-
-    } else {
-
-        blockCount = 2;
-
-    }
+    lastSafeLane =
+        safeLane;
 
 
     /*
-       Bei zwei Blöcken:
-       Eine Spur bleibt frei.
+       Die beiden anderen Spuren
+       werden blockiert.
+
+       Dadurch bleibt GENAU eine
+       Spur frei.
     */
 
-    let safeLane;
+    for (
 
+        let lane = 0;
 
-    if (
-        blockCount === 2
+        lane < 3;
+
+        lane++
+
     ) {
 
-        /*
-           Die freie Spur darf nicht
-           dieselbe wie vorher sein,
-           wenn es vermeidbar ist.
-        */
-
-        const possibleSafeLanes =
-            shuffledLanes.filter(
-
-                lane =>
-                    lane !==
-                    lastSafeLane
-
-            );
-
-
         if (
-            possibleSafeLanes.length > 0
+            lane === safeLane
         ) {
 
-            safeLane =
-                possibleSafeLanes[
-                    randomInt(
-
-                        0,
-
-                        possibleSafeLanes.length - 1
-
-                    )
-                ];
-
-        } else {
-
-            safeLane =
-                shuffledLanes[0];
-
+            continue;
         }
-
-
-        lastSafeLane =
-            safeLane;
-
-
-        /*
-           Alle anderen beiden
-           Spuren bekommen einen Block.
-        */
-
-        for (
-            let lane = 0;
-            lane < 3;
-            lane++
-        ) {
-
-            if (
-                lane !== safeLane
-            ) {
-
-                createObstacle(
-
-                    lane,
-
-                    z,
-
-                    getRandomColor()
-
-                );
-
-            }
-
-        }
-
-    } else {
-
-        /*
-           Nur EIN Block.
-
-           Die freie Spur wird zufällig
-           gewählt.
-        */
-
-        let blockedLane;
-
-
-        /*
-           Verhindern, dass derselbe
-           Block zu oft auf derselben
-           Spur erscheint.
-        */
-
-        const possibleBlockedLanes =
-            shuffledLanes.filter(
-
-                lane =>
-                    lane !==
-                    lastSafeLane
-
-            );
-
-
-        if (
-            possibleBlockedLanes.length > 0
-        ) {
-
-            blockedLane =
-                possibleBlockedLanes[
-
-                    randomInt(
-
-                        0,
-
-                        possibleBlockedLanes.length - 1
-
-                    )
-
-                ];
-
-        } else {
-
-            blockedLane =
-                shuffledLanes[0];
-
-        }
-
-
-        /*
-           Die beiden anderen Spuren
-           sind sicher.
-        */
-
-        lastSafeLane =
-            shuffledLanes.find(
-
-                lane =>
-                    lane !==
-                    blockedLane
-
-            );
 
 
         createObstacle(
 
-            blockedLane,
+            lane,
 
             z,
 
@@ -835,7 +737,7 @@ function spawnObstacleRow(z) {
 function resetObstacles() {
 
     /*
-       Alte Blöcke löschen
+       Alle alten Hindernisse löschen
     */
 
     obstacleObjects.forEach(
@@ -859,7 +761,7 @@ function resetObstacles() {
 
 
     /*
-       Spawn-System zurücksetzen
+       Zufallslogik zurücksetzen
     */
 
     nextSpawnZ =
@@ -905,8 +807,7 @@ function resetObstacles() {
 function updateSpawning() {
 
     /*
-       Die weiteste vorhandene
-       Hindernis-Reihe suchen.
+       Weiteste Hindernis-Reihe suchen
     */
 
     let furthestZ =
@@ -935,9 +836,9 @@ function updateSpawning() {
 
 
     /*
-       Falls nicht genug Hindernisse
-       in der Entfernung vorhanden sind,
-       eine neue Reihe erzeugen.
+       Wenn hinten nicht mehr genug
+       Hindernisse vorhanden sind,
+       neue Reihe erzeugen.
     */
 
     if (
@@ -986,8 +887,8 @@ function updateObstacles(delta) {
 
 
         /*
-           Hindernis kommt
-           auf den Spieler zu.
+           Block kommt auf den
+           Spieler zu.
         */
 
         obstacle.position.z +=
@@ -1016,7 +917,8 @@ function updateObstacles(delta) {
 
 
         /*
-           Hinter dem Spieler
+           Block ist hinter
+           dem Spieler.
         */
 
         if (
@@ -1043,6 +945,10 @@ function updateObstacles(delta) {
 
     }
 
+
+    /*
+       Neue Reihen erzeugen
+    */
 
     updateSpawning();
 }
@@ -1116,7 +1022,7 @@ function updatePlayer() {
 
 
     /*
-       Sanft zur neuen Spur bewegen
+       Sanft zur neuen Spur gleiten
     */
 
     player.position.x +=
@@ -1168,7 +1074,7 @@ function animate(time) {
 
 
     /*
-       Blöcke bewegen
+       Hindernisse bewegen
     */
 
     updateObstacles(
@@ -1184,7 +1090,7 @@ function animate(time) {
 
 
     /*
-       Leichte Bewegung
+       Leichte Bewegung des Spielers
     */
 
     if (
@@ -1207,7 +1113,7 @@ function animate(time) {
 
 
     /*
-       Rendern
+       Szene rendern
     */
 
     renderer.render(
