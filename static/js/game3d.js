@@ -22,7 +22,7 @@ const SPEED_INCREASE = 0.35;
 const SPAWN_INTERVAL = 24;
 const SPAWN_DISTANCE = -105;
 
-const COIN_SPAWN_INTERVAL = 12;
+const COIN_SPAWN_DISTANCE = 18;
 
 const lanePositions = [-2, 0, 2];
 
@@ -37,7 +37,7 @@ const obstacleColors = [
 
 let lastRowWasOneBlock = false;
 
-let coinSpawnTimer = 0;
+let nextCoinZ = -20;
 
 
 /* =========================
@@ -79,7 +79,9 @@ function createScene() {
     }
 
 
-    /* Scene */
+    /* =========================
+       SCENE
+    ========================= */
 
     scene =
         new THREE.Scene();
@@ -88,7 +90,9 @@ function createScene() {
         new THREE.Color(0x07152d);
 
 
-    /* Camera */
+    /* =========================
+       CAMERA
+    ========================= */
 
     camera =
         new THREE.PerspectiveCamera(
@@ -111,7 +115,9 @@ function createScene() {
     );
 
 
-    /* Renderer */
+    /* =========================
+       RENDERER
+    ========================= */
 
     renderer =
         new THREE.WebGLRenderer({
@@ -268,6 +274,10 @@ function createScene() {
     scene.add(player);
 
 
+    /* =========================
+       INITIAL OBJECTS
+    ========================= */
+
     resetObstacles();
     resetCoins();
 
@@ -305,7 +315,15 @@ function spawnObstacleRow(z) {
 
     let lanesToBlock = [];
 
-    let createOneBlock =
+    /*
+     * 15% Chance auf nur einen Block.
+     *
+     * Zwei einzelne Block-Reihen
+     * direkt hintereinander werden
+     * verhindert.
+     */
+
+    const createOneBlock =
         !lastRowWasOneBlock &&
         Math.random() < 0.15;
 
@@ -325,6 +343,11 @@ function spawnObstacleRow(z) {
 
     } else {
 
+        /*
+         * Bei zwei Blöcken bleibt
+         * immer genau eine Spur frei.
+         */
+
         const safeLane =
             Math.floor(
                 Math.random() * 3
@@ -337,13 +360,20 @@ function spawnObstacleRow(z) {
         ) {
 
             if (lane !== safeLane) {
-                lanesToBlock.push(lane);
+
+                lanesToBlock.push(
+                    lane
+                );
             }
         }
 
         lastRowWasOneBlock = false;
     }
 
+
+    /* =========================
+       CREATE BLOCKS
+    ========================= */
 
     lanesToBlock.forEach(
         lane => {
@@ -398,6 +428,7 @@ function resetObstacles() {
         obstacle => {
 
             if (obstacle.parent) {
+
                 obstacle.parent.remove(
                     obstacle
                 );
@@ -413,9 +444,16 @@ function resetObstacles() {
     lastRowWasOneBlock = false;
 
 
-    /* Initial safe rows */
+    /*
+     * Erste Reihe
+     */
 
     spawnObstacleRow(-35);
+
+
+    /*
+     * Weitere Reihen
+     */
 
     for (
         let i = 1;
@@ -424,7 +462,8 @@ function resetObstacles() {
     ) {
 
         spawnObstacleRow(
-            -35 - i * SPAWN_INTERVAL
+            -35 -
+            i * SPAWN_INTERVAL
         );
     }
 }
@@ -457,6 +496,10 @@ function createCoin(lane, z) {
             material
         );
 
+    /*
+     * Münze aufrecht drehen.
+     */
+
     coin.rotation.z =
         Math.PI / 2;
 
@@ -468,7 +511,9 @@ function createCoin(lane, z) {
 
     scene.add(coin);
 
-    coinObjects.push(coin);
+    coinObjects.push(
+        coin
+    );
 }
 
 
@@ -478,10 +523,15 @@ function createCoin(lane, z) {
 
 function resetCoins() {
 
+    /*
+     * Alte Münzen entfernen.
+     */
+
     coinObjects.forEach(
         coin => {
 
             if (coin.parent) {
+
                 coin.parent.remove(
                     coin
                 );
@@ -494,10 +544,18 @@ function resetCoins() {
 
     coinObjects = [];
 
-    coinSpawnTimer = 0;
+
+    /*
+     * Startposition für
+     * weitere Münzen.
+     */
+
+    nextCoinZ = -20;
 
 
-    /* Initial coins */
+    /*
+     * Erste Münzen erzeugen.
+     */
 
     for (
         let i = 0;
@@ -510,14 +568,21 @@ function resetCoins() {
                 Math.random() * 3
             );
 
-        const z =
-            -20 - i * 12;
-
         createCoin(
             lane,
-            z
+            -20 -
+            i * COIN_SPAWN_DISTANCE
         );
     }
+
+
+    /*
+     * Position der nächsten Münze.
+     */
+
+    nextCoinZ =
+        -20 -
+        10 * COIN_SPAWN_DISTANCE;
 }
 
 
@@ -525,33 +590,73 @@ function resetCoins() {
    SPAWN COINS
 ========================= */
 
-function updateCoinSpawning(delta) {
+function updateCoinSpawning() {
 
-    coinSpawnTimer += delta;
+    /*
+     * Wir halten immer Münzen
+     * weit vor dem Spieler bereit.
+     */
 
-    if (
-        coinSpawnTimer <
-        COIN_SPAWN_INTERVAL
+    while (
+        nextCoinZ > -180
     ) {
-        return;
-    }
 
-    coinSpawnTimer = 0;
+        const lane =
+            Math.floor(
+                Math.random() * 3
+            );
 
-    const lane =
-        Math.floor(
-            Math.random() * 3
+        createCoin(
+            lane,
+            nextCoinZ
         );
 
-    createCoin(
-        lane,
-        SPAWN_DISTANCE
+        nextCoinZ -=
+            COIN_SPAWN_DISTANCE;
+    }
+
+
+    /*
+     * Position der am weitesten
+     * entfernten Münze suchen.
+     */
+
+    let furthestCoinZ = 0;
+
+    coinObjects.forEach(
+        coin => {
+
+            if (
+                coin.position.z <
+                furthestCoinZ
+            ) {
+
+                furthestCoinZ =
+                    coin.position.z;
+            }
+        }
     );
+
+
+    /*
+     * Wenn die Münzen näher kommen,
+     * den Spawn-Bereich wieder
+     * nach hinten verschieben.
+     */
+
+    if (
+        furthestCoinZ > -120
+    ) {
+
+        nextCoinZ =
+            furthestCoinZ -
+            COIN_SPAWN_DISTANCE;
+    }
 }
 
 
 /* =========================
-   SPEED
+   GAME SPEED
 ========================= */
 
 function getCurrentGameSpeed() {
@@ -565,7 +670,7 @@ function getCurrentGameSpeed() {
 
 
 /* =========================
-   OBSTACLE MOVEMENT
+   UPDATE OBSTACLES
 ========================= */
 
 function updateObstacles(delta) {
@@ -573,6 +678,10 @@ function updateObstacles(delta) {
     const speed =
         getCurrentGameSpeed();
 
+
+    /*
+     * Hindernisse bewegen.
+     */
 
     obstacleObjects.forEach(
         obstacle => {
@@ -583,6 +692,11 @@ function updateObstacles(delta) {
     );
 
 
+    /*
+     * Kollisionen + alte
+     * Hindernisse entfernen.
+     */
+
     for (
         let i = obstacleObjects.length - 1;
         i >= 0;
@@ -592,11 +706,15 @@ function updateObstacles(delta) {
         const obstacle =
             obstacleObjects[i];
 
+
         if (
-            checkCollision(obstacle)
+            checkCollision(
+                obstacle
+            )
         ) {
 
             endGame();
+
             return;
         }
 
@@ -625,7 +743,7 @@ function updateObstacles(delta) {
 
 
 /* =========================
-   COIN MOVEMENT
+   UPDATE COINS
 ========================= */
 
 function updateCoins(delta) {
@@ -634,17 +752,30 @@ function updateCoins(delta) {
         getCurrentGameSpeed();
 
 
+    /*
+     * Münzen bewegen.
+     */
+
     coinObjects.forEach(
         coin => {
 
             coin.position.z +=
                 speed * delta;
 
+
+            /*
+             * Dreh-Animation.
+             */
+
             coin.rotation.y +=
                 delta * 5;
         }
     );
 
+
+    /*
+     * Münzen prüfen.
+     */
 
     for (
         let i = coinObjects.length - 1;
@@ -656,11 +787,18 @@ function updateCoins(delta) {
             coinObjects[i];
 
 
+        /*
+         * Münze eingesammelt?
+         */
+
         if (
-            checkCoinCollision(coin)
+            checkCoinCollision(
+                coin
+            )
         ) {
 
             addCoin();
+
 
             scene.remove(
                 coin
@@ -668,6 +806,7 @@ function updateCoins(delta) {
 
             coin.geometry.dispose();
             coin.material.dispose();
+
 
             coinObjects.splice(
                 i,
@@ -677,6 +816,10 @@ function updateCoins(delta) {
             continue;
         }
 
+
+        /*
+         * Münze hinter dem Spieler.
+         */
 
         if (
             coin.position.z > 12
@@ -689,6 +832,7 @@ function updateCoins(delta) {
             coin.geometry.dispose();
             coin.material.dispose();
 
+
             coinObjects.splice(
                 i,
                 1
@@ -697,17 +841,22 @@ function updateCoins(delta) {
     }
 
 
-    updateCoinSpawning(delta);
+    /*
+     * Neue Münzen erzeugen.
+     */
+
+    updateCoinSpawning();
 }
 
 
 /* =========================
-   SPAWNING
+   SPAWN OBSTACLES
 ========================= */
 
 function updateSpawning() {
 
     let furthestZ = 0;
+
 
     obstacleObjects.forEach(
         obstacle => {
@@ -716,12 +865,19 @@ function updateSpawning() {
                 obstacle.position.z <
                 furthestZ
             ) {
+
                 furthestZ =
                     obstacle.position.z;
             }
         }
     );
 
+
+    /*
+     * Neue Reihe erzeugen,
+     * sobald die letzte Reihe
+     * zu nah kommt.
+     */
 
     if (
         furthestZ >
@@ -737,7 +893,7 @@ function updateSpawning() {
 
 
 /* =========================
-   COLLISION
+   OBSTACLE COLLISION
 ========================= */
 
 function checkCollision(
@@ -814,9 +970,15 @@ function updatePlayer() {
         return;
     }
 
+
     const targetX =
         lanePositions[playerLane];
 
+
+    /*
+     * Weiche Bewegung
+     * zwischen den Spuren.
+     */
 
     player.position.x +=
         (
@@ -871,6 +1033,11 @@ function animate(currentTime) {
     lastTime = currentTime;
 
 
+    /*
+     * Während der Pause
+     * bewegt sich nichts.
+     */
+
     if (
         typeof gameRunning !==
         "undefined" &&
@@ -885,7 +1052,16 @@ function animate(currentTime) {
     }
 
 
-    if (renderer && scene && camera) {
+    /*
+     * Immer rendern, auch während
+     * der Pause.
+     */
+
+    if (
+        renderer &&
+        scene &&
+        camera
+    ) {
 
         renderer.render(
             scene,
