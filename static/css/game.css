@@ -1,323 +1,299 @@
-/* =========================================
-   GENGA SURFER
-   GAME CSS
-========================================= */
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
 
 html,
 body {
-
     margin: 0;
-
     padding: 0;
-
     width: 100%;
-
     height: 100%;
-
     overflow: hidden;
-
-    overscroll-behavior: none;
-
-    -webkit-overflow-scrolling: auto;
+    background: #07152d;
+    font-family: Arial, Helvetica, sans-serif;
 }
-
-
-/* =========================================
-   BODY
-========================================= */
 
 body {
-
-    background: #07111f;
-
-    overflow: hidden;
-
     touch-action: none;
 }
-
-
-/* =========================================
-   GAME
-========================================= */
 
 #game {
-
     position: fixed;
-
-    top: 0;
-
-    left: 0;
-
+    inset: 0;
     width: 100%;
-
     height: 100%;
-
-    height: 100svh;
-
     overflow: hidden;
-
-    background: #07111f;
-
-    touch-action: none;
-
-    overscroll-behavior: none;
+    background: #07152d;
 }
-
-
-/* =========================================
-   THREE.JS
-========================================= */
 
 #gameCanvas {
-
-    position: fixed;
-
-    top: 0;
-
-    left: 0;
-
-    right: 0;
-
-    bottom: 0;
-
+    position: absolute;
+    inset: 0;
     width: 100%;
-
     height: 100%;
-
-    overflow: hidden;
-
     z-index: 1;
-
-    touch-action: none;
-
-    overscroll-behavior: none;
 }
-
-
-/* =========================================
-   CANVAS
-========================================= */
 
 #gameCanvas canvas {
-
-    position: fixed;
-
-    top: 0;
-
-    left: 0;
-
     display: block;
-
-    width: 100% !important;
-
-    height: 100% !important;
-
-    margin: 0;
-
-    padding: 0;
-
-    touch-action: none;
-
-    user-select: none;
-
-    -webkit-user-select: none;
-
-    -webkit-touch-callout: none;
+    width: 100%;
+    height: 100%;
 }
 
 
-/* =========================================
-   HEADER
-========================================= */
+/* =========================
+   HUD
+========================= */
 
 .game-header {
-
     position: fixed;
-
     top: 0;
-
     left: 0;
-
     right: 0;
 
     z-index: 20;
 
     display: flex;
-
-    justify-content: space-between;
-
     align-items: center;
+    gap: 10px;
 
-    box-sizing: border-box;
-
-    padding: 14px 20px;
-
-    color: white;
+    padding:
+        calc(12px + env(safe-area-inset-top))
+        14px
+        12px;
 
     pointer-events: none;
-
-    user-select: none;
-
-    -webkit-user-select: none;
 }
 
+.hud-box {
+    min-width: 76px;
 
-/* =========================================
-   PAUSE BUTTON
-========================================= */
-
-#pauseButton {
-
-    pointer-events: auto;
-
-    width: 46px;
-
-    height: 46px;
-
-    padding: 0;
-
-    border: none;
+    padding: 7px 12px;
 
     border-radius: 12px;
 
-    background:
-        rgba(
-            0,
-            0,
-            0,
-            0.55
-        );
+    background: rgba(0, 0, 0, 0.48);
+    backdrop-filter: blur(6px);
 
     color: white;
 
-    font-size: 22px;
-
-    font-weight: 700;
-
     display: flex;
-
+    flex-direction: column;
     align-items: center;
 
-    justify-content: center;
+    line-height: 1.1;
+
+    text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hud-box span {
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.hud-box strong {
+    margin-top: 2px;
+    font-size: 19px;
+}
+
+.coin-hud {
+    min-width: 70px;
+}
+
+#pauseButton {
+    margin-left: auto;
+
+    width: 46px;
+    height: 46px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: rgba(0, 0, 0, 0.55);
+
+    color: white;
+
+    font-size: 21px;
 
     cursor: pointer;
 
-    touch-action: manipulation;
+    pointer-events: auto;
 
-    -webkit-tap-highlight-color:
-        transparent;
+    backdrop-filter: blur(6px);
+
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.25);
+}
+
+#pauseButton:active {
+    transform: scale(0.94);
 }
 
 
-/* =========================================
-   START / GAME OVER / PAUSE
-========================================= */
+/* =========================
+   SCREENS
+========================= */
 
 .game-screen {
-
     position: fixed;
-
-    top: 0;
-
-    left: 0;
-
-    right: 0;
-
-    bottom: 0;
+    inset: 0;
 
     z-index: 30;
 
     display: flex;
-
     flex-direction: column;
-
+    align-items: center;
     justify-content: center;
 
-    align-items: center;
+    padding: 25px;
 
     text-align: center;
 
-    box-sizing: border-box;
-
-    padding: 24px;
-
     color: white;
 
-    background:
-        rgba(
-            0,
-            0,
-            0,
-            0.35
-        );
+    background: rgba(0, 0, 0, 0.58);
 
-    touch-action: none;
+    backdrop-filter: blur(5px);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.game-screen h1 {
+    margin: 0 0 10px;
+
+    font-size: clamp(32px, 9vw, 58px);
+
+    font-weight: 900;
+    letter-spacing: 2px;
+
+    text-shadow:
+        0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.game-screen p {
+    margin: 7px 0;
+
+    font-size: 17px;
+
+    opacity: 0.9;
 }
 
 
-/* =========================================
-   HIDDEN
-========================================= */
+/* =========================
+   START STATS
+========================= */
 
-.game-screen.hidden {
+.start-stats {
+    display: flex;
+    gap: 14px;
 
-    display: none;
+    margin: 20px 0;
+}
+
+.start-stats > div {
+    min-width: 110px;
+
+    padding: 12px 16px;
+
+    border-radius: 14px;
+
+    background: rgba(255, 255, 255, 0.10);
+
+    display: flex;
+    flex-direction: column;
+}
+
+.start-stats span {
+    font-size: 12px;
+    opacity: 0.75;
+}
+
+.start-stats strong {
+    margin-top: 4px;
+    font-size: 22px;
 }
 
 
-/* =========================================
+/* =========================
    BUTTONS
-========================================= */
+========================= */
 
 .game-screen button {
+    min-width: 190px;
+    min-height: 52px;
 
-    min-width: 180px;
-
-    min-height: 50px;
-
-    margin-top: 10px;
-
+    margin-top: 12px;
     padding: 12px 24px;
 
     border: none;
+    border-radius: 14px;
 
-    border-radius: 12px;
+    background: white;
+    color: #07152d;
 
-    font-size: 18px;
-
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 800;
 
     cursor: pointer;
 
-    touch-action: manipulation;
+    box-shadow:
+        0 7px 20px rgba(0, 0, 0, 0.25);
+}
 
-    -webkit-tap-highlight-color:
-        transparent;
+.game-screen button:active {
+    transform: scale(0.96);
+}
+
+.new-highscore {
+    margin-top: 15px !important;
+
+    font-size: 21px !important;
+    font-weight: 900;
+
+    opacity: 1 !important;
 }
 
 
-/* =========================================
+/* =========================
    MOBILE
-========================================= */
+========================= */
 
-@media (
-    max-width: 600px
-) {
+@media (max-width: 500px) {
 
     .game-header {
-
-        padding:
-            12px
-            16px;
-
-        font-size: 18px;
+        gap: 6px;
+        padding-left: 8px;
+        padding-right: 8px;
     }
 
+    .hud-box {
+        min-width: 62px;
+        padding: 6px 8px;
+    }
+
+    .hud-box span {
+        font-size: 9px;
+    }
+
+    .hud-box strong {
+        font-size: 16px;
+    }
 
     #pauseButton {
+        width: 42px;
+        height: 42px;
+        font-size: 19px;
+    }
 
-        width: 44px;
+    .start-stats {
+        gap: 8px;
+    }
 
-        height: 44px;
+    .start-stats > div {
+        min-width: 100px;
     }
 }
