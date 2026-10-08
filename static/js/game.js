@@ -40,10 +40,13 @@ function startGame() {
 
 
     /*
-       Alten Spielzustand löschen
+       Spiel zuerst stoppen,
+       damit sauber zurückgesetzt
+       werden kann.
     */
 
     gameRunning = false;
+
 
     score = 0;
 
@@ -56,13 +59,14 @@ function startGame() {
        SPIELER ZURÜCKSETZEN
     ===================================== */
 
-    if (player) {
+    if (typeof player !== "undefined" && player) {
 
         player.position.x = 0;
 
         player.position.y = 0.9;
 
         player.position.z = 3;
+
 
         player.rotation.set(
             0,
@@ -77,7 +81,8 @@ function startGame() {
     ===================================== */
 
     if (
-        typeof resetObstacles === "function"
+        typeof resetObstacles ===
+        "function"
     ) {
 
         resetObstacles();
@@ -115,7 +120,7 @@ function startGame() {
 
 
     /* =====================================
-       GAME OVER SCREEN VERSTECKEN
+       GAME OVER AUSBLENDEN
     ===================================== */
 
     const gameOverScreen =
@@ -133,7 +138,7 @@ function startGame() {
 
 
     /* =====================================
-       START SCREEN VERSTECKEN
+       START SCREEN AUSBLENDEN
     ===================================== */
 
     const startScreen =
@@ -151,7 +156,7 @@ function startGame() {
 
 
     /* =====================================
-       SPIEL AKTIVIEREN
+       SPIEL STARTEN
     ===================================== */
 
     gameRunning = true;
@@ -170,7 +175,6 @@ function startGame() {
 function updateGame(delta) {
 
     if (!gameRunning) {
-
         return;
     }
 
@@ -179,7 +183,7 @@ function updateGame(delta) {
 
 
     /*
-       Alle Sekunden einen Punkt
+       Alle Sekunden einen Punkt.
     */
 
     if (scoreTimer >= 1) {
@@ -211,7 +215,6 @@ function updateGame(delta) {
 function endGame() {
 
     if (!gameRunning) {
-
         return;
     }
 
@@ -278,7 +281,7 @@ function scoreLoop(time) {
     const delta =
         Math.min(
             (time - scoreLastTime) /
-            1000,
+                1000,
             0.1
         );
 
@@ -302,39 +305,81 @@ requestAnimationFrame(
    BUTTONS
 ========================================= */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+function setupGameButtons() {
+
+    const startButton =
+        document.getElementById(
+            "startButton"
+        );
 
 
-        const startButton =
-            document.getElementById(
-                "startButton"
-            );
+    const restartButton =
+        document.getElementById(
+            "restartButton"
+        );
 
 
-        const restartButton =
-            document.getElementById(
-                "restartButton"
-            );
+    /* =====================================
+       START
+    ===================================== */
 
+    if (startButton) {
 
-        if (startButton) {
+        startButton.addEventListener(
+            "click",
+            function (event) {
 
-            startButton.addEventListener(
-                "click",
-                startGame
-            );
-        }
+                event.preventDefault();
 
+                startGame();
+            }
+        );
 
-        if (restartButton) {
+    } else {
 
-            restartButton.addEventListener(
-                "click",
-                startGame
-            );
-        }
-
+        console.error(
+            "GENGA: #startButton wurde nicht gefunden."
+        );
     }
-);
+
+
+    /* =====================================
+       RESTART
+    ===================================== */
+
+    if (restartButton) {
+
+        restartButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                startGame();
+            }
+        );
+    }
+}
+
+
+/* =========================================
+   BUTTONS INITIALISIEREN
+========================================= */
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        setupGameButtons,
+        {
+            once: true
+        }
+    );
+
+} else {
+
+    setupGameButtons();
+}
