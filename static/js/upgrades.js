@@ -1,127 +1,71 @@
-/* =========================================================
-   GENGA SURFER
-   SHOP / SKINS / UPGRADES / SAVE
-========================================================= */
 
 const SAVE_KEY = "gengaSurferSaveV2";
 const RUN_SAVE_KEY = "gengaSurferCurrentRun";
 
-const defaultSave = {
-  coins: 0,
-
-  ownedSkins: ["blue"],
-  selectedSkin: "blue",
-
-  upgrades: {
-    scoreBoost: 0,
-    extraLife: 0
-  },
-
-  activeUpgrades: {
-    scoreBoost: false,
-    extraLife: false
-  },
-
-  bestScore: 0
-};
-
 const skinDefinitions = {
-  blue: {
-    name: "Blue",
-    color: 0x2196f3,
-    cost: 0
-  },
-
-  green: {
-    name: "Green",
-    color: 0x32d583,
-    cost: 250
-  },
-
-  red: {
-    name: "Red",
-    color: 0xff4d5a,
-    cost: 500
-  },
-
-  purple: {
-    name: "Purple",
-    color: 0xa66cff,
-    cost: 750
-  },
-
-  gold: {
-    name: "Gold",
-    color: 0xffc83d,
-    cost: 1000
-  }
+  blue:   { name: "Blau",   color: 0x2496ff, price: 0 },
+  green:  { name: "Grün",   color: 0x35d07f, price: 250 },
+  red:    { name: "Rot",    color: 0xff4c55, price: 500 },
+  purple: { name: "Lila",   color: 0xa56bff, price: 750 },
+  gold:   { name: "Gold",   color: 0xffc928, price: 1000 }
 };
 
 const upgradeDefinitions = {
   scoreBoost: {
-    name: "Score Boost",
-    description: "Du bekommst für die Laufzeit 1,5x Score.",
-    cost: 400
+    name: "Score-Boost",
+    description: "1,5-fache Punkte für einen Run.",
+    price: 400
   },
-
   extraLife: {
-    name: "Extra Life",
-    description: "Der erste Zusammenstoß beendet den Run nicht.",
-    cost: 600
+    name: "Extra-Leben",
+    description: "Übersteht einmal eine Kollision.",
+    price: 600
   }
 };
 
-let saveData = loadSave();
+const defaultSave = {
+  coins: 0,
+  ownedSkins: ["blue"],
+  selectedSkin: "blue",
+  upgrades: { scoreBoost: 0, extraLife: 0 },
+  activeUpgrades: { scoreBoost: false, extraLife: false },
+  bestScore: 0
+};
 
 function loadSave() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return structuredClone(defaultSave);
 
-    if (!raw) {
-      return structuredClone(defaultSave);
-    }
-
-    const loaded = JSON.parse(raw);
-
+    const old = JSON.parse(raw);
     return {
-      coins: Number(loaded.coins) || 0,
-
-      ownedSkins:
-        Array.isArray(loaded.ownedSkins) && loaded.ownedSkins.length
-          ? loaded.ownedSkins
-          : ["blue"],
-
-      selectedSkin:
-        loaded.selectedSkin && skinDefinitions[loaded.selectedSkin]
-          ? loaded.selectedSkin
-          : "blue",
-
-      upgrades: {
-        scoreBoost: Number(loaded.upgrades?.scoreBoost) || 0,
-        extraLife: Number(loaded.upgrades?.extraLife) || 0
-      },
-
-      activeUpgrades: {
-        scoreBoost: Boolean(loaded.activeUpgrades?.scoreBoost),
-        extraLife: Boolean(loaded.activeUpgrades?.extraLife)
-      },
-
-      bestScore: Number(loaded.bestScore) || 0
+      ...structuredClone(defaultSave),
+      ...old,
+      coins: Math.max(0, Number(old.coins) || 0),
+      ownedSkins: Array.isArray(old.ownedSkins) ? old.ownedSkins : ["blue"],
+      upgrades: { ...defaultSave.upgrades, ...(old.upgrades || {}) },
+      activeUpgrades: { ...defaultSave.activeUpgrades, ...(old.activeUpgrades || {}) },
+      bestScore: Math.max(0, Number(old.bestScore) || 0)
     };
   } catch (error) {
-    console.warn("Save konnte nicht geladen werden:", error);
+    console.warn("Spielstand konnte nicht gelesen werden:", error);
     return structuredClone(defaultSave);
   }
 }
 
+let saveData = loadSave();
+
+let runModifiers = {
+  scoreMultiplier: 1,
+  extraLife: false,
+  extraLifeUsed: false
+};
+
 function saveGame() {
   try {
-    localStorage.setItem(
-      SAVE_KEY,
-      JSON.stringify(saveData)
-    );
+    localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
   } catch (error) {
-    console.warn("Save konnte nicht gespeichert werden:", error);
+    console.warn("Spielstand konnte nicht gespeichert werden:", error);
   }
 }
 
@@ -130,332 +74,199 @@ function getCoins() {
 }
 
 function addCoins(amount) {
-  amount = Math.max(0, Math.floor(amount));
-
-  saveData.coins += amount;
-
+  saveData.coins += Math.max(0, Math.floor(amount));
   saveGame();
   updateCoinDisplays();
 }
 
 function spendCoins(amount) {
-  amount = Math.max(0, Math.floor(amount));
-
-  if (saveData.coins < amount) {
-    return false;
-  }
-
+  if (saveData.coins < amount) return false;
   saveData.coins -= amount;
-
   saveGame();
   updateCoinDisplays();
-
   return true;
 }
 
 function updateCoinDisplays() {
-  const elements = [
-    document.getElementById("coinCount"),
-    document.getElementById("menuCoinCount"),
-    document.getElementById("shopCoins")
-  ];
-
-  elements.forEach(element => {
-    if (element) {
-      element.textContent = saveData.coins;
-    }
+  ["coinCount", "menuCoinCount", "shopCoins"].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = saveData.coins;
   });
 }
 
 function getSelectedSkinColor() {
-  const skin =
-    skinDefinitions[saveData.selectedSkin] ||
-    skinDefinitions.blue;
-
+  const skin = skinDefinitions[saveData.selectedSkin] || skinDefinitions.blue;
   return skin.color;
-}
-
-function getSelectedSkinId() {
-  return saveData.selectedSkin;
 }
 
 function buySkin(id) {
   const skin = skinDefinitions[id];
-
-  if (!skin) {
-    return;
-  }
+  if (!skin) return;
 
   if (saveData.ownedSkins.includes(id)) {
     saveData.selectedSkin = id;
-
-    saveGame();
-    updateShop();
-
-    if (typeof applyPlayerSkin === "function") {
-      applyPlayerSkin();
+  } else {
+    if (!spendCoins(skin.price)) {
+      showPowerupMessage("Nicht genug Münzen!");
+      return;
     }
-
-    return;
+    saveData.ownedSkins.push(id);
+    saveData.selectedSkin = id;
   }
-
-  if (!spendCoins(skin.cost)) {
-    return;
-  }
-
-  saveData.ownedSkins.push(id);
-  saveData.selectedSkin = id;
 
   saveGame();
-
+  if (typeof applyPlayerSkin === "function") applyPlayerSkin();
   updateShop();
-
-  if (typeof applyPlayerSkin === "function") {
-    applyPlayerSkin();
-  }
 }
 
 function buyUpgrade(id) {
   const upgrade = upgradeDefinitions[id];
-
-  if (!upgrade) {
+  if (!upgrade || !spendCoins(upgrade.price)) {
+    showPowerupMessage("Nicht genug Münzen!");
     return;
   }
 
-  if (!spendCoins(upgrade.cost)) {
-    return;
-  }
-
-  saveData.upgrades[id]++;
-
+  saveData.upgrades[id] = (Number(saveData.upgrades[id]) || 0) + 1;
   saveGame();
   updateShop();
+  showPowerupMessage(upgrade.name + " gekauft!");
 }
 
 function toggleUpgrade(id) {
-  if (!saveData.upgrades[id]) {
+  if (!upgradeDefinitions[id]) return;
+
+  const charges = Number(saveData.upgrades[id]) || 0;
+  if (charges <= 0 && !saveData.activeUpgrades[id]) {
+    showPowerupMessage("Kaufe zuerst eine Ladung!");
     return;
   }
 
-  saveData.activeUpgrades[id] =
-    !saveData.activeUpgrades[id];
-
+  saveData.activeUpgrades[id] = !saveData.activeUpgrades[id];
   saveGame();
   updateShop();
 }
 
 function prepareRunUpgrades() {
-  const modifiers = {
+  const result = {
     scoreMultiplier: 1,
     extraLife: false,
     extraLifeUsed: false
   };
 
-  if (
-    saveData.activeUpgrades.scoreBoost &&
-    saveData.upgrades.scoreBoost > 0
-  ) {
-    modifiers.scoreMultiplier = 1.5;
-
+  if (saveData.activeUpgrades.scoreBoost && saveData.upgrades.scoreBoost > 0) {
+    result.scoreMultiplier = 1.5;
     saveData.upgrades.scoreBoost--;
-
-    saveData.activeUpgrades.scoreBoost = false;
+    if (saveData.upgrades.scoreBoost <= 0) saveData.activeUpgrades.scoreBoost = false;
   }
 
-  if (
-    saveData.activeUpgrades.extraLife &&
-    saveData.upgrades.extraLife > 0
-  ) {
-    modifiers.extraLife = true;
-
+  if (saveData.activeUpgrades.extraLife && saveData.upgrades.extraLife > 0) {
+    result.extraLife = true;
     saveData.upgrades.extraLife--;
-
-    saveData.activeUpgrades.extraLife = false;
+    if (saveData.upgrades.extraLife <= 0) saveData.activeUpgrades.extraLife = false;
   }
 
+  runModifiers = result;
   saveGame();
   updateShop();
-
-  return modifiers;
+  return result;
 }
 
 function consumeExtraLife() {
-  if (
-    typeof runModifiers === "undefined" ||
-    !runModifiers.extraLife ||
-    runModifiers.extraLifeUsed
-  ) {
-    return false;
-  }
-
+  if (!runModifiers.extraLife || runModifiers.extraLifeUsed) return false;
   runModifiers.extraLifeUsed = true;
-
-  showPowerupMessage("EXTRA LIFE!");
-
+  showPowerupMessage("Extra-Leben benutzt!");
   return true;
+}
+
+function showPowerupMessage(message) {
+  const box = document.getElementById("powerupInfo");
+  const text = document.getElementById("powerupText");
+  if (!box || !text) return;
+
+  text.textContent = message;
+  box.classList.remove("hidden");
+
+  clearTimeout(showPowerupMessage.timer);
+  showPowerupMessage.timer = setTimeout(() => {
+    box.classList.add("hidden");
+  }, 1800);
 }
 
 function updateShop() {
   updateCoinDisplays();
-
   renderSkins();
   renderUpgrades();
 }
 
 function renderSkins() {
   const container = document.getElementById("skinItems");
-
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = "";
+  if (!container) return;
+  container.replaceChildren();
 
   Object.entries(skinDefinitions).forEach(([id, skin]) => {
     const owned = saveData.ownedSkins.includes(id);
     const selected = saveData.selectedSkin === id;
+    const card = document.createElement("div");
+    card.className = "shopItem";
 
-    const item = document.createElement("div");
-    item.className = "shopItem";
+    const preview = document.createElement("div");
+    preview.className = "skinPreview";
+    preview.style.background = "#" + skin.color.toString(16).padStart(6, "0");
 
-    const color =
-      "#" + skin.color.toString(16).padStart(6, "0");
+    const title = document.createElement("h4");
+    title.textContent = skin.name;
 
-    let buttonText = "";
+    const description = document.createElement("p");
+    description.textContent = owned ? "Freigeschaltet" : `${skin.price} Münzen`;
 
-    if (selected) {
-      buttonText = "AUSGEWÄHLT";
-    } else if (owned) {
-      buttonText = "AUSWÄHLEN";
-    } else {
-      buttonText = `🪙 ${skin.cost} KAUFEN`;
-    }
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = selected ? "Ausgewählt" : owned ? "Auswählen" : `Kaufen · ${skin.price}`;
+    button.disabled = selected;
 
-    item.innerHTML = `
-      <div
-        class="skinPreview"
-        style="background:#${skin.color
-          .toString(16)
-          .padStart(6, "0")}"
-      ></div>
+    button.addEventListener("click", () => buySkin(id));
 
-      <h4>${skin.name}</h4>
-
-      <p>
-        ${owned ? "Besitzt du bereits." : `Preis: ${skin.cost} Coins`}
-      </p>
-
-      <button
-        data-skin="${id}"
-        ${selected ? "disabled" : ""}
-      >
-        ${buttonText}
-      </button>
-    `;
-
-    container.appendChild(item);
+    card.append(preview, title, description, button);
+    container.append(card);
   });
-
-  container
-    .querySelectorAll("[data-skin]")
-    .forEach(button => {
-      button.addEventListener("click", () => {
-        buySkin(button.dataset.skin);
-      });
-    });
 }
 
 function renderUpgrades() {
   const container = document.getElementById("upgradeItems");
-
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = "";
+  if (!container) return;
+  container.replaceChildren();
 
   Object.entries(upgradeDefinitions).forEach(([id, upgrade]) => {
-    const charges = saveData.upgrades[id] || 0;
-    const active = saveData.activeUpgrades[id];
+    const charges = Number(saveData.upgrades[id]) || 0;
+    const active = Boolean(saveData.activeUpgrades[id]);
 
-    const item = document.createElement("div");
+    const card = document.createElement("div");
+    card.className = "upgradeItem" + (active ? " activeUpgrade" : "");
 
-    item.className =
-      "upgradeItem" +
-      (active ? " activeUpgrade" : "");
+    const title = document.createElement("h4");
+    title.textContent = upgrade.name;
 
-    item.innerHTML = `
-      <h4>${upgrade.name}</h4>
+    const description = document.createElement("p");
+    description.textContent = upgrade.description;
 
-      <p>
-        ${upgrade.description}
-      </p>
+    const charge = document.createElement("span");
+    charge.className = "charge";
+    charge.textContent = `Ladungen: ${charges}`;
 
-      <span class="charge">
-        Anzahl: ${charges}
-      </span>
+    const buy = document.createElement("button");
+    buy.type = "button";
+    buy.textContent = `Kaufen · ${upgrade.price} 🪙`;
+    buy.addEventListener("click", () => buyUpgrade(id));
 
-      <button data-buy-upgrade="${id}">
-        🪙 ${upgrade.cost} KAUFEN
-      </button>
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.textContent = active ? "Deaktivieren" : "Vor Run aktivieren";
+    toggle.disabled = charges <= 0 && !active;
+    toggle.addEventListener("click", () => toggleUpgrade(id));
 
-      <button
-        data-toggle-upgrade="${id}"
-        ${charges <= 0 ? "disabled" : ""}
-      >
-        ${
-          active
-            ? "✓ AKTIVIERT"
-            : "AKTIVIEREN"
-        }
-      </button>
-    `;
-
-    container.appendChild(item);
+    card.append(title, description, charge, buy, toggle);
+    container.append(card);
   });
-
-  container
-    .querySelectorAll("[data-buy-upgrade]")
-    .forEach(button => {
-      button.addEventListener("click", () => {
-        buyUpgrade(button.dataset.buyUpgrade);
-      });
-    });
-
-  container
-    .querySelectorAll("[data-toggle-upgrade]")
-    .forEach(button => {
-      button.addEventListener("click", () => {
-        toggleUpgrade(button.dataset.toggleUpgrade);
-      });
-    });
 }
 
-function showPowerupMessage(text) {
-  const box = document.getElementById("powerupInfo");
-  const textElement = document.getElementById("powerupText");
-
-  if (!box || !textElement) {
-    return;
-  }
-
-  textElement.textContent = text;
-
-  box.classList.remove("hidden");
-
-  clearTimeout(showPowerupMessage.timeout);
-
-  showPowerupMessage.timeout =
-    setTimeout(() => {
-      box.classList.add("hidden");
-    }, 1500);
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  updateShop();
-  updateCoinDisplays();
-});
-
-window.addEventListener("pagehide", () => {
-  saveGame();
-});
+window.addEventListener("pagehide", saveGame);
