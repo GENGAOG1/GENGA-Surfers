@@ -1,1069 +1,411 @@
-/* =========================================================
-   GENGA SURFER
-   THREE.JS 3D ENGINE
-========================================================= */
 
-let scene;
-let camera;
-let renderer;
-
-let player;
-
-const lanePositions = [-2, 0, 2];
-
-let playerLane = 1;
-let targetPlayerX = 0;
-
+let scene, camera, renderer, player;
+let roadLines = [];
 let obstacleObjects = [];
 let coinObjects = [];
-
+let sceneryObjects = [];
+let playerLane = 1;
+let targetPlayerX = 0;
+let distanceUntilNextRow = 0;
 let lastRowWasSingle = false;
+let lastFrameTime = 0;
+let threeReady = false;
 
-const SPAWN_Z = -105;
-const ROW_DISTANCE = 24;
-
-const roadLength = 320;
-
-let initialized3D = false;
-
-
-/* =========================================================
-   INITIALIZATION
-========================================================= */
+const lanePositions = [-2, 0, 2];
+const playerZ = 2;
+const rowDistance = 24;
 
 function init3D() {
-  if (initialized3D) {
+  if (threeReady) return;
+  if (!window.THREE) {
+    console.error("Three.js wurde nicht geladen.");
     return;
   }
 
-  initialized3D = true;
+  const container = document.getElementById("gameContainer");
+  if (!container) return;
 
   scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x07111f);
+  scene.fog = new THREE.Fog(0x07111f, 35, 150);
 
-  scene.background = new THREE.Color(0x06101f);
+  camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 250);
+  camera.position.set(0, 5.8, 11);
+  camera.lookAt(0, 1, -22);
 
-  scene.fog = new THREE.Fog(
-    0x06101f,
-    45,
-    155
-  );
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  container.replaceChildren(renderer.domElement);
 
-  camera = new THREE.PerspectiveCamera(
-    65,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    300
-  );
+  scene.add(new THREE.HemisphereLight(0xb8d9ff, 0x152034, 2.1));
 
-  /*
-    Kamera bleibt komplett stabil.
-    Kein Wackeln und kein automatisches Hin- und Herbewegen.
-  */
-  camera.position.set(
-    0,
-    5.8,
-    11
-  );
+  const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+  sun.position.set(-5, 12, 6);
+  sun.castShadow = true;
+  scene.add(sun);
 
-  camera.lookAt(
-    0,
-    1,
-    -22
-  );
-
-  renderer = new THREE.WebGLRenderer({
-    antialias: true
-  });
-
-  renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio, 2)
-  );
-
-  renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
-  );
-
-  renderer.outputColorSpace =
-    THREE.SRGBColorSpace;
-
-  document
-    .getElementById("gameContainer")
-    .appendChild(renderer.domElement);
-
-  createLights();
-  createWorld();
-  createPlayer();
-
+  buildWorld();
+  buildPlayer();
   reset3DRun();
 
-  window.addEventListener(
-    "resize",
-    resize3D
-  );
-
-  animate3D();
+  addEventListener("resize", resize3D);
+  threeReady = true;
+  lastFrameTime = performance.now();
+  requestAnimationFrame(animate3D);
 }
 
-
-/* =========================================================
-   LIGHTS
-========================================================= */
-
-function createLights() {
-  const ambient = new THREE.AmbientLight(
-    0xffffff,
-    1.2
+function buildWorld() {
+  const road = new THREE.Mesh(
+    new THREE.PlaneGeometry(8, 230),
+    new THREE.MeshStandardMaterial({ color: 0x26364b, roughness: 0.9 })
   );
-
-  scene.add(ambient);
-
-  const directional =
-    new THREE.DirectionalLight(
-      0xffffff,
-      1.6
-    );
-
-  directional.position.set(
-    4,
-    12,
-    8
-  );
-
-  scene.add(directional);
-}
-
-
-/* =========================================================
-   WORLD
-========================================================= */
-
-function createWorld() {
-  const roadGeometry =
-    new THREE.PlaneGeometry(
-      8,
-      roadLength
-    );
-
-  const roadMaterial =
-    new THREE.MeshStandardMaterial({
-      color: 0x202936,
-      roughness: 0.9
-    });
-
-  const road =
-    new THREE.Mesh(
-      roadGeometry,
-      roadMaterial
-    );
-
   road.rotation.x = -Math.PI / 2;
-
-  road.position.set(
-    0,
-    0,
-    -90
-  );
-
+  road.position.set(0, -0.12, -65);
+  road.receiveShadow = true;
   scene.add(road);
 
-
-  /*
-    Seitliche Flächen
-  */
-
-  const sideGeometry =
-    new THREE.PlaneGeometry(
-      100,
-      roadLength
-    );
-
-  const sideMaterial =
-    new THREE.MeshStandardMaterial({
-      color: 0x0a1725
-    });
-
-  const leftSide =
-    new THREE.Mesh(
-      sideGeometry,
-      sideMaterial
-    );
-
-  leftSide.rotation.x = -Math.PI / 2;
-
-  leftSide.position.set(
-    -54,
-    -0.03,
-    -90
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 260),
+    new THREE.MeshStandardMaterial({ color: 0x0c1a2b, roughness: 1 })
   );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set(0, -0.22, -65);
+  scene.add(ground);
 
-  scene.add(leftSide);
-
-  const rightSide =
-    leftSide.clone();
-
-  rightSide.position.x = 54;
-
-  scene.add(rightSide);
-
-
-  /*
-    Fahrbahnlinien
-  */
-
-  const lineMaterial =
-    new THREE.MeshBasicMaterial({
-      color: 0x758092
-    });
-
-  [-1, 1].forEach(x => {
-    const line =
-      new THREE.Mesh(
-        new THREE.PlaneGeometry(
-          0.07,
-          roadLength
-        ),
-        lineMaterial
+  for (const x of [-1, 1]) {
+    for (let z = 8; z > -150; z -= 8) {
+      const line = new THREE.Mesh(
+        new THREE.BoxGeometry(0.055, 0.025, 3.5),
+        new THREE.MeshBasicMaterial({ color: 0x7895b5 })
       );
+      line.position.set(x, -0.085, z);
+      scene.add(line);
+      roadLines.push(line);
+    }
+  }
 
-    line.rotation.x = -Math.PI / 2;
-
-    line.position.set(
-      x,
-      0.012,
-      -90
-    );
-
-    scene.add(line);
-  });
+  for (const x of [-6, 6]) {
+    for (let z = -150; z < 10; z += 18) {
+      const h = 2 + Math.random() * 7;
+      const building = new THREE.Mesh(
+        new THREE.BoxGeometry(2.5, h, 3),
+        new THREE.MeshStandardMaterial({
+          color: Math.random() > 0.5 ? 0x142a43 : 0x1a304a,
+          roughness: 0.9
+        })
+      );
+      building.position.set(x + (Math.random() - 0.5) * 2, h / 2 - 0.2, z);
+      scene.add(building);
+      sceneryObjects.push(building);
+    }
+  }
 }
 
+function buildPlayer() {
+  const material = new THREE.MeshStandardMaterial({
+    color: getSkinColorSafe(),
+    roughness: 0.45,
+    metalness: 0.1
+  });
 
-/* =========================================================
-   PLAYER
-========================================================= */
+  player = new THREE.Group();
 
-function createPlayer() {
-  const geometry =
-    new THREE.BoxGeometry(
-      1.15,
-      1.7,
-      1.15
-    );
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.25, 0.65), material);
+  body.position.y = 0.85;
+  body.castShadow = true;
+  player.add(body);
 
-  const material =
-    new THREE.MeshStandardMaterial({
-      color:
-        typeof getSelectedSkinColor === "function"
-          ? getSelectedSkinColor()
-          : 0x2196f3,
-
-      roughness: 0.55
-    });
-
-  player =
-    new THREE.Mesh(
-      geometry,
-      material
-    );
-
-  player.position.set(
-    0,
-    0.9,
-    3
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.34, 20, 16),
+    new THREE.MeshStandardMaterial({ color: 0xffd1ad, roughness: 0.8 })
   );
+  head.position.y = 1.7;
+  head.castShadow = true;
+  player.add(head);
 
+  const legsMaterial = new THREE.MeshStandardMaterial({ color: 0x15243a });
+  for (const x of [-0.23, 0.23]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.55, 0.3), legsMaterial);
+    leg.position.set(x, 0.28, 0);
+    player.add(leg);
+  }
+
+  player.position.set(0, 0, playerZ);
   scene.add(player);
 }
 
+function getSkinColorSafe() {
+  return typeof getSelectedSkinColor === "function" ? getSelectedSkinColor() : 0x2496ff;
+}
+
 function applyPlayerSkin() {
-  if (!player) {
-    return;
-  }
-
-  if (
-    typeof getSelectedSkinColor ===
-    "function"
-  ) {
-    player.material.color.setHex(
-      getSelectedSkinColor()
-    );
+  if (!player) return;
+  const body = player.children[0];
+  if (body && body.material) {
+    body.material.color.setHex(getSkinColorSafe());
   }
 }
 
-
-/* =========================================================
-   OBSTACLES
-========================================================= */
-
-function createObstacle(
-  lane,
-  z,
-  color = null
-) {
-  const geometry =
-    new THREE.BoxGeometry(
-      1.55,
-      1.7,
-      1.55
-    );
-
-  const material =
-    new THREE.MeshStandardMaterial({
-      color:
-        color !== null
-          ? color
-          : randomObstacleColor(),
-
-      roughness: 0.7
-    });
-
-  const obstacle =
-    new THREE.Mesh(
-      geometry,
-      material
-    );
-
-  obstacle.position.set(
-    lanePositions[lane],
-    0.85,
-    z
-  );
-
-  obstacle.userData.lane = lane;
-
-  scene.add(obstacle);
-
-  obstacleObjects.push(obstacle);
-
-  return obstacle;
-}
-
-function randomObstacleColor() {
-  const colors = [
-    0xff4d5a,
-    0xff8c42,
-    0xffd23f,
-    0xd946ef
-  ];
-
-  return colors[
-    Math.floor(
-      Math.random() * colors.length
-    )
-  ];
-}
-
-function spawnObstacleRow(z) {
-  /*
-    Meistens zwei Blöcke.
-    Ein Block ist deutlich seltener.
-    Zwei Einzelreihen hintereinander
-    werden verhindert.
-  */
-
-  let single =
-    Math.random() < 0.20;
-
-  if (lastRowWasSingle) {
-    single = false;
+function clearDynamicObjects() {
+  for (const item of [...obstacleObjects, ...coinObjects]) {
+    scene.remove(item.mesh);
+    item.mesh.geometry.dispose();
+    if (item.mesh.material) item.mesh.material.dispose();
   }
-
-  if (single) {
-    const lane =
-      Math.floor(
-        Math.random() * 3
-      );
-
-    createObstacle(
-      lane,
-      z
-    );
-
-    lastRowWasSingle = true;
-
-    /*
-      Zwei freie Fahrspuren.
-    */
-    return [lane];
-  }
-
-  /*
-    Genau zwei von drei Spuren blockieren.
-    Eine Spur bleibt sicher.
-  */
-
-  const safeLane =
-    Math.floor(
-      Math.random() * 3
-    );
-
-  for (let lane = 0; lane < 3; lane++) {
-    if (lane !== safeLane) {
-      createObstacle(
-        lane,
-        z
-      );
-    }
-  }
-
-  lastRowWasSingle = false;
-
-  return [
-    0,
-    1,
-    2
-  ].filter(
-    lane => lane !== safeLane
-  );
-}
-
-
-/* =========================================================
-   COINS
-========================================================= */
-
-function createCoin(
-  lane,
-  z
-) {
-  const geometry =
-    new THREE.TorusGeometry(
-      0.32,
-      0.095,
-      8,
-      20
-    );
-
-  const material =
-    new THREE.MeshStandardMaterial({
-      color: 0xffd83d,
-      metalness: 0.75,
-      roughness: 0.25
-    });
-
-  const coin =
-    new THREE.Mesh(
-      geometry,
-      material
-    );
-
-  coin.rotation.x =
-    Math.PI / 2;
-
-  coin.position.set(
-    lanePositions[lane],
-    1.35,
-    z
-  );
-
-  coin.userData.lane = lane;
-
-  scene.add(coin);
-
-  coinObjects.push(coin);
-
-  return coin;
-}
-
-function spawnCoinPattern(
-  z,
-  blockedLanes
-) {
-  /*
-    Finde eine sichere Spur.
-  */
-
-  const safeLanes =
-    [0, 1, 2].filter(
-      lane =>
-        !blockedLanes.includes(lane)
-    );
-
-  if (safeLanes.length === 0) {
-    return;
-  }
-
-  const lane =
-    safeLanes[
-      Math.floor(
-        Math.random() *
-        safeLanes.length
-      )
-    ];
-
-  /*
-    Meistens eine kleine Coin-Linie.
-  */
-
-  const amount =
-    Math.random() < 0.2
-      ? 1
-      : 3;
-
-  for (let i = 0; i < amount; i++) {
-    createCoin(
-      lane,
-      z - i * 2.2
-    );
-  }
-
-  /*
-    Manchmal noch ein Coin
-    auf einer benachbarten Spur.
-  */
-
-  if (
-    amount >= 3 &&
-    Math.random() < 0.35
-  ) {
-    const alternatives =
-      safeLanes.filter(
-        value => value !== lane
-      );
-
-    if (alternatives.length) {
-      const other =
-        alternatives[
-          Math.floor(
-            Math.random() *
-            alternatives.length
-          )
-        ];
-
-      createCoin(
-        other,
-        z - 4.4
-      );
-    }
-  }
-}
-
-
-/* =========================================================
-   RESET
-========================================================= */
-
-function clearObstacles() {
-  obstacleObjects.forEach(
-    obstacle => {
-      scene.remove(obstacle);
-      obstacle.geometry.dispose();
-      obstacle.material.dispose();
-    }
-  );
-
   obstacleObjects = [];
-}
-
-function clearCoins() {
-  coinObjects.forEach(
-    coin => {
-      scene.remove(coin);
-      coin.geometry.dispose();
-      coin.material.dispose();
-    }
-  );
-
   coinObjects = [];
 }
 
 function reset3DRun() {
-  clearObstacles();
-  clearCoins();
+  if (!scene || !player) return;
 
+  clearDynamicObjects();
   playerLane = 1;
-  targetPlayerX =
-    lanePositions[1];
-
-  if (player) {
-    player.position.set(
-      0,
-      0.9,
-      3
-    );
-
-    applyPlayerSkin();
-  }
-
+  targetPlayerX = 0;
+  player.position.set(0, 0, playerZ);
   lastRowWasSingle = false;
+  distanceUntilNextRow = rowDistance;
 
-  /*
-    Startreihe bis weit nach hinten.
-  */
-
-  for (
-    let i = 0;
-    i < 8;
-    i++
-  ) {
-    const z =
-      SPAWN_Z -
-      i * ROW_DISTANCE;
-
-    const blocked =
-      spawnObstacleRow(z);
-
-    spawnCoinPattern(
-      z - 8,
-      blocked
-    );
-  }
+  spawnObstacleRow(-45);
+  spawnObstacleRow(-69);
+  spawnObstacleRow(-93);
+  spawnCoinPattern(-57, [0, 1, 2]);
 }
 
+function spawnObstacleRow(z) {
+  const roll = Math.random();
+  let lanes;
 
-/* =========================================================
-   ENDLESS SPAWNING
-========================================================= */
-
-function updateSpawning() {
-  if (!obstacleObjects.length) {
-    return;
-  }
-
-  let furthestZ =
-    obstacleObjects[0].position.z;
-
-  for (
-    const obstacle of obstacleObjects
-  ) {
-    if (
-      obstacle.position.z <
-      furthestZ
-    ) {
-      furthestZ =
-        obstacle.position.z;
+  if (roll < 0.13) {
+    // Eine komplett freie Reihe ist gelegentlich möglich.
+    lanes = [];
+  } else {
+    const single = Math.random() < 0.2 && !lastRowWasSingle;
+    if (single) {
+      lanes = [Math.floor(Math.random() * 3)];
+      lastRowWasSingle = true;
+    } else {
+      const safeLane = Math.floor(Math.random() * 3);
+      lanes = [0, 1, 2].filter(lane => lane !== safeLane);
+      lastRowWasSingle = false;
     }
   }
 
-  /*
-    Sobald die letzte Reihe näher
-    als -130 kommt, wird hinten
-    eine neue Reihe erzeugt.
-
-    Dadurch laufen Coins und Hindernisse
-    unbegrenzt weiter.
-  */
-
-  while (
-    furthestZ > -135
-  ) {
-    furthestZ -=
-      ROW_DISTANCE;
-
-    const blocked =
-      spawnObstacleRow(
-        furthestZ
-      );
-
-    spawnCoinPattern(
-      furthestZ - 8,
-      blocked
+  lanes.forEach(lane => {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1.25, 1.5, 1.1),
+      new THREE.MeshStandardMaterial({
+        color: [0xff5b58, 0xffb23f, 0xe75b91][Math.floor(Math.random() * 3)],
+        roughness: 0.65
+      })
     );
+    mesh.position.set(lanePositions[lane], 0.75, z);
+    mesh.castShadow = true;
+    scene.add(mesh);
+    obstacleObjects.push({ mesh, lane, hit: false });
+  });
+
+  const safeLanes = [0, 1, 2].filter(lane => !lanes.includes(lane));
+  if (safeLanes.length) spawnCoinPattern(z - 5, safeLanes);
+}
+
+function spawnCoinPattern(z, safeLanes) {
+  if (!safeLanes.length) return;
+
+  const lane = safeLanes[Math.floor(Math.random() * safeLanes.length)];
+  const count = 4 + Math.floor(Math.random() * 3);
+
+  for (let i = 0; i < count; i++) {
+    const mesh = new THREE.Mesh(
+      new THREE.TorusGeometry(0.28, 0.09, 8, 18),
+      new THREE.MeshStandardMaterial({
+        color: 0xffd84a,
+        emissive: 0x7a4a00,
+        metalness: 0.7,
+        roughness: 0.25
+      })
+    );
+    mesh.position.set(lanePositions[lane], 1.05, z - i * 1.6);
+    mesh.rotation.x = Math.PI / 2;
+    scene.add(mesh);
+    coinObjects.push({ mesh, lane, collected: false });
   }
 }
 
+function movePlayerLeft() {
+  if (!gameRunning || gamePaused) return;
+  playerLane = Math.max(0, playerLane - 1);
+  targetPlayerX = lanePositions[playerLane];
+}
 
-/* =========================================================
-   MOVEMENT
-========================================================= */
+function movePlayerRight() {
+  if (!gameRunning || gamePaused) return;
+  playerLane = Math.min(2, playerLane + 1);
+  targetPlayerX = lanePositions[playerLane];
+}
 
 function updatePlayer(delta) {
-  if (!player) {
-    return;
-  }
-
-  targetPlayerX =
-    lanePositions[playerLane];
-
-  /*
-    Weiche Spurbewegung.
-  */
-
-  const difference =
-    targetPlayerX -
-    player.position.x;
-
-  player.position.x +=
-    difference *
-    Math.min(
-      1,
-      delta * 13
-    );
+  if (!player) return;
+  player.position.x += (targetPlayerX - player.position.x) * Math.min(1, delta * 14);
 }
 
+function updateSpawning(delta) {
+  if (!gameRunning || gamePaused) return;
 
-/* =========================================================
-   OBSTACLE UPDATE
-========================================================= */
+  distanceUntilNextRow -= getCurrentGameSpeed() * delta;
+  while (distanceUntilNextRow <= 0) {
+    spawnObstacleRow(-100);
+    distanceUntilNextRow += rowDistance;
+  }
+}
 
 function updateObstacles(delta) {
-  if (
-    typeof gameRunning ===
-      "undefined" ||
-    !gameRunning ||
-    gamePaused
-  ) {
-    return;
-  }
+  if (!gameRunning || gamePaused) return;
 
-  const speed =
-    typeof getCurrentGameSpeed ===
-    "function"
-      ? getCurrentGameSpeed()
-      : 12;
+  const movement = getCurrentGameSpeed() * delta;
 
-  for (
-    let i =
-      obstacleObjects.length - 1;
-    i >= 0;
-    i--
-  ) {
-    const obstacle =
-      obstacleObjects[i];
+  for (const item of obstacleObjects) {
+    item.mesh.position.z += movement;
 
-    obstacle.position.z +=
-      speed * delta;
-
-    /*
-      Kollision.
-    */
-
-    if (
-      Math.abs(
-        obstacle.position.x -
-        player.position.x
-      ) < 0.95 &&
-      Math.abs(
-        obstacle.position.z -
-        player.position.z
-      ) < 1.15
-    ) {
-      if (
-        typeof consumeExtraLife ===
-        "function" &&
-        consumeExtraLife()
-      ) {
-        removeObstacle(i);
-        continue;
+    if (!item.hit && item.mesh.position.z > 0.7 && item.mesh.position.z < 3.4) {
+      if (item.lane === playerLane) {
+        item.hit = true;
+        if (typeof consumeExtraLife === "function" && consumeExtraLife()) {
+          item.mesh.position.z = 12;
+        } else {
+          endGame();
+          return;
+        }
       }
-
-      if (
-        typeof endGame ===
-        "function"
-      ) {
-        endGame();
-      }
-
-      return;
-    }
-
-    /*
-      Hinter der Kamera löschen.
-    */
-
-    if (
-      obstacle.position.z > 14
-    ) {
-      removeObstacle(i);
     }
   }
+
+  obstacleObjects = obstacleObjects.filter(item => {
+    if (item.mesh.position.z > 12) {
+      scene.remove(item.mesh);
+      item.mesh.geometry.dispose();
+      item.mesh.material.dispose();
+      return false;
+    }
+    return true;
+  });
 }
-
-function removeObstacle(index) {
-  const obstacle =
-    obstacleObjects[index];
-
-  if (!obstacle) {
-    return;
-  }
-
-  scene.remove(obstacle);
-
-  obstacle.geometry.dispose();
-  obstacle.material.dispose();
-
-  obstacleObjects.splice(
-    index,
-    1
-  );
-}
-
-
-/* =========================================================
-   COIN UPDATE
-========================================================= */
 
 function updateCoins(delta) {
-  if (
-    typeof gameRunning ===
-      "undefined" ||
-    !gameRunning ||
-    gamePaused
-  ) {
-    return;
-  }
+  if (!gameRunning || gamePaused) return;
 
-  const speed =
-    typeof getCurrentGameSpeed ===
-    "function"
-      ? getCurrentGameSpeed()
-      : 12;
+  const movement = getCurrentGameSpeed() * delta;
 
-  for (
-    let i =
-      coinObjects.length - 1;
-    i >= 0;
-    i--
-  ) {
-    const coin =
-      coinObjects[i];
+  for (const item of coinObjects) {
+    item.mesh.position.z += movement;
+    item.mesh.rotation.z += delta * 3;
 
-    coin.position.z +=
-      speed * delta;
-
-    coin.rotation.z +=
-      delta * 7;
-
-    /*
-      Coin-Kollision.
-    */
-
-    if (
-      Math.abs(
-        coin.position.x -
-        player.position.x
-      ) < 0.9 &&
-      Math.abs(
-        coin.position.z -
-        player.position.z
-      ) < 1.1
-    ) {
-      collectCoin(i);
-      continue;
-    }
-
-    if (
-      coin.position.z > 14
-    ) {
-      removeCoin(i);
+    if (!item.collected &&
+        item.lane === playerLane &&
+        Math.abs(item.mesh.position.z - playerZ) < 1.25) {
+      item.collected = true;
+      addCoins(1);
+      score += 5;
+      updateScoreDisplay();
+      item.mesh.position.z = 15;
     }
   }
+
+  coinObjects = coinObjects.filter(item => {
+    if (item.mesh.position.z > 12) {
+      scene.remove(item.mesh);
+      item.mesh.geometry.dispose();
+      item.mesh.material.dispose();
+      return false;
+    }
+    return true;
+  });
 }
-
-function collectCoin(index) {
-  const coin =
-    coinObjects[index];
-
-  if (!coin) {
-    return;
-  }
-
-  scene.remove(coin);
-
-  coin.geometry.dispose();
-  coin.material.dispose();
-
-  coinObjects.splice(
-    index,
-    1
-  );
-
-  if (
-    typeof addCoins ===
-    "function"
-  ) {
-    addCoins(1);
-  }
-
-  /*
-    Kleiner Score-Bonus.
-  */
-
-  if (
-    typeof score !==
-    "undefined"
-  ) {
-    score += 5;
-  }
-}
-
-function removeCoin(index) {
-  const coin =
-    coinObjects[index];
-
-  if (!coin) {
-    return;
-  }
-
-  scene.remove(coin);
-
-  coin.geometry.dispose();
-  coin.material.dispose();
-
-  coinObjects.splice(
-    index,
-    1
-  );
-}
-
-
-/* =========================================================
-   RUN SNAPSHOT
-========================================================= */
 
 function get3DRunSnapshot() {
   return {
     playerLane,
-
-    obstacles:
-      obstacleObjects.map(
-        obstacle => ({
-          lane:
-            obstacle.userData.lane,
-          z:
-            obstacle.position.z,
-          color:
-            obstacle.material.color.getHex()
-        })
-      ),
-
-    coins:
-      coinObjects.map(
-        coin => ({
-          lane:
-            coin.userData.lane,
-          z:
-            coin.position.z
-        })
-      )
+    distanceUntilNextRow,
+    lastRowWasSingle,
+    obstacles: obstacleObjects.map(item => ({
+      lane: item.lane,
+      z: item.mesh.position.z,
+      color: item.mesh.material.color.getHex(),
+      hit: item.hit
+    })),
+    coins: coinObjects.map(item => ({
+      lane: item.lane,
+      z: item.mesh.position.z,
+      collected: item.collected
+    }))
   };
 }
 
 function restore3DRun(snapshot) {
-  clearObstacles();
-  clearCoins();
+  if (!scene || !snapshot) return;
 
-  playerLane =
-    Number.isInteger(
-      snapshot.playerLane
-    )
-      ? snapshot.playerLane
-      : 1;
+  clearDynamicObjects();
+  playerLane = Math.max(0, Math.min(2, Number(snapshot.playerLane) || 1));
+  targetPlayerX = lanePositions[playerLane];
+  player.position.x = targetPlayerX;
+  distanceUntilNextRow = Number(snapshot.distanceUntilNextRow) || rowDistance;
+  lastRowWasSingle = Boolean(snapshot.lastRowWasSingle);
 
-  playerLane =
-    Math.max(
-      0,
-      Math.min(
-        2,
-        playerLane
-      )
+  (snapshot.obstacles || []).forEach(item => {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1.25, 1.5, 1.1),
+      new THREE.MeshStandardMaterial({ color: item.color || 0xff5b58 })
     );
+    mesh.position.set(lanePositions[item.lane] ?? 0, 0.75, item.z);
+    scene.add(mesh);
+    obstacleObjects.push({ mesh, lane: item.lane, hit: Boolean(item.hit) });
+  });
 
-  targetPlayerX =
-    lanePositions[playerLane];
-
-  player.position.x =
-    targetPlayerX;
-
-  snapshot.obstacles
-    .forEach(obstacle => {
-      createObstacle(
-        obstacle.lane,
-        obstacle.z,
-        obstacle.color
-      );
-    });
-
-  snapshot.coins
-    .forEach(coin => {
-      createCoin(
-        coin.lane,
-        coin.z
-      );
-    });
-
-  lastRowWasSingle = false;
+  (snapshot.coins || []).forEach(item => {
+    const mesh = new THREE.Mesh(
+      new THREE.TorusGeometry(0.28, 0.09, 8, 18),
+      new THREE.MeshStandardMaterial({ color: 0xffd84a, metalness: 0.7 })
+    );
+    mesh.position.set(lanePositions[item.lane] ?? 0, 1.05, item.z);
+    mesh.rotation.x = Math.PI / 2;
+    scene.add(mesh);
+    coinObjects.push({ mesh, lane: item.lane, collected: Boolean(item.collected) });
+  });
 }
-
-
-/* =========================================================
-   RESIZE
-========================================================= */
 
 function resize3D() {
-  if (!camera || !renderer) {
-    return;
-  }
-
-  camera.aspect =
-    window.innerWidth /
-    window.innerHeight;
-
+  if (!camera || !renderer) return;
+  camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-
-  renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
-  );
+  renderer.setSize(innerWidth, innerHeight);
 }
 
+function animate3D(now) {
+  requestAnimationFrame(animate3D);
 
-/* =========================================================
-   MAIN 3D LOOP
-========================================================= */
+  const delta = Math.min((now - lastFrameTime) / 1000 || 0, 0.05);
+  lastFrameTime = now;
 
-let previousTime = 0;
-
-function animate3D(time = 0) {
-  requestAnimationFrame(
-    animate3D
-  );
-
-  const delta =
-    Math.min(
-      (time - previousTime) /
-        1000,
-      0.05
-    );
-
-  previousTime = time;
-
-  if (
-    typeof gameRunning !==
-      "undefined" &&
-    gameRunning &&
-    !gamePaused
-  ) {
+  if (gameRunning && !gamePaused) {
+    updateGame(delta);
     updatePlayer(delta);
     updateObstacles(delta);
     updateCoins(delta);
-    updateSpawning();
+    updateSpawning(delta);
 
-    if (
-      typeof updateGame ===
-      "function"
-    ) {
-      updateGame(delta);
-    }
+    roadLines.forEach(line => {
+      line.position.z += getCurrentGameSpeed() * delta;
+      if (line.position.z > 10) line.position.z -= 160;
+    });
+
+    sceneryObjects.forEach(building => {
+      building.position.z += getCurrentGameSpeed() * delta * 0.55;
+      if (building.position.z > 12) building.position.z -= 170;
+    });
   }
 
-  if (renderer && scene && camera) {
-    renderer.render(
-      scene,
-      camera
-    );
-  }
+  if (renderer && scene && camera) renderer.render(scene, camera);
 }
-
-
-/* =========================================================
-   START
-========================================================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-    init3D();
-  }
-);
