@@ -1,88 +1,132 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#07111f">
-  <title>Genga Surfer</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+    <meta name="theme-color" content="#07152d">
+    <title>Genga Surfer</title>
+    <!-- Flask: richtige CSS-Datei laden -->
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/game.css') }}"
+    >
 </head>
 <body>
-  <div id="gameContainer"></div>
-
-  <div id="hud">
-    <div class="hudLeft">
-      <div class="hudBox">🪙 <span id="coinCount">0</span></div>
-      <div class="hudBox">Score: <span id="score">0</span></div>
-    </div>
-    <button id="pauseButton" class="pauseButton hidden" type="button">Ⅱ</button>
-  </div>
-
-  <div id="startScreen" class="screen">
-    <div class="panel">
-      <h1>GENGA<br>SURFER</h1>
-      <p class="subtitle">Endless Runner</p>
-      <div class="menuCoins">🪙 <span id="menuCoinCount">0</span></div>
-      <button id="startButton" class="mainButton" type="button">SPIELEN</button>
-      <button id="resumeButton" class="secondaryButton hidden" type="button">FORTSETZEN</button>
-      <button id="openShopButton" class="secondaryButton" type="button">🛒 SHOP</button>
-      <p class="controlsText">← → oder A / D oder Wischen zum Bewegen</p>
-    </div>
-  </div>
-
-  <div id="pauseScreen" class="screen hidden">
-    <div class="panel">
-      <h2>PAUSE</h2>
-      <button id="resumeGameButton" class="mainButton" type="button">WEITERSPIELEN</button>
-      <button id="pauseShopButton" class="secondaryButton" type="button">🛒 SHOP</button>
-      <button id="pauseMenuButton" class="secondaryButton" type="button">HAUPTMENÜ</button>
-    </div>
-  </div>
-
-  <div id="gameOverScreen" class="screen hidden">
-    <div class="panel">
-      <h2>GAME OVER</h2>
-      <div class="resultText">Score<strong id="finalScore">0</strong></div>
-      <div class="resultText">Bestwert<strong id="bestScore">0</strong></div>
-      <button id="restartButton" class="mainButton" type="button">NOCHMAL</button>
-      <button id="gameOverShopButton" class="secondaryButton" type="button">🛒 SHOP</button>
-      <button id="gameOverMenuButton" class="secondaryButton" type="button">HAUPTMENÜ</button>
-    </div>
-  </div>
-
-  <div id="shopScreen" class="screen hidden">
-    <div class="shopPanel">
-      <div class="shopHeader">
-        <div>
-          <h2>SHOP</h2>
-          <div class="shopCoins">🪙 <span id="shopCoins">0</span></div>
+    <main id="game">
+        <!-- 3D-Spielbereich -->
+        <div id="gameCanvas"></div>
+        <!-- HUD -->
+        <header class="game-header">
+            <div class="hud-box">
+                <span>MÜNZEN</span>
+                <strong id="coinCount">0</strong>
+            </div>
+            <div class="hud-box">
+                <span>SCORE</span>
+                <strong id="score">0</strong>
+            </div>
+            <button
+                id="pauseButton"
+                type="button"
+                aria-label="Spiel pausieren"
+            >Ⅱ</button>
+        </header>
+        <!-- HAUPTMENÜ -->
+        <section id="startScreen" class="game-screen">
+            <h1>GENGA<br>SURFER</h1>
+            <p>Endless Runner</p>
+            <div class="menu-coins">
+                🪙 <span id="menuCoinCount">0</span>
+            </div>
+            <button id="startButton" type="button">
+                SPIELEN
+            </button>
+            <button
+                id="resumeButton"
+                class="hidden"
+                type="button"
+            >
+                FORTSETZEN
+            </button>
+            <button id="openShopButton" type="button">
+                🛒 SHOP
+            </button>
+            <p>
+                ← → oder A / D<br>
+                oder Wischen zum Bewegen
+            </p>
+        </section>
+        <!-- PAUSE -->
+        <section id="pauseScreen" class="game-screen hidden">
+            <h1>PAUSE</h1>
+            <button id="resumeGameButton" type="button">
+                WEITERSPIELEN
+            </button>
+            <button id="pauseShopButton" type="button">
+                🛒 SHOP
+            </button>
+            <button id="pauseMenuButton" type="button">
+                HAUPTMENÜ
+            </button>
+        </section>
+        <!-- GAME OVER -->
+        <section id="gameOverScreen" class="game-screen hidden">
+            <h1>GAME OVER</h1>
+            <p>
+                Score:
+                <strong id="finalScore">0</strong>
+            </p>
+            <p>
+                Bestwert:
+                <strong id="bestScore">0</strong>
+            </p>
+            <button id="restartButton" type="button">
+                NOCHMAL
+            </button>
+            <button id="gameOverShopButton" type="button">
+                🛒 SHOP
+            </button>
+            <button id="gameOverMenuButton" type="button">
+                HAUPTMENÜ
+            </button>
+        </section>
+        <!-- SHOP -->
+        <section id="shopScreen" class="game-screen hidden">
+            <div class="shop-header">
+                <h1>SHOP</h1>
+                <button
+                    id="closeShopButton"
+                    class="back-button"
+                    type="button"
+                    aria-label="Shop schließen"
+                >✕</button>
+            </div>
+            <div class="shop-coins">
+                🪙 <span id="shopCoins">0</span>
+            </div>
+            <h2>SKINS</h2>
+            <div id="skinItems" class="shop-items"></div>
+            <h2>UPGRADES</h2>
+            <p>
+                Kaufe Upgrades für deinen nächsten Run.
+            </p>
+            <div id="upgradeItems" class="shop-items"></div>
+        </section>
+        <!-- POWER-UP-HINWEIS -->
+        <div id="powerupInfo" class="hidden">
+            <span id="powerupText"></span>
         </div>
-        <button id="closeShopButton" class="closeButton" type="button" aria-label="Shop schließen">✕</button>
-      </div>
-
-      <div class="shopSection">
-        <h3>SKINS</h3>
-        <div id="skinItems" class="shopGrid"></div>
-      </div>
-
-      <div class="shopSection">
-        <h3>UPGRADES</h3>
-        <p class="shopHint">Kaufe Upgrades und aktiviere sie vor deinem nächsten Run.</p>
-        <div id="upgradeItems" class="upgradeList"></div>
-      </div>
-    </div>
-  </div>
-
-  <div id="powerupInfo" class="powerupInfo hidden">
-    <span id="powerupText"></span>
-  </div>
-
-  <!-- Reihenfolge wichtig: erst Bibliothek, dann Spielskripte -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="upgrades.js"></script>
-  <script src="game3d.js"></script>
-  <script src="controls.js"></script>
-  <script src="game.js"></script>
+    </main>
+    <!-- Three.js zuerst laden -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <!-- Spielskripte aus static/js -->
+    <script src="{{ url_for('static', filename='js/save.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/upgrades.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/game3d.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/controls.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
 </body>
 </html>
