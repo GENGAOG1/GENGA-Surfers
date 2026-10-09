@@ -1,678 +1,239 @@
-/* =========================================================
-   GENGA SURFER
-   MAIN GAME LOGIC
-========================================================= */
 
 let gameRunning = false;
 let gamePaused = false;
-
 let score = 0;
 let runTime = 0;
-
-let runModifiers = {
-  scoreMultiplier: 1,
-  extraLife: false,
-  extraLifeUsed: false
-};
-
 let savedRunAvailable = false;
 
+let startScreen, pauseScreen, gameOverScreen, shopScreen;
+let startButton, resumeButton, pauseButton;
+let scoreElement, finalScoreElement, bestScoreElement;
 
-/* =========================================================
-   ELEMENTS
-========================================================= */
+document.addEventListener("DOMContentLoaded", () => {
+  const byId = id => document.getElementById(id);
 
-let startScreen;
-let pauseScreen;
-let gameOverScreen;
-let shopScreen;
+  startScreen = byId("startScreen");
+  pauseScreen = byId("pauseScreen");
+  gameOverScreen = byId("gameOverScreen");
+  shopScreen = byId("shopScreen");
 
-let startButton;
-let resumeButton;
-let pauseButton;
+  startButton = byId("startButton");
+  resumeButton = byId("resumeButton");
+  pauseButton = byId("pauseButton");
 
-let scoreElement;
-let finalScoreElement;
-let bestScoreElement;
+  scoreElement = byId("score");
+  finalScoreElement = byId("finalScore");
+  bestScoreElement = byId("bestScore");
 
+  // Buttons werden direkt registriert.
+  startButton.addEventListener("click", startGame);
+  resumeButton.addEventListener("click", resumeSavedRun);
+  pauseButton.addEventListener("click", togglePause);
+  byId("resumeGameButton").addEventListener("click", resumeGame);
+  byId("restartButton").addEventListener("click", startGame);
 
-/* =========================================================
-   INITIALIZATION
-========================================================= */
+  byId("pauseMenuButton").addEventListener("click", goToMainMenu);
+  byId("gameOverMenuButton").addEventListener("click", goToMainMenu);
 
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-    startScreen =
-      document.getElementById(
-        "startScreen"
-      );
+  byId("openShopButton").addEventListener("click", () => openShop("start"));
+  byId("pauseShopButton").addEventListener("click", () => openShop("pause"));
+  byId("gameOverShopButton").addEventListener("click", () => openShop("gameover"));
+  byId("closeShopButton").addEventListener("click", closeShop);
 
-    pauseScreen =
-      document.getElementById(
-        "pauseScreen"
-      );
-
-    gameOverScreen =
-      document.getElementById(
-        "gameOverScreen"
-      );
-
-    shopScreen =
-      document.getElementById(
-        "shopScreen"
-      );
-
-    startButton =
-      document.getElementById(
-        "startButton"
-      );
-
-    resumeButton =
-      document.getElementById(
-        "resumeButton"
-      );
-
-    pauseButton =
-      document.getElementById(
-        "pauseButton"
-      );
-
-    scoreElement =
-      document.getElementById(
-        "score"
-      );
-
-    finalScoreElement =
-      document.getElementById(
-        "finalScore"
-      );
-
-    bestScoreElement =
-      document.getElementById(
-        "bestScore"
-      );
-
-
-    /*
-      Buttons
-    */
-
-    startButton.addEventListener(
-      "click",
-      () => {
-        startGame();
-      }
-    );
-
-    resumeButton.addEventListener(
-      "click",
-      () => {
-        resumeSavedRun();
-      }
-    );
-
-    pauseButton.addEventListener(
-      "click",
-      () => {
-        togglePause();
-      }
-    );
-
-
-    document
-      .getElementById(
-        "resumeGameButton"
-      )
-      .addEventListener(
-        "click",
-        () => {
-          resumeGame();
-        }
-      );
-
-
-    document
-      .getElementById(
-        "restartButton"
-      )
-      .addEventListener(
-        "click",
-        () => {
-          startGame();
-        }
-      );
-
-
-    document
-      .getElementById(
-        "pauseMenuButton"
-      )
-      .addEventListener(
-        "click",
-        () => {
-          goToMainMenu();
-        }
-      );
-
-
-    document
-      .getElementById(
-        "gameOverMenuButton"
-      )
-      .addEventListener(
-        "click",
-        () => {
-          goToMainMenu();
-        }
-      );
-
-
-    document
-      .getElementById(
-        "openShopButton"
-      )
-      .addEventListener(
-        "click",
-        () => {
-          openShop();
-        }
-      );
-
-
-    document
-      .getElementById(
-        "pauseShopButton"
-      )
-      .addEventListener(
-        "click",
-        () => {
-          openShop();
-        }
-      );
-
-
-    document
-      .getElementById(
-        "gameOverShopButton"
-      )
-      .addEventListener(
-        "click",
-        () => {
-          openShop();
-        }
-      );
-
-
-    document
-      .getElementById(
-        "closeShopButton"
-      )
-      .addEventListener(
-        "click",
-        () => {
-          closeShop();
-        }
-      );
-
-
-    updateBestScoreDisplay();
-
-    checkSavedRun();
-
-    hidePauseButton();
+  // Event-Listener sind bereits gesetzt, bevor die 3D-Engine startet.
+  try {
+    if (typeof init3D === "function") init3D();
+  } catch (error) {
+    console.error("3D-Initialisierung fehlgeschlagen:", error);
   }
-);
 
-
-/* =========================================================
-   START GAME
-========================================================= */
+  updateCoinDisplays();
+  updateBestScoreDisplay();
+  checkSavedRun();
+  hidePauseButton();
+});
 
 function startGame() {
-  /*
-    Neuer Run löscht den alten
-    gespeicherten Run.
-  */
-
   clearSavedRun();
 
   score = 0;
   runTime = 0;
 
-  runModifiers =
-    typeof prepareRunUpgrades ===
-    "function"
-      ? prepareRunUpgrades()
-      : {
-          scoreMultiplier: 1,
-          extraLife: false,
-          extraLifeUsed: false
-        };
+  if (typeof prepareRunUpgrades === "function") {
+    runModifiers = prepareRunUpgrades();
+  } else {
+    runModifiers = {
+      scoreMultiplier: 1,
+      extraLife: false,
+      extraLifeUsed: false
+    };
+  }
 
   gameRunning = true;
   gamePaused = false;
 
-  if (
-    typeof reset3DRun ===
-    "function"
-  ) {
-    reset3DRun();
+  try {
+    if (typeof reset3DRun === "function") reset3DRun();
+  } catch (error) {
+    console.error("Spiel konnte nicht zurückgesetzt werden:", error);
   }
 
   hideAllScreens();
-
-  hidePauseButton();
-
-  /*
-    Pause-Button erst nach dem
-    Start sichtbar.
-  */
-
-  pauseButton.classList.remove(
-    "hidden"
-  );
-
+  pauseButton.classList.remove("hidden");
   updateScoreDisplay();
-
   updateBestScoreDisplay();
 }
 
-
-/* =========================================================
-   PAUSE
-========================================================= */
-
 function togglePause() {
-  if (!gameRunning) {
-    return;
-  }
-
-  if (gamePaused) {
-    resumeGame();
-  } else {
-    pauseGame();
-  }
+  if (!gameRunning) return;
+  if (gamePaused) resumeGame();
+  else pauseGame();
 }
 
-function pauseGame(
-  automatic = false
-) {
-  if (
-    !gameRunning ||
-    gamePaused
-  ) {
-    return;
-  }
+function pauseGame() {
+  if (!gameRunning || gamePaused) return;
 
   gamePaused = true;
-
-  pauseScreen.classList.remove(
-    "hidden"
-  );
-
-  pauseButton.classList.add(
-    "hidden"
-  );
-
+  pauseScreen.classList.remove("hidden");
+  pauseButton.classList.add("hidden");
   saveCurrentRun();
-
-  if (!automatic) {
-    /*
-      Normale Pause.
-    */
-  }
 }
 
 function resumeGame() {
-  if (!gameRunning) {
-    return;
-  }
+  if (!gameRunning) return;
 
   gamePaused = false;
-
-  pauseScreen.classList.add(
-    "hidden"
-  );
-
-  pauseButton.classList.remove(
-    "hidden"
-  );
+  pauseScreen.classList.add("hidden");
+  pauseButton.classList.remove("hidden");
 }
 
-
-/* =========================================================
-   SCORE / SPEED
-========================================================= */
-
 function updateGame(delta) {
-  if (
-    !gameRunning ||
-    gamePaused
-  ) {
-    return;
-  }
+  if (!gameRunning || gamePaused) return;
 
   runTime += delta;
-
-  score +=
-    delta *
-    runModifiers.scoreMultiplier;
-
+  score += delta * (runModifiers?.scoreMultiplier || 1);
   updateScoreDisplay();
 }
 
 function getCurrentGameSpeed() {
-  /*
-    Start: 12
-    Später: deutlich schneller
-    Maximum: 29
-  */
-
-  return Math.min(
-    29,
-    12 +
-      runTime * 0.42
-  );
+  return Math.min(29, 12 + runTime * 0.42);
 }
 
 function updateScoreDisplay() {
-  if (!scoreElement) {
-    return;
-  }
-
-  scoreElement.textContent =
-    Math.floor(score);
+  if (scoreElement) scoreElement.textContent = Math.floor(score);
 }
 
 function updateBestScoreDisplay() {
-  if (!bestScoreElement) {
-    return;
-  }
+  if (!bestScoreElement) return;
 
-  let best = 0;
-
-  try {
-    const raw =
-      localStorage.getItem(
-        SAVE_KEY
-      );
-
-    if (raw) {
-      const data =
-        JSON.parse(raw);
-
-      best =
-        Number(data.bestScore) ||
-        0;
-    }
-  } catch {
-    best = 0;
-  }
-
-  bestScoreElement.textContent =
-    Math.floor(best);
+  const best = Number(saveData?.bestScore) || 0;
+  bestScoreElement.textContent = Math.floor(best);
 }
 
-
-/* =========================================================
-   GAME OVER
-========================================================= */
-
 function endGame() {
-  if (!gameRunning) {
-    return;
-  }
+  if (!gameRunning) return;
 
   gameRunning = false;
   gamePaused = false;
 
-  /*
-    Bestenwert speichern.
-  */
+  const final = Math.floor(score);
+  saveData.bestScore = Math.max(Number(saveData.bestScore) || 0, final);
 
-  const final =
-    Math.floor(score);
-
-  try {
-    const raw =
-      localStorage.getItem(
-        SAVE_KEY
-      );
-
-    const data =
-      raw
-        ? JSON.parse(raw)
-        : {};
-
-    data.bestScore =
-      Math.max(
-        Number(data.bestScore) || 0,
-        final
-      );
-
-    localStorage.setItem(
-      SAVE_KEY,
-      JSON.stringify(data)
-    );
-  } catch (error) {
-    console.warn(
-      "Bestwert konnte nicht gespeichert werden.",
-      error
-    );
-  }
-
+  if (typeof saveGame === "function") saveGame();
   clearSavedRun();
 
-  finalScoreElement.textContent =
-    final;
-
+  finalScoreElement.textContent = final;
   updateBestScoreDisplay();
-
   hidePauseButton();
 
-  pauseScreen.classList.add(
-    "hidden"
-  );
-
-  startScreen.classList.add(
-    "hidden"
-  );
-
-  shopScreen.classList.add(
-    "hidden"
-  );
-
-  gameOverScreen.classList.remove(
-    "hidden"
-  );
+  pauseScreen.classList.add("hidden");
+  startScreen.classList.add("hidden");
+  shopScreen.classList.add("hidden");
+  gameOverScreen.classList.remove("hidden");
 }
 
+let shopReturnScreen = "start";
 
-/* =========================================================
-   MAIN MENU
-========================================================= */
+function openShop(from = "start") {
+  shopReturnScreen = from;
 
-function goToMainMenu() {
-  /*
-    Wenn man aus einem laufenden
-    pausierten Run kommt, bleibt der
-    Run gespeichert.
-  */
-
-  if (
-    gameRunning &&
-    gamePaused
-  ) {
+  if (from === "pause" && gameRunning) {
+    gamePaused = true;
     saveCurrentRun();
   }
 
-  gameRunning = false;
-  gamePaused = false;
+  startScreen.classList.add("hidden");
+  pauseScreen.classList.add("hidden");
+  gameOverScreen.classList.add("hidden");
+  shopScreen.classList.remove("hidden");
 
-  pauseScreen.classList.add(
-    "hidden"
-  );
+  if (typeof updateShop === "function") updateShop();
+}
 
-  gameOverScreen.classList.add(
-    "hidden"
-  );
+function closeShop() {
+  shopScreen.classList.add("hidden");
 
-  shopScreen.classList.add(
-    "hidden"
-  );
-
-  startScreen.classList.remove(
-    "hidden"
-  );
-
-  hidePauseButton();
+  if (shopReturnScreen === "pause" && gameRunning) {
+    pauseScreen.classList.remove("hidden");
+    gamePaused = true;
+  } else if (shopReturnScreen === "gameover") {
+    gameOverScreen.classList.remove("hidden");
+  } else {
+    startScreen.classList.remove("hidden");
+  }
 
   checkSavedRun();
 }
 
+function goToMainMenu() {
+  if (gameRunning && gamePaused) saveCurrentRun();
 
-/* =========================================================
-   SHOP
-========================================================= */
+  gameRunning = false;
+  gamePaused = false;
 
-function openShop() {
-  /*
-    Während eines laufenden Runs
-    bleibt das Spiel pausiert.
-  */
-
-  if (
-    gameRunning &&
-    !gamePaused
-  ) {
-    pauseGame(true);
-  }
-
-  shopScreen.classList.remove(
-    "hidden"
-  );
-
-  if (
-    typeof updateShop ===
-    "function"
-  ) {
-    updateShop();
-  }
+  hideAllScreens();
+  startScreen.classList.remove("hidden");
+  hidePauseButton();
+  checkSavedRun();
+  updateCoinDisplays();
 }
-
-function closeShop() {
-  shopScreen.classList.add(
-    "hidden"
-  );
-
-  /*
-    Wenn der Shop aus der Pause
-    geöffnet wurde, bleibt das Spiel
-    pausiert.
-  */
-
-  if (
-    gameRunning &&
-    gamePaused
-  ) {
-    pauseScreen.classList.remove(
-      "hidden"
-    );
-  }
-}
-
-
-/* =========================================================
-   SCREEN HELPERS
-========================================================= */
 
 function hideAllScreens() {
-  startScreen.classList.add(
-    "hidden"
-  );
-
-  pauseScreen.classList.add(
-    "hidden"
-  );
-
-  gameOverScreen.classList.add(
-    "hidden"
-  );
-
-  shopScreen.classList.add(
-    "hidden"
-  );
+  startScreen.classList.add("hidden");
+  pauseScreen.classList.add("hidden");
+  gameOverScreen.classList.add("hidden");
+  shopScreen.classList.add("hidden");
 }
 
 function hidePauseButton() {
-  if (pauseButton) {
-    pauseButton.classList.add(
-      "hidden"
-    );
-  }
+  if (pauseButton) pauseButton.classList.add("hidden");
 }
 
-
-/* =========================================================
-   SAVED RUN
-========================================================= */
-
 function saveCurrentRun() {
-  if (
-    !gameRunning ||
-    typeof get3DRunSnapshot !==
-      "function"
-  ) {
-    return;
-  }
-
-  const snapshot =
-    get3DRunSnapshot();
+  if (!gameRunning || typeof get3DRunSnapshot !== "function") return;
 
   const data = {
     score,
     runTime,
     runModifiers,
-    snapshot,
+    snapshot: get3DRunSnapshot(),
     timestamp: Date.now()
   };
 
   try {
-    localStorage.setItem(
-      RUN_SAVE_KEY,
-      JSON.stringify(data)
-    );
+    localStorage.setItem(RUN_SAVE_KEY, JSON.stringify(data));
   } catch (error) {
-    console.warn(
-      "Run konnte nicht gespeichert werden:",
-      error
-    );
+    console.warn("Run konnte nicht gespeichert werden:", error);
   }
 }
 
 function loadCurrentRun() {
   try {
-    const raw =
-      localStorage.getItem(
-        RUN_SAVE_KEY
-      );
+    const raw = localStorage.getItem(RUN_SAVE_KEY);
+    if (!raw) return null;
 
-    if (!raw) {
-      return null;
-    }
-
-    const data =
-      JSON.parse(raw);
-
-    if (
-      !data ||
-      !data.snapshot
-    ) {
-      return null;
-    }
-
-    return data;
+    const data = JSON.parse(raw);
+    return data?.snapshot ? data : null;
   } catch {
     return null;
   }
@@ -680,134 +241,58 @@ function loadCurrentRun() {
 
 function clearSavedRun() {
   try {
-    localStorage.removeItem(
-      RUN_SAVE_KEY
-    );
-  } catch {
-    // nichts
+    localStorage.removeItem(RUN_SAVE_KEY);
+  } catch (error) {
+    console.warn("Gespeicherter Run konnte nicht gelöscht werden:", error);
   }
-
   savedRunAvailable = false;
 }
 
 function checkSavedRun() {
-  const saved =
-    loadCurrentRun();
+  const saved = loadCurrentRun();
+  savedRunAvailable = Boolean(saved);
 
-  savedRunAvailable =
-    Boolean(saved);
-
-  if (
-    savedRunAvailable &&
-    resumeButton
-  ) {
-    resumeButton.classList.remove(
-      "hidden"
-    );
-  } else if (resumeButton) {
-    resumeButton.classList.add(
-      "hidden"
-    );
+  if (resumeButton) {
+    resumeButton.classList.toggle("hidden", !savedRunAvailable);
   }
 }
 
 function resumeSavedRun() {
-  const saved =
-    loadCurrentRun();
-
+  const saved = loadCurrentRun();
   if (!saved) {
     startGame();
     return;
   }
 
-  score =
-    Number(saved.score) || 0;
-
-  runTime =
-    Number(saved.runTime) || 0;
-
-  runModifiers =
-    saved.runModifiers || {
-      scoreMultiplier: 1,
-      extraLife: false,
-      extraLifeUsed: false
-    };
+  score = Number(saved.score) || 0;
+  runTime = Number(saved.runTime) || 0;
+  runModifiers = saved.runModifiers || {
+    scoreMultiplier: 1,
+    extraLife: false,
+    extraLifeUsed: false
+  };
 
   gameRunning = true;
   gamePaused = false;
 
-  if (
-    typeof restore3DRun ===
-    "function"
-  ) {
-    restore3DRun(
-      saved.snapshot
-    );
+  try {
+    if (typeof restore3DRun === "function") restore3DRun(saved.snapshot);
+  } catch (error) {
+    console.error("Run konnte nicht fortgesetzt werden:", error);
+    startGame();
+    return;
   }
 
   hideAllScreens();
-
-  pauseButton.classList.remove(
-    "hidden"
-  );
-
+  pauseButton.classList.remove("hidden");
   updateScoreDisplay();
 }
 
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && gameRunning && !gamePaused) pauseGame();
+});
 
-/* =========================================================
-   PAGE / TAB CHANGE
-========================================================= */
-
-document.addEventListener(
-  "visibilitychange",
-  () => {
-    if (
-      document.hidden &&
-      gameRunning
-    ) {
-      pauseGame(true);
-    }
-  }
-);
-
-window.addEventListener(
-  "pagehide",
-  () => {
-    if (gameRunning) {
-      if (!gamePaused) {
-        gamePaused = true;
-      }
-
-      saveCurrentRun();
-    }
-
-    if (
-      typeof saveGame ===
-      "function"
-    ) {
-      saveGame();
-    }
-  }
-);
-
-
-/* =========================================================
-   BEFORE LEAVING
-========================================================= */
-
-window.addEventListener(
-  "beforeunload",
-  () => {
-    if (gameRunning) {
-      saveCurrentRun();
-    }
-
-    if (
-      typeof saveGame ===
-      "function"
-    ) {
-      saveGame();
-    }
-  }
-);
+window.addEventListener("pagehide", () => {
+  if (gameRunning) saveCurrentRun();
+  if (typeof saveGame === "function") saveGame();
+});
